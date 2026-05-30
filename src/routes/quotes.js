@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -154,6 +154,150 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
 
     const { rows } = await query(`${BASE_SELECT} WHERE q.id = $1 LIMIT 1`, [req.params.id]);
     res.json(rows[0]);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/:id/promote-to-customer', requireRole('admin', 'lead'), async (req, res, next) => {
+  const body = req.body || {};
+  if (!body.first_name && !body.last_name && !body.business_name) {
+    return res.status(400).json({ error: 'At least one of first_name, last_name, or business_name is required' });
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      const { rows: qRows } = await client.query(
+        'SELECT * FROM quotes WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+        [req.params.id, req.organization.id]
+      );
+      if (qRows.length === 0) {
+        const err = new Error('Quote not found');
+        err.status = 404;
+        throw err;
+      }
+      const quote = qRows[0];
+      if (quote.customer_id) {
+        const err = new Error('Quote already has a customer');
+        err.status = 400;
+        throw err;
+      }
+
+      const { rows: cRows } = await client.query(
+        `INSERT INTO customers
+          (organization_id, first_name, last_name, business_name, phone, email, address, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [
+          req.organization.id,
+          body.first_name || null,
+          body.last_name || null,
+          body.business_name || null,
+          body.phone !== undefined ? (body.phone || null) : (quote.prospect_phone || null),
+          body.email !== undefined ? (body.email || null) : (quote.prospect_email || null),
+          body.address !== undefined ? (body.address || null) : (quote.prospect_address || null),
+          body.notes || null,
+        ]
+      );
+
+      await client.query(
+        `UPDATE quotes SET
+           customer_id = $3,
+           prospect_name = NULL,
+           prospect_email = NULL,
+           prospect_phone = NULL,
+           prospect_address = NULL,
+           updated_at = NOW()
+         WHERE id = $1 AND organization_id = $2`,
+        [req.params.id, req.organization.id, cRows[0].id]
+      );
+    });
+
+    const { rows } = await query(`${BASE_SELECT} WHERE q.id = $1 LIMIT 1`, [req.params.id]);
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/:id/create-invoice', requireRole('admin', 'lead'), async (req, res, next) => {
+  const body = req.body || {};
+
+  try {
+    const invoiceId = await withTransaction(async (client) => {
+      const { rows: qRows } = await client.query(
+        'SELECT * FROM quotes WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+        [req.params.id, req.organization.id]
+      );
+      if (qRows.length === 0) {
+        const err = new Error('Quote not found');
+        err.status = 404;
+        throw err;
+      }
+      const quote = qRows[0];
+      if (!quote.customer_id) {
+        const err = new Error('Quote has no customer — promote the prospect first');
+        err.status = 400;
+        throw err;
+      }
+
+      const bumped = await client.query(
+        `UPDATE organizations
+         SET next_invoice_number = next_invoice_number + 1
+         WHERE id = $1
+         RETURNING next_invoice_number - 1 AS invoice_number`,
+        [req.organization.id]
+      );
+      const invoiceNumber = bumped.rows[0].invoice_number;
+
+      const inserted = await client.query(
+        `INSERT INTO invoices
+          (organization_id, customer_id, invoice_number, status, description, date, line_items)
+         VALUES ($1, $2, $3, 'draft', $4, COALESCE($5::date, CURRENT_DATE), $6::jsonb)
+         RETURNING id`,
+        [
+          req.organization.id,
+          quote.customer_id,
+          invoiceNumber,
+          quote.description || null,
+          body.date || null,
+          JSON.stringify(quote.line_items || []),
+        ]
+      );
+
+      if (['draft', 'sent'].includes(quote.status)) {
+        await client.query(
+          `UPDATE quotes SET status = 'accepted', updated_at = NOW()
+           WHERE id = $1 AND organization_id = $2`,
+          [req.params.id, req.organization.id]
+        );
+      }
+
+      return inserted.rows[0].id;
+    });
+
+    const [invoiceRes, quoteRes] = await Promise.all([
+      query(
+        `SELECT
+           i.id, i.customer_id, i.invoice_number, i.status, i.description,
+           i.date, i.sent_date, i.paid_date, i.line_items,
+           i.created_at, i.updated_at,
+           c.first_name AS customer_first_name,
+           c.last_name AS customer_last_name,
+           c.business_name AS customer_business_name,
+           c.email AS customer_email,
+           c.address AS customer_address,
+           c.phone AS customer_phone
+         FROM invoices i JOIN customers c ON c.id = i.customer_id
+         WHERE i.id = $1 LIMIT 1`,
+        [invoiceId]
+      ),
+      query(`${BASE_SELECT} WHERE q.id = $1 LIMIT 1`, [req.params.id]),
+    ]);
+
+    res.status(201).json({ invoice: invoiceRes.rows[0], quote: quoteRes.rows[0] });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);

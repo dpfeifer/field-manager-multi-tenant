@@ -1981,6 +1981,74 @@ function QuoteForm({ initial, customers, onSubmit, onCancel, busy }) {
   );
 }
 
+function splitProspectName(name) {
+  if (!name) return { first: '', last: '', business: '' };
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: '', business: '' };
+  return { first: parts[0], last: parts.slice(1).join(' '), business: '' };
+}
+
+function PromoteForm({ quote, onSubmit, onCancel, busy }) {
+  const split = splitProspectName(quote.prospect_name);
+  const [first_name, setFirst] = useState(split.first);
+  const [last_name, setLast] = useState(split.last);
+  const [business_name, setBusiness] = useState(split.business);
+  const [phone, setPhone] = useState(quote.prospect_phone || '');
+  const [email, setEmail] = useState(quote.prospect_email || '');
+  const [address, setAddress] = useState(quote.prospect_address || '');
+  const [notes, setNotes] = useState('');
+
+  function submit(e) {
+    e.preventDefault();
+    onSubmit({ first_name, last_name, business_name, phone, email, address, notes });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <p className="subtitle" style={{ marginBottom: 20 }}>
+        Creating a customer from prospect <strong style={{ color: 'var(--text)' }}>{quote.prospect_name}</strong>.
+        The quote will be re-linked to the new customer and the prospect fields will be cleared.
+      </p>
+      <div className="form-grid">
+        <div>
+          <label>First name</label>
+          <input value={first_name} onChange={(e) => setFirst(e.target.value)} />
+        </div>
+        <div>
+          <label>Last name</label>
+          <input value={last_name} onChange={(e) => setLast(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Business name <span className="hint">(optional)</span></label>
+          <input value={business_name} onChange={(e) => setBusiness(e.target.value)} />
+        </div>
+        <div>
+          <label>Phone</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Address</label>
+          <textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Notes <span className="hint">(optional)</span></label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Creating...' : 'Create customer'}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 function quoteRecipientName(q) {
   if (q.customer_id) {
     return customerDisplayName({
@@ -1995,6 +2063,7 @@ function quoteRecipientName(q) {
 function QuotesView({ session }) {
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mode, setMode] = useState('list');
@@ -2006,12 +2075,14 @@ function QuotesView({ session }) {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [quoteData, custData] = await Promise.all([
+      const [quoteData, custData, usersData] = await Promise.all([
         apiRequest('/api/quotes', { slug: session.slug, token: session.token }),
         apiRequest('/api/customers', { slug: session.slug, token: session.token }),
+        apiRequest('/api/auth/users', { slug: session.slug, token: session.token }),
       ]);
       setQuotes(quoteData);
       setCustomers(custData);
+      setUsers(usersData);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [session.slug, session.token]);
@@ -2047,6 +2118,47 @@ function QuotesView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function promoteToCustomer(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/quotes/${editing.id}/promote-to-customer`, {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function createInvoiceFromQuote(quoteId) {
+    if (!confirm('Create a draft invoice from this quote? The line items will be copied and the quote will be marked accepted.')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/quotes/${quoteId}/create-invoice`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+      alert('Draft invoice created. Switch to the Invoices tab to review and send.');
+    } catch (err) { setError(err.message); }
+  }
+
+  async function createJobFromQuote(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/jobs', {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      if (['draft', 'sent'].includes(editing.status)) {
+        await apiRequest(`/api/quotes/${editing.id}`, {
+          method: 'PUT', slug: session.slug, token: session.token, body: { status: 'accepted' },
+        });
+      }
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   if (mode === 'create') {
     return (
       <div>
@@ -2069,6 +2181,52 @@ function QuotesView({ session }) {
             initial={editing}
             customers={customers}
             onSubmit={updateQuote}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'promote' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Promote prospect to customer</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <PromoteForm
+            quote={editing}
+            onSubmit={promoteToCustomer}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'createJob' && editing) {
+    const total = lineItemsTotal(editing.line_items);
+    const initial = {
+      customer_id: editing.customer_id,
+      title: editing.description || 'Job from quote',
+      description: null,
+      type: 'single',
+      date: formatYMD(new Date()),
+      default_price: total > 0 ? total : null,
+      assigned_to: [],
+    };
+    return (
+      <div>
+        <div className="page-header"><h2>Create job from quote</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <JobForm
+            initial={initial}
+            customers={customers}
+            users={users}
+            onSubmit={createJobFromQuote}
             onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
             busy={busy}
           />
@@ -2107,6 +2265,15 @@ function QuotesView({ session }) {
                 </div>
                 {canMutate && (
                   <div className="actions">
+                    {!q.customer_id && (
+                      <button className="primary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to customer</button>
+                    )}
+                    {q.customer_id && (
+                      <>
+                        <button className="secondary" onClick={() => createInvoiceFromQuote(q.id)}>Create invoice</button>
+                        <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create job</button>
+                      </>
+                    )}
                     <button className="secondary" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
                     <button className="danger" onClick={() => deleteQuote(q.id)}>Delete</button>
                   </div>
