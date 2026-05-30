@@ -1,0 +1,45 @@
+{
+  "name": "field-manager-multi-tenant",
+  "version": "1.0.0",
+  "description": "Field Manager — multi-tenant SaaS for field operations",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node db/migrate.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dpfeifer/field-manager-multi-tenant.git"
+  },
+  "keywords": [
+    "saas",
+    "multi-tenant",
+    "express",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "bugs": {
+    "url": "https://github.com/dpfeifer/field-manager-multi-tenant/issues"
+  },
+  "homepage": "https://github.com/dpfeifer/field-manager-multi-tenant#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
