@@ -7,6 +7,20 @@ const { validatePassword } = require('../utils/password');
 
 const router = express.Router();
 
+router.get('/users', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, email, name, role, created_at FROM users
+       WHERE organization_id = $1 AND deleted_at IS NULL
+       ORDER BY name NULLS LAST, email`,
+      [req.organization.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/register', requireAuth, requireRole('admin'), async (req, res, next) => {
   const { email, password, name, role } = req.body || {};
   if (!email || !password) {

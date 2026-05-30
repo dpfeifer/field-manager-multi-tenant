@@ -156,6 +156,43 @@
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-actions { margin-top: 24px; display: flex; gap: 10px; }
+
+    select {
+      width: 100%; padding: 11px 14px; font-size: 14px;
+      border: 1px solid var(--border-strong); border-radius: 8px;
+      background: var(--card); font-family: inherit; color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+
+    .toggle-group {
+      display: inline-flex; background: #f4efe3; border-radius: 8px;
+      padding: 4px; gap: 4px;
+    }
+    .toggle-group button {
+      background: none; border: none; padding: 7px 16px;
+      font-size: 13px; font-weight: 500; color: var(--text-muted);
+      border-radius: 6px; cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .toggle-group button.active {
+      background: var(--card); color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .check-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .check-list label {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 12px; border: 1px solid var(--border-strong);
+      border-radius: 999px; font-size: 13px; font-weight: 500;
+      cursor: pointer; margin: 0;
+      background: var(--card); transition: background 0.15s, border-color 0.15s;
+    }
+    .check-list label:hover { background: #f5f1e8; }
+    .check-list label.checked { background: #eaf0f2; border-color: var(--primary); color: var(--primary); }
+    .check-list input { display: none; }
+
+    .row .info .secondary-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+    .row .info .price { display: inline-block; margin-left: 8px; color: var(--text); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -202,9 +239,49 @@ async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
 }
 
 function customerDisplayName(c) {
+  if (!c) return '';
   if (c.business_name) return c.business_name;
   const parts = [c.first_name, c.last_name].filter(Boolean).join(' ').trim();
   return parts || '(unnamed)';
+}
+
+function jobCustomerName(j) {
+  if (j.customer_business_name) return j.customer_business_name;
+  const parts = [j.customer_first_name, j.customer_last_name].filter(Boolean).join(' ').trim();
+  return parts || '(unnamed)';
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatDateString(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function dayOfWeekName(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+}
+
+function formatSchedule(j) {
+  if (j.type === 'single') return formatDateString(j.date);
+  if (j.type === 'recurring') {
+    const day = dayOfWeekName(j.start_date);
+    const start = formatDateString(j.start_date);
+    const end = j.end_date ? ` until ${formatDateString(j.end_date)}` : '';
+    return `Every ${day} starting ${start}${end}`;
+  }
+  return '';
+}
+
+function formatPrice(p) {
+  if (p === null || p === undefined || p === '') return '';
+  const n = typeof p === 'string' ? parseFloat(p) : p;
+  if (!isFinite(n)) return '';
+  return `$${n.toFixed(2)}`;
 }
 
 function SignupForm({ onSuccess }) {
@@ -489,8 +566,278 @@ function CustomersView({ session }) {
   );
 }
 
+function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
+  const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
+  const [title, setTitle] = useState(initial?.title || '');
+  const [description, setDescription] = useState(initial?.description || '');
+  const [type, setType] = useState(initial?.type || 'single');
+  const [date, setDate] = useState(initial?.date || '');
+  const [start_date, setStartDate] = useState(initial?.start_date || '');
+  const [end_date, setEndDate] = useState(initial?.end_date || '');
+  const [recurrence_pattern] = useState(initial?.recurrence_pattern || 'weekly');
+  const [default_price, setPrice] = useState(initial?.default_price ?? '');
+  const [assigned_to, setAssigned] = useState(initial?.assigned_to || []);
+
+  function toggleAssigned(userId) {
+    setAssigned((a) => a.includes(userId) ? a.filter((x) => x !== userId) : [...a, userId]);
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    const payload = {
+      customer_id,
+      title,
+      description: description || null,
+      type,
+      default_price: default_price === '' ? null : Number(default_price),
+      assigned_to,
+    };
+    if (type === 'single') {
+      payload.date = date;
+    } else {
+      payload.start_date = start_date;
+      payload.end_date = end_date || null;
+      payload.recurrence_pattern = recurrence_pattern;
+    }
+    onSubmit(payload);
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="form-grid">
+        <div className="full">
+          <label>Customer</label>
+          <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
+            {customers.length === 0 && <option value="">No customers yet — add one first</option>}
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="full">
+          <label>Title</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Weekly mow, deep clean, etc." required />
+        </div>
+        <div className="full">
+          <label>Description <span className="hint">(optional)</span></label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Schedule</label>
+          <div className="toggle-group">
+            <button type="button" className={type === 'single' ? 'active' : ''} onClick={() => setType('single')}>One-time</button>
+            <button type="button" className={type === 'recurring' ? 'active' : ''} onClick={() => setType('recurring')}>Recurring (weekly)</button>
+          </div>
+        </div>
+        {type === 'single' ? (
+          <div className="full">
+            <label>Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
+        ) : (
+          <>
+            <div>
+              <label>Start date</label>
+              <input type="date" value={start_date} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div>
+              <label>End date <span className="hint">(optional)</span></label>
+              <input type="date" value={end_date} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </>
+        )}
+        <div>
+          <label>Default price <span className="hint">(optional)</span></label>
+          <input type="number" step="0.01" min="0" value={default_price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
+        </div>
+        <div className="full">
+          <label>Assigned to <span className="hint">(optional)</span></label>
+          <div className="check-list">
+            {users.length === 0 && <span className="hint">No teammates to assign yet.</span>}
+            {users.map((u) => (
+              <label key={u.id} className={assigned_to.includes(u.id) ? 'checked' : ''}>
+                <input
+                  type="checkbox"
+                  checked={assigned_to.includes(u.id)}
+                  onChange={() => toggleAssigned(u.id)}
+                />
+                {u.name || u.email}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create job')}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function JobsView({ session }) {
+  const [jobs, setJobs] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list');
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [jobsData, customersData, usersData] = await Promise.all([
+        apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
+        apiRequest('/api/customers', { slug: session.slug, token: session.token }),
+        apiRequest('/api/auth/users', { slug: session.slug, token: session.token }),
+      ]);
+      setJobs(jobsData);
+      setCustomers(customersData);
+      setUsers(usersData);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function createJob(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/jobs', {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function updateJob(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/jobs/${editing.id}`, {
+        method: 'PUT', slug: session.slug, token: session.token, body: values,
+      });
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteJob(id) {
+    if (!confirm('Delete this job?')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/jobs/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  function userNames(ids) {
+    return ids
+      .map((id) => users.find((u) => u.id === id))
+      .filter(Boolean)
+      .map((u) => u.name || u.email)
+      .join(', ');
+  }
+
+  if (mode === 'create') {
+    return (
+      <div>
+        <div className="page-header"><h2>New job</h2></div>
+        {error && <div className="error">{error}</div>}
+        {customers.length === 0 ? (
+          <div className="form-card">
+            <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+              You need at least one customer before you can create a job. Add a customer first.
+            </p>
+            <div className="form-actions"><button className="secondary" onClick={() => setMode('list')}>Back</button></div>
+          </div>
+        ) : (
+          <div className="form-card">
+            <JobForm
+              customers={customers}
+              users={users}
+              onSubmit={createJob}
+              onCancel={() => { setError(null); setMode('list'); }}
+              busy={busy}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Edit job</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <JobForm
+            initial={editing}
+            customers={customers}
+            users={users}
+            onSubmit={updateJob}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Jobs</h2>
+        {canMutate && (
+          <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
+        )}
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : jobs.length === 0 ? (
+          <div className="list-empty">No jobs yet. {canMutate && 'Click "New job" to schedule the first one.'}</div>
+        ) : (
+          jobs.map((j) => (
+            <div key={j.id} className="row">
+              <div className="info">
+                <div className="name">
+                  {j.title}
+                  {j.default_price != null && <span className="price">{formatPrice(j.default_price)}</span>}
+                </div>
+                <div className="meta">{jobCustomerName(j)} • {formatSchedule(j)}</div>
+                {j.assigned_to && j.assigned_to.length > 0 && (
+                  <div className="secondary-meta">Assigned: {userNames(j.assigned_to)}</div>
+                )}
+              </div>
+              {canMutate && (
+                <div className="actions">
+                  <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit</button>
+                  <button className="danger" onClick={() => deleteJob(j.id)}>Delete</button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AppShell({ session, onLogout }) {
-  const [view, setView] = useState('customers');
+  const [view, setView] = useState('jobs');
   return (
     <div>
       <div className="topbar">
@@ -502,9 +849,11 @@ function AppShell({ session, onLogout }) {
         </div>
       </div>
       <div className="nav">
+        <button className={view === 'jobs' ? 'active' : ''} onClick={() => setView('jobs')}>Jobs</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
       </div>
       <div className="content">
+        {view === 'jobs' && <JobsView session={session} />}
         {view === 'customers' && <CustomersView session={session} />}
       </div>
     </div>
