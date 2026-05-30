@@ -1238,6 +1238,131 @@ function JobsView({ session }) {
   );
 }
 
+function SettingsView({ session }) {
+  const [settings, setSettings] = useState(null);
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  const isAdmin = session.user.role === 'admin';
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/settings', { slug: session.slug, token: session.token });
+      setSettings(data);
+      setForm({
+        company_name: data.company_name || '',
+        logo_url: data.logo_url || '',
+        address: data.address || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        venmo_handle: data.venmo_handle || '',
+        resend_from_email: data.resend_from_email || '',
+        cloudinary_folder: data.cloudinary_folder || '',
+      });
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  function setField(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setSaved(false);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setError(null); setSaved(false);
+    try {
+      const updated = await apiRequest('/api/settings', {
+        method: 'PUT', slug: session.slug, token: session.token, body: form,
+      });
+      setSettings(updated);
+      setSaved(true);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header"><h2>Settings</h2></div>
+        <div className="list-empty">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Settings</h2>
+        {!isAdmin && <span className="badge">Read-only</span>}
+      </div>
+      {error && <div className="error">{error}</div>}
+      {saved && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+      )}
+      <form onSubmit={submit} className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Company</div>
+        <div className="form-grid">
+          <div className="full">
+            <label>Company name</label>
+            <input value={form.company_name} onChange={(e) => setField('company_name', e.target.value)} disabled={!isAdmin} />
+          </div>
+          <div className="full">
+            <label>Logo URL</label>
+            <input value={form.logo_url} onChange={(e) => setField('logo_url', e.target.value)} placeholder="https://..." disabled={!isAdmin} />
+          </div>
+          <div className="full">
+            <label>Address</label>
+            <textarea value={form.address} onChange={(e) => setField('address', e.target.value)} disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Email</label>
+            <input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={!isAdmin} />
+          </div>
+        </div>
+
+        <div className="section-heading">Payments</div>
+        <div className="form-grid">
+          <div className="full">
+            <label>Venmo handle <span className="hint">(without the @)</span></label>
+            <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
+          </div>
+        </div>
+
+        <div className="section-heading">Integrations</div>
+        <div className="form-grid">
+          <div>
+            <label>Resend "from" email</label>
+            <input type="email" value={form.resend_from_email} onChange={(e) => setField('resend_from_email', e.target.value)} placeholder="hello@yourdomain.com" disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Cloudinary folder</label>
+            <input value={form.cloudinary_folder} onChange={(e) => setField('cloudinary_folder', e.target.value)} placeholder="my-org/completions" disabled={!isAdmin} />
+          </div>
+        </div>
+
+        {isAdmin && (
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={busy}>
+              {busy ? 'Saving...' : 'Save settings'}
+            </button>
+          </div>
+        )}
+      </form>
+    </div>
+  );
+}
+
 function AppShell({ session, onLogout }) {
   const [view, setView] = useState('jobs');
   return (
@@ -1253,10 +1378,12 @@ function AppShell({ session, onLogout }) {
       <div className="nav">
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => setView('jobs')}>Jobs</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
+        <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
       </div>
       <div className="content">
         {view === 'jobs' && <JobsView session={session} />}
         {view === 'customers' && <CustomersView session={session} />}
+        {view === 'settings' && <SettingsView session={session} />}
       </div>
     </div>
   );

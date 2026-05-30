@@ -14,6 +14,7 @@ const authRoutes = require('./routes/auth');
 const signupRoutes = require('./routes/signup');
 const customersRoutes = require('./routes/customers');
 const jobsRoutes = require('./routes/jobs');
+const settingsRoutes = require('./routes/settings');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -32,6 +33,7 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', resolveOrganization, authRoutes);
 app.use('/api/customers', resolveOrganization, requireAuth, customersRoutes);
 app.use('/api/jobs', resolveOrganization, requireAuth, jobsRoutes);
+app.use('/api/settings', resolveOrganization, requireAuth, settingsRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
