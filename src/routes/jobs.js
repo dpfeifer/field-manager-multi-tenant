@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -381,6 +381,75 @@ router.delete('/:id/reschedule/:date', requireRole('admin', 'lead'), async (req,
       [req.params.id, req.organization.id, JSON.stringify(rescheduled)]
     );
     await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/generate-invoice', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { from, to, description } = req.body || {};
+  if (!isValidDate(from) || !isValidDate(to)) {
+    return res.status(400).json({ error: 'from and to are required (YYYY-MM-DD)' });
+  }
+  if (from > to) return res.status(400).json({ error: 'from must be <= to' });
+
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    if (job.type !== 'recurring') {
+      return res.status(400).json({ error: 'Only recurring jobs can be batch-invoiced' });
+    }
+
+    const completed = (job.completed_dates || []).filter((d) => d >= from && d <= to).sort();
+    if (completed.length === 0) {
+      return res.status(400).json({ error: 'No completed visits in this range' });
+    }
+
+    const rate = job.default_price != null ? parseFloat(job.default_price) : 0;
+    const lineItems = completed.map((date) => ({
+      description: `${job.title} — ${date}`,
+      quantity: 1,
+      rate,
+      amount: rate,
+    }));
+
+    const invoiceId = await withTransaction(async (client) => {
+      const bumped = await client.query(
+        `UPDATE organizations
+         SET next_invoice_number = next_invoice_number + 1
+         WHERE id = $1
+         RETURNING next_invoice_number - 1 AS invoice_number`,
+        [req.organization.id]
+      );
+      const invoiceNumber = bumped.rows[0].invoice_number;
+
+      const inserted = await client.query(
+        `INSERT INTO invoices
+          (organization_id, customer_id, invoice_number, status, description, date, line_items)
+         VALUES ($1, $2, $3, 'draft', $4, CURRENT_DATE, $5::jsonb)
+         RETURNING id`,
+        [
+          req.organization.id,
+          job.customer_id,
+          invoiceNumber,
+          description || `${job.title} — ${from} to ${to}`,
+          JSON.stringify(lineItems),
+        ]
+      );
+      return inserted.rows[0].id;
+    });
+
+    const { rows } = await query(
+      `SELECT
+         i.id, i.customer_id, i.invoice_number, i.status, i.description,
+         i.date, i.sent_date, i.paid_date, i.line_items,
+         i.created_at, i.updated_at,
+         c.first_name AS customer_first_name,
+         c.last_name AS customer_last_name,
+         c.business_name AS customer_business_name
+       FROM invoices i JOIN customers c ON c.id = i.customer_id
+       WHERE i.id = $1 LIMIT 1`,
+      [invoiceId]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });
 

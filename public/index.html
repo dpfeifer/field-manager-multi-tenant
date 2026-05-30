@@ -446,6 +446,12 @@
       font-size: 11px; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: 0.06em;
     }
+    .link-button {
+      background: none; border: none; padding: 0;
+      color: var(--text-muted); font-size: 13px; cursor: pointer;
+      font-family: inherit;
+    }
+    .link-button:hover { color: var(--text); text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -1551,7 +1557,14 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [invoiceFrom, setInvoiceFrom] = useState(formatYMD(new Date(todayStart().getFullYear(), todayStart().getMonth(), 1)));
+  const [invoiceTo, setInvoiceTo] = useState(formatYMD(todayStart()));
+  const [generateBusy, setGenerateBusy] = useState(false);
+  const [generateResult, setGenerateResult] = useState(null);
   const PAGE_SIZE = 8;
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
 
   const allUpcoming = computeOccurrences(job, todayStart(), 730).filter((o) => !o.completed);
   const totalPages = Math.max(1, Math.ceil(allUpcoming.length / PAGE_SIZE));
@@ -1590,6 +1603,22 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
     method: 'DELETE', slug: session.slug, token: session.token,
   }));
 
+  async function generateInvoice() {
+    setGenerateBusy(true); setError(null); setGenerateResult(null);
+    try {
+      const inv = await apiRequest(`/api/jobs/${job.id}/generate-invoice`, {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { from: invoiceFrom, to: invoiceTo },
+      });
+      setGenerateResult(inv);
+      setShowInvoiceForm(false);
+    } catch (err) { setError(err.message); }
+    finally { setGenerateBusy(false); }
+  }
+
+  const completionsInRange = (job.completed_dates || []).filter((d) => d >= invoiceFrom && d <= invoiceTo);
+  const projectedTotal = completionsInRange.length * (parseFloat(job.default_price) || 0);
+
   return (
     <div>
       <div className="page-header">
@@ -1598,7 +1627,53 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
       </div>
       <div className="schedule-summary">
         <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
+        {canMutate && (
+          <div style={{ marginTop: 10 }}>
+            <button className="secondary" onClick={() => { setShowInvoiceForm((v) => !v); setGenerateResult(null); }}>
+              {showInvoiceForm ? 'Hide invoice generator' : 'Generate invoice from completions'}
+            </button>
+          </div>
+        )}
       </div>
+
+      {showInvoiceForm && (
+        <div className="form-card">
+          <div className="section-heading" style={{ marginTop: 0 }}>Bill completed visits</div>
+          <div className="form-grid">
+            <div>
+              <label>From</label>
+              <input type="date" value={invoiceFrom} onChange={(e) => setInvoiceFrom(e.target.value)} />
+            </div>
+            <div>
+              <label>To</label>
+              <input type="date" value={invoiceTo} onChange={(e) => setInvoiceTo(e.target.value)} />
+            </div>
+          </div>
+          <p className="subtitle" style={{ marginTop: 14, marginBottom: 0 }}>
+            {completionsInRange.length === 0 ? (
+              <>No completed visits in this range.</>
+            ) : (
+              <>{completionsInRange.length} completed visit{completionsInRange.length === 1 ? '' : 's'} @ {formatPrice(parseFloat(job.default_price) || 0)} = <strong style={{ color: 'var(--text)' }}>{formatPrice(projectedTotal)}</strong></>
+            )}
+          </p>
+          <div className="form-actions">
+            <button
+              className="primary"
+              disabled={generateBusy || completionsInRange.length === 0}
+              onClick={generateInvoice}
+            >
+              {generateBusy ? 'Generating...' : `Create draft invoice`}
+            </button>
+            <button className="secondary" onClick={() => setShowInvoiceForm(false)} disabled={generateBusy}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {generateResult && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
+          Created invoice #{generateResult.invoice_number} with {generateResult.line_items.length} line items. Switch to the Invoices tab to review and send.
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 
@@ -2935,14 +3010,16 @@ function SettingsView({ session }) {
   );
 }
 
-function AppShell({ session, onLogout }) {
+function AppShell({ session, onLogout, onSessionUpdate }) {
   const [view, setView] = useState('dashboard');
   return (
     <div>
       <div className="topbar">
         <div className="brand">{session.organization.name}</div>
         <div className="right">
-          <span className="user">{session.user.name || session.user.email}</span>
+          <button className="link-button" onClick={() => setView('profile')}>
+            {session.user.name || session.user.email}
+          </button>
           <span className="badge">{session.user.role}</span>
           <button className="secondary" onClick={onLogout}>Sign out</button>
         </div>
@@ -2974,6 +3051,7 @@ function AppShell({ session, onLogout }) {
         {view === 'team' && session.user.role === 'admin' && <TeamView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
+        {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
       </div>
     </div>
   );
@@ -3355,6 +3433,95 @@ function ReportsView({ session }) {
   );
 }
 
+function ProfileView({ session, onSessionUpdate }) {
+  const [name, setName] = useState(session.user.name || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [nameBusy, setNameBusy] = useState(false);
+  const [pwBusy, setPwBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  async function saveName(e) {
+    e.preventDefault();
+    setError(null); setSuccess(null); setNameBusy(true);
+    try {
+      const updated = await apiRequest('/api/auth/me', {
+        method: 'PUT', slug: session.slug, token: session.token, body: { name },
+      });
+      onSessionUpdate({ ...session, user: { ...session.user, name: updated.name } });
+      setSuccess('Name updated.');
+    } catch (err) { setError(err.message); }
+    finally { setNameBusy(false); }
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setError(null); setSuccess(null);
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+    setPwBusy(true);
+    try {
+      await apiRequest('/api/auth/me', {
+        method: 'PUT', slug: session.slug, token: session.token,
+        body: { current_password: currentPassword, new_password: newPassword },
+      });
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setSuccess('Password changed.');
+    } catch (err) { setError(err.message); }
+    finally { setPwBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Profile</h2>
+      </div>
+      {error && <div className="error">{error}</div>}
+      {success && <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>{success}</div>}
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Account</div>
+        <form onSubmit={saveName}>
+          <label>Name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+          <label>Email</label>
+          <input value={session.user.email} disabled />
+          <label>Role</label>
+          <input value={session.user.role} disabled />
+          <label>Organization</label>
+          <input value={`${session.organization.name} (${session.organization.slug})`} disabled />
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={nameBusy}>
+              {nameBusy ? 'Saving...' : 'Save name'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Change password</div>
+        <form onSubmit={changePassword}>
+          <label>Current password</label>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+          <label>New password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          <label>Confirm new password</label>
+          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={pwBusy}>
+              {pwBusy ? 'Saving...' : 'Change password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function InviteForm({ onSubmit, onCancel, busy }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -3411,6 +3578,9 @@ function TeamView({ session }) {
   const [mode, setMode] = useState('list');
   const [busy, setBusy] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState(null);
+  const [resettingId, setResettingId] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -3457,6 +3627,18 @@ function TeamView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function submitResetPassword(userId) {
+    setError(null); setResetSuccess(null);
+    try {
+      await apiRequest(`/api/auth/users/${userId}/reset-password`, {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { new_password: resetPassword },
+      });
+      setResettingId(null); setResetPassword('');
+      setResetSuccess('Password reset. Share the new password with your teammate.');
+    } catch (err) { setError(err.message); }
+  }
+
   if (mode === 'invite') {
     return (
       <div>
@@ -3480,6 +3662,9 @@ function TeamView({ session }) {
         <button className="primary" onClick={() => { setError(null); setMode('invite'); }}>+ Invite teammate</button>
       </div>
       {error && <div className="error">{error}</div>}
+      {resetSuccess && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>{resetSuccess}</div>
+      )}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -3489,6 +3674,7 @@ function TeamView({ session }) {
           users.map((u) => {
             const isMe = u.id === session.user.id;
             const displayName = u.name || u.email;
+            const isResetting = resettingId === u.id;
             return (
               <div key={u.id} className="row">
                 <div className="info">
@@ -3496,6 +3682,19 @@ function TeamView({ session }) {
                     {displayName}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}
                   </div>
                   <div className="meta">{u.email}</div>
+                  {isResetting && (
+                    <div className="secondary-meta" style={{ marginTop: 8 }}>
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                        style={{ width: 260, marginRight: 8 }}
+                      />
+                      <button className="primary" onClick={() => submitResetPassword(u.id)} disabled={!resetPassword}>Set password</button>
+                      <button className="secondary" onClick={() => { setResettingId(null); setResetPassword(''); }} style={{ marginLeft: 6 }}>Cancel</button>
+                    </div>
+                  )}
                 </div>
                 <div className="actions">
                   {editingRoleId === u.id ? (
@@ -3514,8 +3713,9 @@ function TeamView({ session }) {
                   ) : (
                     <span className="badge">{u.role}</span>
                   )}
-                  {!isMe && editingRoleId !== u.id && (
+                  {!isMe && editingRoleId !== u.id && !isResetting && (
                     <>
+                      <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
                       <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
                       <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
                     </>
@@ -3724,8 +3924,9 @@ function App() {
   }
 
   function handleLogout() { clearSession(); setSession(null); }
+  function handleSessionUpdate(next) { saveSession(next); setSession(next); }
   return session
-    ? <AppShell session={session} onLogout={handleLogout} />
+    ? <AppShell session={session} onLogout={handleLogout} onSessionUpdate={handleSessionUpdate} />
     : <AuthShell onSession={setSession} />;
 }
 
