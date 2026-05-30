@@ -5,12 +5,14 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const resolveOrganization = require('./middleware/organization');
+const { requireAuth } = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 
 const healthRoutes = require('./routes/health');
 const organizationRoutes = require('./routes/organizations');
 const authRoutes = require('./routes/auth');
 const signupRoutes = require('./routes/signup');
+const customersRoutes = require('./routes/customers');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -27,6 +29,7 @@ app.use('/health', healthRoutes);
 app.use('/api/signup', signupRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', resolveOrganization, authRoutes);
+app.use('/api/customers', resolveOrganization, requireAuth, customersRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });

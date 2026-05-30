@@ -16,7 +16,9 @@
       color: #1f2328;
       min-height: 100vh;
     }
-    .app { max-width: 480px; margin: 60px auto; padding: 0 16px; }
+
+    /* Auth screens */
+    .auth-shell { max-width: 480px; margin: 60px auto; padding: 0 16px; }
     .card {
       background: #fff;
       border-radius: 10px;
@@ -34,53 +36,104 @@
     .tab.active { color: #1f2328; border-bottom-color: #1f6feb; font-weight: 600; }
     label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
     .hint { font-weight: 400; color: #57606a; font-size: 12px; margin-left: 6px; }
-    input {
+    input, textarea {
       width: 100%; padding: 10px 12px; font-size: 14px;
       border: 1px solid #d1d5da; border-radius: 6px;
-      background: #fff;
+      background: #fff; font-family: inherit;
     }
-    input:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
+    textarea { resize: vertical; min-height: 70px; }
+    input:focus, textarea:focus {
+      outline: none; border-color: #1f6feb;
+      box-shadow: 0 0 0 3px rgba(31,111,235,0.15);
+    }
     button.primary {
-      width: 100%; padding: 10px; margin-top: 20px;
-      background: #1f6feb; color: white; border: none;
-      border-radius: 6px; font-size: 14px; font-weight: 600;
-      cursor: pointer;
+      padding: 10px 16px; background: #1f6feb; color: white;
+      border: none; border-radius: 6px; font-size: 14px;
+      font-weight: 600; cursor: pointer;
     }
     button.primary:hover { background: #1858c4; }
     button.primary:disabled { background: #94a3b8; cursor: not-allowed; }
+    button.primary.block { width: 100%; margin-top: 20px; }
+    button.secondary {
+      padding: 8px 14px; background: #f6f8fa; color: #1f2328;
+      border: 1px solid #d1d5da; border-radius: 6px;
+      font-size: 13px; cursor: pointer;
+    }
+    button.secondary:hover { background: #ebeef1; }
+    button.danger {
+      padding: 8px 14px; background: #fff; color: #cf222e;
+      border: 1px solid #d1d5da; border-radius: 6px;
+      font-size: 13px; cursor: pointer;
+    }
+    button.danger:hover { background: #ffebe9; border-color: #cf222e; }
     .error {
       margin-top: 16px; padding: 10px 12px;
       background: #ffeaea; color: #9a1d1d;
       border-radius: 6px; font-size: 13px;
-    }
-    .dashboard { padding: 32px; }
-    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .row .key { color: #57606a; font-size: 13px; }
-    .row .val { font-weight: 500; font-size: 14px; }
-    .logout {
-      margin-top: 24px; padding: 8px 14px;
-      background: #f6f8fa; color: #1f2328; border: 1px solid #d1d5da;
-      border-radius: 6px; font-size: 13px; cursor: pointer;
     }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 999px;
       background: #ddf4ff; color: #0969da; font-size: 11px;
       font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
     }
+
+    /* App shell */
+    .topbar {
+      background: #fff; border-bottom: 1px solid #d1d5da;
+      padding: 12px 24px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .topbar .brand { font-weight: 600; font-size: 16px; }
+    .topbar .right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .topbar .right .user { color: #57606a; }
+    .nav {
+      background: #fff; border-bottom: 1px solid #d1d5da;
+      padding: 0 24px; display: flex; gap: 4px;
+    }
+    .nav button {
+      background: none; border: none; padding: 12px 14px;
+      font-size: 14px; color: #57606a; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .nav button.active { color: #1f2328; font-weight: 600; border-bottom-color: #1f6feb; }
+    .content { max-width: 960px; margin: 24px auto; padding: 0 24px; }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .page-header h2 { margin: 0; font-size: 20px; }
+
+    /* Customer list */
+    .list { background: #fff; border-radius: 10px; border: 1px solid #d1d5da; overflow: hidden; }
+    .list-empty { padding: 40px; text-align: center; color: #57606a; font-size: 14px; }
+    .row {
+      padding: 14px 18px; border-bottom: 1px solid #eef0f3;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: #fafbfc; }
+    .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+    .row .info .meta { color: #57606a; font-size: 12px; }
+    .row .actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* Forms in app shell */
+    .form-card {
+      background: #fff; border-radius: 10px; border: 1px solid #d1d5da;
+      padding: 24px; margin-bottom: 20px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-actions { margin-top: 20px; display: flex; gap: 8px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel" data-presets="react">
-const { useState } = React;
+const { useState, useEffect, useCallback } = React;
 
-const STORAGE = {
-  token: 'fm_token',
-  slug: 'fm_slug',
-  user: 'fm_user',
-  org: 'fm_org',
-};
+const STORAGE = { token: 'fm_token', slug: 'fm_slug', user: 'fm_user', org: 'fm_org' };
 
 function loadSession() {
   const token = localStorage.getItem(STORAGE.token);
@@ -107,14 +160,20 @@ async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   if (slug) headers['x-organization-slug'] = slug;
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(path, {
-    method,
-    headers,
+    method, headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 204) return null;
   const isJson = (res.headers.get('content-type') || '').includes('application/json');
   const data = isJson ? await res.json() : await res.text();
   if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
   return data;
+}
+
+function customerDisplayName(c) {
+  if (c.business_name) return c.business_name;
+  const parts = [c.first_name, c.last_name].filter(Boolean).join(' ').trim();
+  return parts || '(unnamed)';
 }
 
 function SignupForm({ onSuccess }) {
@@ -128,8 +187,7 @@ function SignupForm({ onSuccess }) {
 
   async function submit(e) {
     e.preventDefault();
-    setError(null);
-    setBusy(true);
+    setError(null); setBusy(true);
     try {
       const data = await apiRequest('/api/signup', {
         method: 'POST',
@@ -140,32 +198,24 @@ function SignupForm({ onSuccess }) {
       });
       saveSession(data);
       onSuccess(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
   }
 
   return (
     <form onSubmit={submit}>
       <label>Company name</label>
       <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme Lawn Care" required />
-
       <label>URL slug <span className="hint">(optional, auto-derived from company name)</span></label>
       <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-lawn-care" />
-
       <label>Your name <span className="hint">(optional)</span></label>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
-
       <label>Email</label>
       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-
       <label>Password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-
       {error && <div className="error">{error}</div>}
-      <button type="submit" className="primary" disabled={busy}>
+      <button type="submit" className="primary block" disabled={busy}>
         {busy ? 'Creating account...' : 'Create account'}
       </button>
     </form>
@@ -181,94 +231,261 @@ function LoginForm({ onSuccess }) {
 
   async function submit(e) {
     e.preventDefault();
-    setError(null);
-    setBusy(true);
+    setError(null); setBusy(true);
     try {
       const data = await apiRequest('/api/auth/login', {
-        method: 'POST',
-        slug,
+        method: 'POST', slug,
         body: { email, password },
       });
       const org = await apiRequest(`/api/organizations/${slug}`);
       const session = { token: data.token, user: data.user, organization: org };
       saveSession(session);
       onSuccess(session);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
   }
 
   return (
     <form onSubmit={submit}>
       <label>Company URL slug</label>
       <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-lawn-care" required />
-
       <label>Email</label>
       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-
       <label>Password</label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-
       {error && <div className="error">{error}</div>}
-      <button type="submit" className="primary" disabled={busy}>
+      <button type="submit" className="primary block" disabled={busy}>
         {busy ? 'Signing in...' : 'Sign in'}
       </button>
     </form>
   );
 }
 
-function Dashboard({ session, onLogout }) {
-  const { user, organization } = session;
+function AuthShell({ onSession }) {
+  const [mode, setMode] = useState('login');
   return (
-    <div className="card dashboard">
-      <h1>{organization.name}</h1>
-      <p className="subtitle">Welcome back, {user.name || user.email}.</p>
+    <div className="auth-shell">
+      <div className="card">
+        <h1>Field Manager</h1>
+        <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
+        <div className="tabs">
+          <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>Sign in</button>
+          <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>Create account</button>
+        </div>
+        {mode === 'login' ? <LoginForm onSuccess={onSession} /> : <SignupForm onSuccess={onSession} />}
+      </div>
+    </div>
+  );
+}
 
-      <div className="row"><span className="key">Email</span><span className="val">{user.email}</span></div>
-      <div className="row"><span className="key">Role</span><span className="val"><span className="badge">{user.role}</span></span></div>
-      <div className="row"><span className="key">Organization slug</span><span className="val">{organization.slug}</span></div>
+function CustomerForm({ initial, onSubmit, onCancel, busy }) {
+  const [first_name, setFirst] = useState(initial?.first_name || '');
+  const [last_name, setLast] = useState(initial?.last_name || '');
+  const [business_name, setBusiness] = useState(initial?.business_name || '');
+  const [phone, setPhone] = useState(initial?.phone || '');
+  const [email, setEmail] = useState(initial?.email || '');
+  const [address, setAddress] = useState(initial?.address || '');
+  const [notes, setNotes] = useState(initial?.notes || '');
 
-      <button className="logout" onClick={onLogout}>Sign out</button>
+  function submit(e) {
+    e.preventDefault();
+    onSubmit({ first_name, last_name, business_name, phone, email, address, notes });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="form-grid">
+        <div>
+          <label>First name</label>
+          <input value={first_name} onChange={(e) => setFirst(e.target.value)} />
+        </div>
+        <div>
+          <label>Last name</label>
+          <input value={last_name} onChange={(e) => setLast(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Business name <span className="hint">(optional)</span></label>
+          <input value={business_name} onChange={(e) => setBusiness(e.target.value)} />
+        </div>
+        <div>
+          <label>Phone</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Address</label>
+          <textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Notes</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create customer')}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function CustomersView({ session }) {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiRequest('/api/customers', { slug: session.slug, token: session.token });
+      setCustomers(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function createCustomer(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/customers', {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function updateCustomer(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/customers/${editing.id}`, {
+        method: 'PUT', slug: session.slug, token: session.token, body: values,
+      });
+      setEditing(null);
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteCustomer(id) {
+    if (!confirm('Delete this customer? This cannot be undone from the UI.')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/customers/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  if (mode === 'create') {
+    return (
+      <div>
+        <div className="page-header"><h2>New customer</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <CustomerForm onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Edit customer</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <CustomerForm
+            initial={editing}
+            onSubmit={updateCustomer}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Customers</h2>
+        {canMutate && (
+          <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
+        )}
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : customers.length === 0 ? (
+          <div className="list-empty">No customers yet. {canMutate && 'Click "New customer" to add your first.'}</div>
+        ) : (
+          customers.map((c) => (
+            <div key={c.id} className="row">
+              <div className="info">
+                <div className="name">{customerDisplayName(c)}</div>
+                <div className="meta">
+                  {[c.phone, c.email].filter(Boolean).join(' • ') || 'No contact info'}
+                </div>
+              </div>
+              {canMutate && (
+                <div className="actions">
+                  <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
+                  <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AppShell({ session, onLogout }) {
+  const [view, setView] = useState('customers');
+  return (
+    <div>
+      <div className="topbar">
+        <div className="brand">{session.organization.name}</div>
+        <div className="right">
+          <span className="user">{session.user.name || session.user.email}</span>
+          <span className="badge">{session.user.role}</span>
+          <button className="secondary" onClick={onLogout}>Sign out</button>
+        </div>
+      </div>
+      <div className="nav">
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
+      </div>
+      <div className="content">
+        {view === 'customers' && <CustomersView session={session} />}
+      </div>
     </div>
   );
 }
 
 function App() {
   const [session, setSession] = useState(loadSession);
-  const [mode, setMode] = useState('login');
-
-  function handleLogout() {
-    clearSession();
-    setSession(null);
-  }
-
-  if (session) {
-    return (
-      <div className="app">
-        <Dashboard session={session} onLogout={handleLogout} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="app">
-      <div className="card">
-        <h1>Field Manager</h1>
-        <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
-
-        <div className="tabs">
-          <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>Sign in</button>
-          <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>Create account</button>
-        </div>
-
-        {mode === 'login'
-          ? <LoginForm onSuccess={setSession} />
-          : <SignupForm onSuccess={setSession} />}
-      </div>
-    </div>
-  );
+  function handleLogout() { clearSession(); setSession(null); }
+  return session
+    ? <AppShell session={session} onLogout={handleLogout} />
+    : <AuthShell onSession={setSession} />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
