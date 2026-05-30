@@ -1502,11 +1502,6 @@ function JobsView({ session }) {
                   )}
                 </div>
                 <div className="actions">
-                  {!isCompletedSingle && (
-                    <button className="primary" onClick={() => { setEditing(j); setMode('complete'); }}>
-                      Mark complete
-                    </button>
-                  )}
                   {j.type === 'recurring' && (
                     <button className="secondary" onClick={() => { setEditing(j); setMode('schedule'); }}>
                       Manage schedule
