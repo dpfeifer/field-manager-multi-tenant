@@ -1774,6 +1774,21 @@ function lineItemsTotal(items) {
   return (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 }
 
+function computeProjectedIncome(jobs, fromStr, toStr) {
+  const todayStr = formatYMD(todayStart());
+  const effectiveFrom = fromStr > todayStr ? fromStr : todayStr;
+  if (effectiveFrom > toStr) return 0;
+  let total = 0;
+  for (const job of jobs) {
+    if (!job.default_price) continue;
+    const price = parseFloat(job.default_price);
+    if (!isFinite(price) || price <= 0) continue;
+    const upcoming = jobOccurrencesInRange(job, effectiveFrom, toStr).filter((o) => !o.completed);
+    total += upcoming.length * price;
+  }
+  return total;
+}
+
 function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
   const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
   const [description, setDescription] = useState(initial?.description || '');
@@ -2538,7 +2553,7 @@ function SettingsView({ session }) {
 }
 
 function AppShell({ session, onLogout }) {
-  const [view, setView] = useState('jobs');
+  const [view, setView] = useState('dashboard');
   return (
     <div>
       <div className="topbar">
@@ -2550,6 +2565,7 @@ function AppShell({ session, onLogout }) {
         </div>
       </div>
       <div className="nav">
+        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => setView('jobs')}>Jobs</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
         <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Invoices</button>
@@ -2563,6 +2579,7 @@ function AppShell({ session, onLogout }) {
         )}
       </div>
       <div className="content">
+        {view === 'dashboard' && <DashboardView session={session} />}
         {view === 'jobs' && <JobsView session={session} />}
         {view === 'customers' && <CustomersView session={session} />}
         {view === 'invoices' && <InvoicesView session={session} />}
@@ -2571,6 +2588,201 @@ function AppShell({ session, onLogout }) {
         {view === 'settings' && <SettingsView session={session} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
       </div>
+    </div>
+  );
+}
+
+function DashboardView({ session }) {
+  const [jobs, setJobs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [completing, setCompleting] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [jobsData, invoicesData] = await Promise.all([
+        apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
+        apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
+      ]);
+      setJobs(jobsData);
+      setInvoices(invoicesData);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function completeJob(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/jobs/${completing.job.id}/complete`, {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setCompleting(null);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function markInvoicePaid(id) {
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${id}/mark-paid`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  const today = todayStart();
+  const todayStr = formatYMD(today);
+  const weekAgoStr = formatYMD(addDays(today, -6));
+  const overdueStart = formatYMD(addDays(today, -90));
+  const yesterdayStr = formatYMD(addDays(today, -1));
+
+  const todayOccurrences = jobs.flatMap((j) => jobOccurrencesInRange(j, todayStr, todayStr));
+  const overdueOccurrences = jobs
+    .flatMap((j) => jobOccurrencesInRange(j, overdueStart, yesterdayStr))
+    .filter((o) => !o.completed)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const outstandingInvoices = invoices.filter((i) => i.status === 'sent');
+
+  const outstandingTotal = outstandingInvoices.reduce((sum, i) => sum + lineItemsTotal(i.line_items), 0);
+  const weekRevenue = invoices
+    .filter((i) => i.status === 'paid' && i.paid_date && i.paid_date.split('T')[0] >= weekAgoStr && i.paid_date.split('T')[0] <= todayStr)
+    .reduce((sum, i) => sum + lineItemsTotal(i.line_items), 0);
+  const next7DaysProjected = computeProjectedIncome(jobs, todayStr, formatYMD(addDays(today, 6)));
+
+  if (completing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Mark complete: {completing.job.title}</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <CompletionForm
+            job={completing.job}
+            initialDate={completing.date}
+            onSubmit={completeJob}
+            onCancel={() => { setError(null); setCompleting(null); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Dashboard</h2>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{formatDateString(todayStr)}</div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      {loading ? (
+        <div className="list-empty">Loading...</div>
+      ) : (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card accent">
+              <div className="label">Today's visits</div>
+              <div className="value">{todayOccurrences.length}</div>
+              <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Overdue</div>
+              <div className="value">{overdueOccurrences.length}</div>
+              <div className="subvalue">last 90 days</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Outstanding</div>
+              <div className="value">{formatPrice(outstandingTotal)}</div>
+              <div className="subvalue">{outstandingInvoices.length} {outstandingInvoices.length === 1 ? 'invoice' : 'invoices'}</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Last 7 days revenue</div>
+              <div className="value">{formatPrice(weekRevenue)}</div>
+              <div className="subvalue">paid invoices</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Next 7 days projected</div>
+              <div className="value">{formatPrice(next7DaysProjected)}</div>
+              <div className="subvalue">from upcoming work</div>
+            </div>
+          </div>
+
+          <div className="section-heading">Today</div>
+          <div className="list">
+            {todayOccurrences.length === 0 ? (
+              <div className="list-empty">No visits scheduled today.</div>
+            ) : (
+              todayOccurrences.map((o, i) => (
+                <OccurrenceRow
+                  key={`today-${o.job.id}-${o.date}-${i}`}
+                  occurrence={o}
+                  onMarkComplete={(job, date) => setCompleting({ job, date })}
+                  onEdit={() => {}}
+                />
+              ))
+            )}
+          </div>
+
+          {overdueOccurrences.length > 0 && (
+            <>
+              <div className="section-heading">Overdue</div>
+              <div className="list">
+                {overdueOccurrences.slice(0, 10).map((o, i) => (
+                  <OccurrenceRow
+                    key={`overdue-${o.job.id}-${o.date}-${i}`}
+                    occurrence={o}
+                    onMarkComplete={(job, date) => setCompleting({ job, date })}
+                    onEdit={() => {}}
+                  />
+                ))}
+                {overdueOccurrences.length > 10 && (
+                  <div className="list-empty" style={{ padding: 14 }}>+ {overdueOccurrences.length - 10} more overdue. Use the Jobs tab's Past due filter to see all.</div>
+                )}
+              </div>
+            </>
+          )}
+
+          {outstandingInvoices.length > 0 && (
+            <>
+              <div className="section-heading">Outstanding invoices</div>
+              <div className="list">
+                {outstandingInvoices.map((inv) => {
+                  const total = lineItemsTotal(inv.line_items);
+                  return (
+                    <div key={inv.id} className="row">
+                      <div className="info">
+                        <div className="name">
+                          Invoice #{inv.invoice_number}
+                          <span className="price">{formatPrice(total)}</span>
+                        </div>
+                        <div className="meta">
+                          {customerDisplayName({
+                            first_name: inv.customer_first_name,
+                            last_name: inv.customer_last_name,
+                            business_name: inv.customer_business_name,
+                          })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'}
+                        </div>
+                      </div>
+                      <div className="actions">
+                        <button className="primary" onClick={() => markInvoicePaid(inv.id)}>Mark paid</button>
+                        <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -2609,6 +2821,7 @@ function ReportsView({ session }) {
   const [customFrom, setCustomFrom] = useState(formatYMD(todayStart()));
   const [customTo, setCustomTo] = useState(formatYMD(todayStart()));
   const [report, setReport] = useState(null);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -2620,10 +2833,11 @@ function ReportsView({ session }) {
       setLoading(true); setError(null);
       try {
         const params = new URLSearchParams({ from: range.from, to: range.to });
-        const data = await apiRequest(`/api/reports?${params}`, {
-          slug: session.slug, token: session.token,
-        });
-        if (!cancelled) setReport(data);
+        const [reportData, jobsData] = await Promise.all([
+          apiRequest(`/api/reports?${params}`, { slug: session.slug, token: session.token }),
+          apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
+        ]);
+        if (!cancelled) { setReport(reportData); setJobs(jobsData); }
       } catch (err) {
         if (!cancelled) setError(err.message);
       } finally {
@@ -2632,6 +2846,8 @@ function ReportsView({ session }) {
     })();
     return () => { cancelled = true; };
   }, [session.slug, session.token, range.from, range.to]);
+
+  const projectedIncome = computeProjectedIncome(jobs, range.from, range.to);
 
   const maxMonthly = report && report.monthly_revenue.length > 0
     ? Math.max(...report.monthly_revenue.map((r) => parseFloat(r.paid_total) || 0))
@@ -2698,6 +2914,11 @@ function ReportsView({ session }) {
               <div className="label">New customers</div>
               <div className="value">{report.new_customers}</div>
               <div className="subvalue">in selected range</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Projected income</div>
+              <div className="value">{formatPrice(projectedIncome)}</div>
+              <div className="subvalue">from upcoming work in range</div>
             </div>
           </div>
 
