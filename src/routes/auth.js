@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
+const { isSystemAdminEmail } = require('../utils/systemAdmin');
 
 const router = express.Router();
 
@@ -75,15 +76,23 @@ router.post('/login', async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
+    const is_system_admin = isSystemAdminEmail(user.email);
+
     const token = jwt.sign(
-      { sub: user.id, organization_id: req.organization.id, email: user.email, role: user.role },
+      {
+        sub: user.id,
+        organization_id: req.organization.id,
+        email: user.email,
+        role: user.role,
+        is_system_admin,
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
     res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, is_system_admin },
     });
   } catch (err) {
     next(err);

@@ -2520,6 +2520,9 @@ function AppShell({ session, onLogout }) {
         <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Invoices</button>
         <button className={view === 'quotes' ? 'active' : ''} onClick={() => setView('quotes')}>Quotes</button>
         <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
+        {session.user.is_system_admin && (
+          <button className={view === 'system' ? 'active' : ''} onClick={() => setView('system')}>System</button>
+        )}
       </div>
       <div className="content">
         {view === 'jobs' && <JobsView session={session} />}
@@ -2527,6 +2530,64 @@ function AppShell({ session, onLogout }) {
         {view === 'invoices' && <InvoicesView session={session} />}
         {view === 'quotes' && <QuotesView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
+        {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
+      </div>
+    </div>
+  );
+}
+
+function SystemView({ session }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setError(null);
+      try {
+        const data = await apiRequest('/api/system/organizations', { token: session.token });
+        if (!cancelled) setOrgs(data);
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session.token]);
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>All organizations</h2>
+        <span className="badge">System admin</span>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : orgs.length === 0 ? (
+          <div className="list-empty">No organizations.</div>
+        ) : (
+          orgs.map((o) => (
+            <div key={o.id} className="row">
+              <div className="info">
+                <div className="name">{o.name}</div>
+                <div className="meta">
+                  {o.slug} • Created {formatDateString(o.created_at.split('T')[0])} • Next invoice #{o.next_invoice_number}
+                </div>
+                <div className="secondary-meta">
+                  {o.user_count} {o.user_count === 1 ? 'user' : 'users'} •
+                  {' '}{o.customer_count} {o.customer_count === 1 ? 'customer' : 'customers'} •
+                  {' '}{o.job_count} {o.job_count === 1 ? 'job' : 'jobs'} •
+                  {' '}{o.invoice_count} {o.invoice_count === 1 ? 'invoice' : 'invoices'} •
+                  {' '}{o.quote_count} {o.quote_count === 1 ? 'quote' : 'quotes'}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { withTransaction } = require('../config/db');
 const { slugify, validateSlug } = require('../utils/slug');
 const { validatePassword } = require('../utils/password');
+const { isSystemAdminEmail } = require('../utils/systemAdmin');
 
 const router = express.Router();
 
@@ -60,18 +61,25 @@ router.post('/', async (req, res, next) => {
       return { organization: org, user: newUser };
     });
 
+    const is_system_admin = isSystemAdminEmail(result.user.email);
+
     const token = jwt.sign(
       {
         sub: result.user.id,
         organization_id: result.organization.id,
         email: result.user.email,
         role: result.user.role,
+        is_system_admin,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    res.status(201).json({ ...result, token });
+    res.status(201).json({
+      ...result,
+      user: { ...result.user, is_system_admin },
+      token,
+    });
   } catch (err) {
     if (err.code === '23505') {
       const field = err.constraint && err.constraint.includes('email')
