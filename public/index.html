@@ -206,6 +206,78 @@
       border: 1px solid var(--border); padding: 14px 18px;
       margin-bottom: 20px; color: var(--text-muted); font-size: 13px;
     }
+
+    .filter-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      padding: 7px 14px; background: var(--card); color: var(--text-muted);
+      border: 1px solid var(--border-strong); border-radius: 999px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .chip:hover { color: var(--text); background: #f5f1e8; }
+    .chip.active {
+      background: var(--primary); color: white; border-color: var(--primary);
+    }
+
+    .occurrence-row { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .occurrence-row:last-child { border-bottom: none; }
+    .occurrence-row.completed { opacity: 0.55; }
+    .occurrence-row:hover { background: #fbf9f3; }
+    .occurrence-row .date {
+      flex-shrink: 0; min-width: 90px; padding: 6px 10px;
+      background: #f4efe3; border-radius: 8px; text-align: center;
+    }
+    .occurrence-row .date .day { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .occurrence-row .date .num { font-size: 18px; font-weight: 600; line-height: 1.1; }
+    .occurrence-row.completed .date { background: #e8f1ec; }
+    .occurrence-row.today .date { background: var(--primary); color: white; }
+    .occurrence-row.today .date .day { color: #cbd6e6; }
+    .occurrence-row .body { flex: 1; min-width: 0; }
+    .occurrence-row .body .title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+    .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
+    .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .calendar {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border); padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cal-nav .cal-month { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .cal-nav button { padding: 6px 12px; font-size: 14px; }
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .cal-dow {
+      padding: 6px; text-align: center; font-size: 11px;
+      font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .cal-cell {
+      min-height: 96px; padding: 6px 8px; border: 1px solid var(--border);
+      border-radius: 8px; background: var(--card); overflow: hidden;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .cal-cell.empty { background: #f9f5ec; border-color: transparent; }
+    .cal-cell.today { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-ring); }
+    .cal-cell .cal-date { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .cal-cell.today .cal-date { color: var(--primary); }
+    .cal-chip {
+      font-size: 11px; padding: 2px 6px; border-radius: 4px;
+      background: #eaf0f2; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer; transition: background 0.12s;
+    }
+    .cal-chip:hover { background: #d5dee3; }
+    .cal-chip.done { background: #e8f1ec; color: var(--text-muted); text-decoration: line-through; }
+    .cal-more { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -365,6 +437,67 @@ function nextDueDate(job, today = todayStart()) {
   const todayStr = formatYMD(today);
   const upcoming = computeOccurrences(job, today).filter((o) => !o.completed && o.date >= todayStr);
   return upcoming[0]?.date || null;
+}
+
+function jobOccurrencesInRange(job, startDate, endDate) {
+  if (job.type === 'single') {
+    if (!job.date || job.date < startDate || job.date > endDate) return [];
+    return [{
+      job, date: job.date,
+      completed: job.status === 'completed',
+      rescheduledFrom: null,
+    }];
+  }
+  if (job.type !== 'recurring' || !job.start_date) return [];
+
+  const horizon = parseDate(endDate);
+  const pattern = generatePatternDates(job, horizon);
+  const set = new Set(pattern);
+
+  const rescheduled = (job.rescheduled_dates && typeof job.rescheduled_dates === 'object') ? job.rescheduled_dates : {};
+  const rescheduledFromMap = {};
+  Object.entries(rescheduled).forEach(([orig, target]) => {
+    set.delete(orig);
+    set.add(target);
+    rescheduledFromMap[target] = orig;
+  });
+
+  (job.skipped_dates || []).forEach((d) => set.delete(d));
+  (job.deleted_dates || []).forEach((d) => set.delete(d));
+
+  const completed = new Set(job.completed_dates || []);
+
+  return [...set]
+    .filter((d) => d >= startDate && d <= endDate)
+    .sort()
+    .map((date) => ({
+      job, date,
+      completed: completed.has(date),
+      rescheduledFrom: rescheduledFromMap[date] || null,
+    }));
+}
+
+const FILTER_RANGES = {
+  today: () => {
+    const t = formatYMD(todayStart());
+    return { start: t, end: t };
+  },
+  week: () => {
+    const t = todayStart();
+    return { start: formatYMD(t), end: formatYMD(addDays(t, 6)) };
+  },
+  past: () => {
+    const t = todayStart();
+    return { start: formatYMD(addDays(t, -90)), end: formatYMD(addDays(t, -1)), onlyOpen: true };
+  },
+};
+
+function expandJobsToOccurrences(jobs, filter) {
+  const range = FILTER_RANGES[filter] && FILTER_RANGES[filter]();
+  if (!range) return null;
+  const occurrences = jobs.flatMap((j) => jobOccurrencesInRange(j, range.start, range.end));
+  const filtered = range.onlyOpen ? occurrences.filter((o) => !o.completed) : occurrences;
+  return filtered.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function lastCompletion(job) {
@@ -833,6 +966,106 @@ function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
   );
 }
 
+function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
+  const d = parseDate(occurrence.date);
+  const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
+  const monthName = d.toLocaleDateString(undefined, { month: 'short' });
+  const isToday = occurrence.date === formatYMD(todayStart());
+  const isOverdue = !occurrence.completed && occurrence.date < formatYMD(todayStart());
+  const classes = ['occurrence-row'];
+  if (occurrence.completed) classes.push('completed');
+  if (isToday) classes.push('today');
+
+  return (
+    <div className={classes.join(' ')}>
+      <div className="date">
+        <div className="day">{dayName} {monthName}</div>
+        <div className="num">{d.getDate()}</div>
+      </div>
+      <div className="body">
+        <div className="title">
+          {occurrence.job.title}
+          {occurrence.job.default_price != null && <span className="price">{formatPrice(occurrence.job.default_price)}</span>}
+        </div>
+        <div className="meta">
+          {jobCustomerName(occurrence.job)}
+          {isOverdue && <> · <span style={{ color: 'var(--danger)', fontWeight: 500 }}>Overdue</span></>}
+          {occurrence.completed && <> · Completed</>}
+          {occurrence.rescheduledFrom && <> · Rescheduled from {formatDateString(occurrence.rescheduledFrom)}</>}
+        </div>
+      </div>
+      <div className="actions">
+        {!occurrence.completed && (
+          <button className="primary" onClick={() => onMarkComplete(occurrence.job, occurrence.date)}>Mark complete</button>
+        )}
+        <button className="secondary" onClick={() => onEdit(occurrence.job)}>Open</button>
+      </div>
+    </div>
+  );
+}
+
+function CalendarView({ jobs, onChipClick }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const today = todayStart();
+  const viewMonth = addMonths(today, monthOffset);
+  const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+  const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
+  const monthStartStr = formatYMD(monthStart);
+  const monthEndStr = formatYMD(monthEnd);
+
+  const byDate = {};
+  jobs.forEach((j) => {
+    jobOccurrencesInRange(j, monthStartStr, monthEndStr).forEach((o) => {
+      (byDate[o.date] = byDate[o.date] || []).push(o);
+    });
+  });
+
+  const firstDayOfWeek = monthStart.getDay();
+  const daysInMonth = monthEnd.getDate();
+  const cells = [];
+  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const todayStr = formatYMD(today);
+  const monthLabel = viewMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <div className="calendar">
+      <div className="cal-nav">
+        <button className="secondary" onClick={() => setMonthOffset(monthOffset - 1)}>← Prev</button>
+        <span className="cal-month">{monthLabel}</span>
+        <button className="secondary" onClick={() => setMonthOffset(monthOffset + 1)}>Next →</button>
+      </div>
+      <div className="cal-grid">
+        {dows.map((dow) => <div key={dow} className="cal-dow">{dow}</div>)}
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} className="cal-cell empty"></div>;
+          const dateStr = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const occs = byDate[dateStr] || [];
+          const isToday = dateStr === todayStr;
+          return (
+            <div key={i} className={`cal-cell ${isToday ? 'today' : ''}`}>
+              <div className="cal-date">{d}</div>
+              {occs.slice(0, 3).map((o, j) => (
+                <div
+                  key={j}
+                  className={`cal-chip ${o.completed ? 'done' : ''}`}
+                  title={`${o.job.title} — ${jobCustomerName(o.job)}`}
+                  onClick={() => onChipClick(o.job)}
+                >
+                  {o.job.title}
+                </div>
+              ))}
+              {occs.length > 3 && <div className="cal-more">+{occs.length - 3} more</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule }) {
   const [editing, setEditing] = useState(false);
   const [newDate, setNewDate] = useState(occurrence.date);
@@ -993,6 +1226,8 @@ function JobsView({ session }) {
   const [busy, setBusy] = useState(false);
   const [completionInitialDate, setCompletionInitialDate] = useState(null);
   const [returnMode, setReturnMode] = useState('list');
+  const [filter, setFilter] = useState('all');
+  const [layout, setLayout] = useState('list');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -1170,6 +1405,20 @@ function JobsView({ session }) {
     );
   }
 
+  function openMarkComplete(job, date) {
+    setEditing(job);
+    setCompletionInitialDate(date || null);
+    setReturnMode('list');
+    setMode('complete');
+  }
+
+  function openEdit(job) {
+    setEditing(job);
+    setMode(job.type === 'recurring' ? 'schedule' : 'edit');
+  }
+
+  const occurrences = expandJobsToOccurrences(jobs, filter);
+
   return (
     <div>
       <div className="page-header">
@@ -1178,7 +1427,48 @@ function JobsView({ session }) {
           <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
         )}
       </div>
+      <div className="filter-bar">
+        <div className="chip-group">
+          {['all', 'today', 'week', 'past'].map((f) => (
+            <button
+              key={f}
+              className={`chip ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === 'all' ? 'All' : f === 'today' ? 'Today' : f === 'week' ? 'Next 7 days' : 'Past due'}
+            </button>
+          ))}
+        </div>
+        <div className="toggle-group">
+          <button className={layout === 'list' ? 'active' : ''} onClick={() => setLayout('list')}>List</button>
+          <button className={layout === 'calendar' ? 'active' : ''} onClick={() => setLayout('calendar')}>Calendar</button>
+        </div>
+      </div>
       {error && <div className="error">{error}</div>}
+      {layout === 'calendar' ? (
+        loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : (
+          <CalendarView jobs={jobs} onChipClick={openEdit} />
+        )
+      ) : occurrences !== null ? (
+        <div className="list">
+          {loading ? (
+            <div className="list-empty">Loading...</div>
+          ) : occurrences.length === 0 ? (
+            <div className="list-empty">No jobs match this filter.</div>
+          ) : (
+            occurrences.map((o, i) => (
+              <OccurrenceRow
+                key={`${o.job.id}-${o.date}-${i}`}
+                occurrence={o}
+                onMarkComplete={openMarkComplete}
+                onEdit={openEdit}
+              />
+            ))
+          )}
+        </div>
+      ) : (
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -1234,6 +1524,7 @@ function JobsView({ session }) {
           })
         )}
       </div>
+      )}
     </div>
   );
 }
