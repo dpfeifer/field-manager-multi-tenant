@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -118,6 +118,46 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.post('/import', requireRole('admin', 'lead'), async (req, res, next) => {
+  const rows = Array.isArray(req.body && req.body.rows) ? req.body.rows : null;
+  if (!rows) return res.status(400).json({ error: 'rows array is required' });
+  if (rows.length === 0) return res.status(400).json({ error: 'rows is empty' });
+  if (rows.length > 1000) return res.status(400).json({ error: 'too many rows (max 1000 per import)' });
+
+  const cleaned = rows
+    .map((r) => {
+      const fields = pickFields(r);
+      return hasName(fields) ? fields : null;
+    })
+    .filter(Boolean);
+
+  if (cleaned.length === 0) {
+    return res.status(400).json({ error: 'No rows have a first_name, last_name, or business_name' });
+  }
+
+  try {
+    const inserted = await withTransaction(async (client) => {
+      const out = [];
+      for (const c of cleaned) {
+        const { rows: insertRows } = await client.query(
+          `INSERT INTO customers (organization_id, first_name, last_name, business_name, phone, email, address, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING id`,
+          [
+            req.organization.id,
+            c.first_name ?? null, c.last_name ?? null, c.business_name ?? null,
+            c.phone ?? null, c.email ?? null, c.address ?? null, c.notes ?? null,
+          ]
+        );
+        out.push(insertRows[0].id);
+      }
+      return out;
+    });
+
+    res.status(201).json({ inserted_count: inserted.length, skipped_count: rows.length - cleaned.length });
+  } catch (err) { next(err); }
 });
 
 router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {

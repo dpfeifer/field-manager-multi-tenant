@@ -422,6 +422,30 @@
       .invoice-doc { box-shadow: none; padding: 0; }
       .public-shell { margin: 0; max-width: none; }
     }
+
+    .search-bar { margin-bottom: 16px; }
+    .detail-info { display: grid; grid-template-columns: 120px 1fr; gap: 12px 18px; font-size: 14px; }
+    .detail-info dt { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+    .detail-info dd { margin: 0; white-space: pre-line; }
+    .compact-row {
+      padding: 12px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .compact-row:last-child { border-bottom: none; }
+    .compact-row .info .name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+    .compact-row .info .meta { font-size: 12px; color: var(--text-muted); }
+    .csv-preview-wrap { overflow-x: auto; margin: 12px 0; }
+    .csv-preview-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .csv-preview-table th, .csv-preview-table td {
+      padding: 6px 10px; text-align: left;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .csv-preview-table th {
+      font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
   </style>
 </head>
 <body>
@@ -778,6 +802,220 @@ function AuthShell({ onSession }) {
   );
 }
 
+function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
+  const [jobs, setJobs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setError(null);
+      try {
+        const [j, i, q] = await Promise.all([
+          apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
+          apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
+          apiRequest('/api/quotes', { slug: session.slug, token: session.token }),
+        ]);
+        if (cancelled) return;
+        const cid = customer.id;
+        setJobs(j.filter((x) => x.customer_id === cid));
+        setInvoices(i.filter((x) => x.customer_id === cid));
+        setQuotes(q.filter((x) => x.customer_id === cid));
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [customer.id, session.slug, session.token]);
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>{customerDisplayName(customer)}</h2>
+        <div className="actions" style={{ display: 'flex', gap: 8 }}>
+          {canMutate && <button className="secondary" onClick={() => onEdit(customer)}>Edit</button>}
+          <button className="secondary" onClick={onBack}>Back</button>
+        </div>
+      </div>
+
+      <div className="form-card">
+        <dl className="detail-info">
+          {customer.phone && <><dt>Phone</dt><dd>{customer.phone}</dd></>}
+          {customer.email && <><dt>Email</dt><dd>{customer.email}</dd></>}
+          {customer.business_name && (customer.first_name || customer.last_name) && (
+            <><dt>Contact</dt><dd>{[customer.first_name, customer.last_name].filter(Boolean).join(' ')}</dd></>
+          )}
+          {customer.address && <><dt>Address</dt><dd>{customer.address}</dd></>}
+          {customer.notes && <><dt>Notes</dt><dd>{customer.notes}</dd></>}
+        </dl>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      {loading ? (
+        <div className="list-empty">Loading related items...</div>
+      ) : (
+        <>
+          <div className="section-heading">Jobs ({jobs.length})</div>
+          <div className="list">
+            {jobs.length === 0 ? (
+              <div className="list-empty">No jobs for this customer.</div>
+            ) : jobs.map((j) => (
+              <div key={j.id} className="compact-row">
+                <div className="info">
+                  <div className="name">{j.title}</div>
+                  <div className="meta">
+                    {formatSchedule(j)}
+                    {j.default_price != null && <> · {formatPrice(j.default_price)}</>}
+                    {j.status === 'completed' && <> · Completed</>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-heading">Invoices ({invoices.length})</div>
+          <div className="list">
+            {invoices.length === 0 ? (
+              <div className="list-empty">No invoices.</div>
+            ) : invoices.map((inv) => (
+              <div key={inv.id} className="compact-row">
+                <div className="info">
+                  <div className="name">
+                    Invoice #{inv.invoice_number} <span className="price">{formatPrice(lineItemsTotal(inv.line_items))}</span>
+                  </div>
+                  <div className="meta">
+                    {formatDateString(inv.date)} · <span className={`badge ${inv.status}`}>{inv.status}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-heading">Quotes ({quotes.length})</div>
+          <div className="list">
+            {quotes.length === 0 ? (
+              <div className="list-empty">No quotes.</div>
+            ) : quotes.map((q) => (
+              <div key={q.id} className="compact-row">
+                <div className="info">
+                  <div className="name">
+                    {q.description || 'Quote'} <span className="price">{formatPrice(lineItemsTotal(q.line_items))}</span>
+                  </div>
+                  <div className="meta"><span className={`badge ${q.status}`}>{q.status}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CsvImportView({ session, onDone, onCancel }) {
+  const [text, setText] = useState('');
+  const [parsed, setParsed] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const VALID_COLS = new Set(['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes']);
+  const SAMPLE = 'first_name,last_name,business_name,phone,email,address,notes\nBob,Smith,,555-0100,bob@example.com,123 Maple St,Front yard only\n,,Acme Co,555-9000,info@acme.com,500 Oak Ave,Net 30';
+
+  function handleParse() {
+    setError(null); setResult(null);
+    try {
+      const out = parseCSV(text);
+      if (out.rows.length === 0) {
+        setError('No rows to import. Make sure your CSV has a header row plus at least one data row.');
+        setParsed(null);
+        return;
+      }
+      const unknown = out.headers.filter((h) => !VALID_COLS.has(h));
+      if (unknown.length > 0) {
+        setError(`Unknown columns: ${unknown.join(', ')}. Allowed: ${[...VALID_COLS].join(', ')}.`);
+        setParsed(null);
+        return;
+      }
+      setParsed(out);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleImport() {
+    if (!parsed) return;
+    setBusy(true); setError(null); setResult(null);
+    try {
+      const data = await apiRequest('/api/customers/import', {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { rows: parsed.rows },
+      });
+      setResult(data);
+      onDone();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header"><h2>Import customers from CSV</h2></div>
+      {error && <div className="error">{error}</div>}
+      {result && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
+          Imported {result.inserted_count} customers ({result.skipped_count} skipped — no name).
+        </div>
+      )}
+      <div className="form-card">
+        <label>CSV <span className="hint">(first row must be a header; allowed columns: {[...VALID_COLS].join(', ')})</span></label>
+        <textarea
+          rows={10}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={SAMPLE}
+          style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+        />
+        <div className="form-actions">
+          <button type="button" className="secondary" onClick={handleParse} disabled={busy || !text.trim()}>Preview</button>
+          {parsed && (
+            <button type="button" className="primary" onClick={handleImport} disabled={busy}>
+              {busy ? 'Importing...' : `Import ${parsed.rows.length} customer${parsed.rows.length === 1 ? '' : 's'}`}
+            </button>
+          )}
+          <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Back</button>
+        </div>
+      </div>
+
+      {parsed && (
+        <>
+          <div className="section-heading">Preview ({parsed.rows.length} {parsed.rows.length === 1 ? 'row' : 'rows'})</div>
+          <div className="form-card">
+            <div className="csv-preview-wrap">
+              <table className="csv-preview-table">
+                <thead>
+                  <tr>{parsed.headers.map((h) => <th key={h}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {parsed.rows.slice(0, 50).map((row, i) => (
+                    <tr key={i}>{parsed.headers.map((h) => <td key={h}>{row[h] || '—'}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {parsed.rows.length > 50 && <p className="hint">Showing first 50 rows. All {parsed.rows.length} will be imported.</p>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CustomerForm({ initial, onSubmit, onCancel, busy }) {
   const [first_name, setFirst] = useState(initial?.first_name || '');
   const [last_name, setLast] = useState(initial?.last_name || '');
@@ -838,8 +1076,10 @@ function CustomersView({ session }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
+  const [mode, setMode] = useState('list');
   const [editing, setEditing] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
@@ -921,22 +1161,64 @@ function CustomersView({ session }) {
     );
   }
 
+  if (mode === 'detail' && viewing) {
+    return (
+      <CustomerDetailView
+        session={session}
+        customer={viewing}
+        canMutate={canMutate}
+        onBack={() => { setViewing(null); setMode('list'); }}
+        onEdit={(c) => { setEditing(c); setMode('edit'); }}
+      />
+    );
+  }
+
+  if (mode === 'import') {
+    return (
+      <CsvImportView
+        session={session}
+        onDone={async () => { await refresh(); }}
+        onCancel={() => { setError(null); setMode('list'); }}
+      />
+    );
+  }
+
+  const filtered = customers.filter((c) => searchMatches(
+    search,
+    c.first_name, c.last_name, c.business_name, c.phone, c.email, c.address
+  ));
+
   return (
     <div>
       <div className="page-header">
         <h2>Customers</h2>
         {canMutate && (
-          <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="secondary" onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
+          </div>
         )}
+      </div>
+      <div className="search-bar">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search customers by name, phone, email..."
+        />
       </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : customers.length === 0 ? (
-          <div className="list-empty">No customers yet. {canMutate && 'Click "New customer" to add your first.'}</div>
+        ) : filtered.length === 0 ? (
+          <div className="list-empty">
+            {customers.length === 0
+              ? (canMutate ? 'No customers yet. Click "+ New customer" or "Import CSV" to start.' : 'No customers yet.')
+              : 'No customers match this search.'}
+          </div>
         ) : (
-          customers.map((c) => (
+          filtered.map((c) => (
             <div key={c.id} className="row">
               <div className="info">
                 <div className="name">{customerDisplayName(c)}</div>
@@ -944,12 +1226,15 @@ function CustomersView({ session }) {
                   {[c.phone, c.email].filter(Boolean).join(' • ') || 'No contact info'}
                 </div>
               </div>
-              {canMutate && (
-                <div className="actions">
-                  <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
-                  <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
-                </div>
-              )}
+              <div className="actions">
+                <button className="secondary" onClick={() => { setViewing(c); setMode('detail'); }}>View</button>
+                {canMutate && (
+                  <>
+                    <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
+                    <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
+                  </>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -1391,6 +1676,7 @@ function JobsView({ session }) {
   const [returnMode, setReturnMode] = useState('list');
   const [filter, setFilter] = useState('all');
   const [layout, setLayout] = useState('list');
+  const [search, setSearch] = useState('');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -1580,7 +1866,12 @@ function JobsView({ session }) {
     setMode(job.type === 'recurring' ? 'schedule' : 'edit');
   }
 
-  const occurrences = expandJobsToOccurrences(jobs, filter);
+  function jobMatchesSearch(j) {
+    return searchMatches(search, j.title, j.description, jobCustomerName(j));
+  }
+
+  const searchedJobs = jobs.filter(jobMatchesSearch);
+  const occurrences = expandJobsToOccurrences(searchedJobs, filter);
 
   return (
     <div>
@@ -1589,6 +1880,14 @@ function JobsView({ session }) {
         {canMutate && (
           <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
         )}
+      </div>
+      <div className="search-bar">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by job title, customer, or description..."
+        />
       </div>
       <div className="filter-bar">
         <div className="chip-group">
@@ -1612,7 +1911,7 @@ function JobsView({ session }) {
         loading ? (
           <div className="list-empty">Loading...</div>
         ) : (
-          <CalendarView jobs={jobs} onChipClick={openEdit} />
+          <CalendarView jobs={searchedJobs} onChipClick={openEdit} />
         )
       ) : occurrences !== null ? (
         <div className="list">
@@ -1635,10 +1934,14 @@ function JobsView({ session }) {
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : jobs.length === 0 ? (
-          <div className="list-empty">No jobs yet. {canMutate && 'Click "New job" to schedule the first one.'}</div>
+        ) : searchedJobs.length === 0 ? (
+          <div className="list-empty">
+            {jobs.length === 0
+              ? (canMutate ? 'No jobs yet. Click "New job" to schedule the first one.' : 'No jobs yet.')
+              : 'No jobs match this search.'}
+          </div>
         ) : (
-          jobs.map((j) => {
+          searchedJobs.map((j) => {
             const isCompletedSingle = j.type === 'single' && j.status === 'completed';
             const nextDue = j.type === 'recurring' ? nextDueDate(j) : null;
             const last = lastCompletion(j);
@@ -1774,6 +2077,45 @@ function lineItemsTotal(items) {
   return (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 }
 
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).map((l) => l).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  function splitLine(line) {
+    const out = [];
+    let cur = '';
+    let inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQuote = !inQuote; }
+      } else if (c === ',' && !inQuote) {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  }
+  const headers = splitLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
+  const rows = lines.slice(1).map((line) => {
+    const cells = splitLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cells[i] === undefined ? '' : cells[i]; });
+    return row;
+  });
+  return { headers, rows };
+}
+
+function searchMatches(needle, ...fields) {
+  if (!needle) return true;
+  const n = needle.toLowerCase().trim();
+  if (!n) return true;
+  return fields.some((f) => f && String(f).toLowerCase().includes(n));
+}
+
 function computeProjectedIncome(jobs, fromStr, toStr) {
   const todayStr = formatYMD(todayStart());
   const effectiveFrom = fromStr > todayStr ? fromStr : todayStr;
@@ -1843,6 +2185,7 @@ function InvoicesView({ session }) {
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [search, setSearch] = useState('');
 
   async function copyPublicLink(invoiceId) {
     const url = `${window.location.origin}/i/${invoiceId}`;
@@ -1954,20 +2297,39 @@ function InvoicesView({ session }) {
     );
   }
 
+  const filteredInvoices = invoices.filter((inv) => searchMatches(
+    search,
+    String(inv.invoice_number),
+    inv.description,
+    inv.customer_first_name, inv.customer_last_name, inv.customer_business_name
+  ));
+
   return (
     <div>
       <div className="page-header">
         <h2>Invoices</h2>
         {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
       </div>
+      <div className="search-bar">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by invoice #, customer, or description..."
+        />
+      </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : invoices.length === 0 ? (
-          <div className="list-empty">No invoices yet. {canMutate && 'Click "New invoice" to draft one.'}</div>
+        ) : filteredInvoices.length === 0 ? (
+          <div className="list-empty">
+            {invoices.length === 0
+              ? (canMutate ? 'No invoices yet. Click "New invoice" to draft one.' : 'No invoices yet.')
+              : 'No invoices match this search.'}
+          </div>
         ) : (
-          invoices.map((inv) => {
+          filteredInvoices.map((inv) => {
             const total = lineItemsTotal(inv.line_items);
             return (
               <div key={inv.id} className="row">
@@ -2209,6 +2571,7 @@ function QuotesView({ session }) {
   const [mode, setMode] = useState('list');
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState('');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -2375,20 +2738,40 @@ function QuotesView({ session }) {
     );
   }
 
+  const filteredQuotes = quotes.filter((q) => searchMatches(
+    search,
+    q.description,
+    quoteRecipientName(q),
+    q.prospect_email,
+    q.prospect_phone
+  ));
+
   return (
     <div>
       <div className="page-header">
         <h2>Quotes</h2>
         {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
       </div>
+      <div className="search-bar">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by customer, prospect, or description..."
+        />
+      </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : quotes.length === 0 ? (
-          <div className="list-empty">No quotes yet. {canMutate && 'Click "New quote" to draft one.'}</div>
+        ) : filteredQuotes.length === 0 ? (
+          <div className="list-empty">
+            {quotes.length === 0
+              ? (canMutate ? 'No quotes yet. Click "New quote" to draft one.' : 'No quotes yet.')
+              : 'No quotes match this search.'}
+          </div>
         ) : (
-          quotes.map((q) => {
+          filteredQuotes.map((q) => {
             const total = lineItemsTotal(q.line_items);
             return (
               <div key={q.id} className="row">

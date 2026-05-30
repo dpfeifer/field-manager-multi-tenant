@@ -63,14 +63,23 @@ function validateScheduleFields(body) {
   return 'type must be "single" or "recurring"';
 }
 
+function employeeFilter(req) {
+  if (req.user.role !== 'employee') return { sql: '', params: [] };
+  return {
+    sql: 'AND j.assigned_to @> $PARAM::jsonb',
+    params: [JSON.stringify([req.user.sub])],
+  };
+}
+
 router.get('/', async (req, res, next) => {
   try {
-    const { rows } = await query(
-      `${BASE_SELECT}
+    const filter = employeeFilter(req);
+    const params = [req.organization.id, ...filter.params];
+    const sql = `${BASE_SELECT}
        WHERE j.organization_id = $1 AND j.deleted_at IS NULL
-       ORDER BY j.created_at DESC`,
-      [req.organization.id]
-    );
+       ${filter.sql.replace('$PARAM', `$${params.length}`)}
+       ORDER BY j.created_at DESC`;
+    const { rows } = await query(sql, params);
     res.json(rows);
   } catch (err) {
     next(err);
@@ -79,12 +88,13 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const { rows } = await query(
-      `${BASE_SELECT}
+    const filter = employeeFilter(req);
+    const params = [req.params.id, req.organization.id, ...filter.params];
+    const sql = `${BASE_SELECT}
        WHERE j.id = $1 AND j.organization_id = $2 AND j.deleted_at IS NULL
-       LIMIT 1`,
-      [req.params.id, req.organization.id]
-    );
+       ${filter.sql.replace('$PARAM', `$${params.length}`)}
+       LIMIT 1`;
+    const { rows } = await query(sql, params);
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
   } catch (err) {
@@ -223,6 +233,13 @@ router.post('/:id/complete', async (req, res, next) => {
     );
     if (existing.length === 0) return res.status(404).json({ error: 'Not found' });
     const job = existing[0];
+
+    if (req.user.role === 'employee') {
+      const assigned = Array.isArray(job.assigned_to) ? job.assigned_to : [];
+      if (!assigned.includes(req.user.sub)) {
+        return res.status(403).json({ error: 'You are not assigned to this job' });
+      }
+    }
 
     const completedDates = Array.isArray(job.completed_dates) ? [...job.completed_dates] : [];
     if (!completedDates.includes(date)) completedDates.push(date);
