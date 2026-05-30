@@ -17,6 +17,7 @@ const jobsRoutes = require('./routes/jobs');
 const settingsRoutes = require('./routes/settings');
 const invoicesRoutes = require('./routes/invoices');
 const quotesRoutes = require('./routes/quotes');
+const reportsRoutes = require('./routes/reports');
 const publicRoutes = require('./routes/public');
 const systemRoutes = require('./routes/system');
 
@@ -42,6 +43,7 @@ app.use('/api/jobs', resolveOrganization, requireAuth, jobsRoutes);
 app.use('/api/settings', resolveOrganization, requireAuth, settingsRoutes);
 app.use('/api/invoices', resolveOrganization, requireAuth, invoicesRoutes);
 app.use('/api/quotes', resolveOrganization, requireAuth, quotesRoutes);
+app.use('/api/reports', resolveOrganization, requireAuth, reportsRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });

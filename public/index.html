@@ -320,6 +320,41 @@
       border-radius: 8px; margin: 12px 0;
     }
 
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-card .label {
+      font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      font-weight: 600; margin-bottom: 6px;
+    }
+    .stat-card .value { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+    .stat-card .subvalue { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .stat-card.accent .value { color: var(--primary); }
+
+    .revenue-bars { padding: 4px 0; }
+    .revenue-bar-row {
+      display: grid; grid-template-columns: 80px 1fr 90px;
+      align-items: center; gap: 12px; padding: 6px 0;
+    }
+    .revenue-bar-row .month { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .revenue-bar-row .bar-track {
+      height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .revenue-bar-row .bar-fill {
+      height: 100%; background: var(--primary); border-radius: 4px;
+    }
+    .revenue-bar-row .amount {
+      text-align: right; font-size: 13px; font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
     .public-shell { max-width: 760px; margin: 40px auto; padding: 0 16px; }
     .invoice-doc {
       background: var(--card); border-radius: 14px;
@@ -2519,6 +2554,9 @@ function AppShell({ session, onLogout }) {
         <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
         <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Invoices</button>
         <button className={view === 'quotes' ? 'active' : ''} onClick={() => setView('quotes')}>Quotes</button>
+        {session.user.role === 'admin' && (
+          <button className={view === 'reports' ? 'active' : ''} onClick={() => setView('reports')}>Reports</button>
+        )}
         <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
         {session.user.is_system_admin && (
           <button className={view === 'system' ? 'active' : ''} onClick={() => setView('system')}>System</button>
@@ -2529,9 +2567,182 @@ function AppShell({ session, onLogout }) {
         {view === 'customers' && <CustomersView session={session} />}
         {view === 'invoices' && <InvoicesView session={session} />}
         {view === 'quotes' && <QuotesView session={session} />}
+        {view === 'reports' && session.user.role === 'admin' && <ReportsView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
       </div>
+    </div>
+  );
+}
+
+const REPORT_PRESETS = {
+  '7days': '7 days',
+  'month': 'This month',
+  'quarter': 'This quarter',
+  'year': 'This year',
+  'all': 'All time',
+  'custom': 'Custom',
+};
+
+function getReportRange(preset, customFrom, customTo) {
+  const today = todayStart();
+  const todayStr = formatYMD(today);
+  if (preset === '7days') return { from: formatYMD(addDays(today, -6)), to: todayStr };
+  if (preset === 'month') {
+    return { from: formatYMD(new Date(today.getFullYear(), today.getMonth(), 1)), to: todayStr };
+  }
+  if (preset === 'quarter') {
+    const q = Math.floor(today.getMonth() / 3);
+    return { from: formatYMD(new Date(today.getFullYear(), q * 3, 1)), to: todayStr };
+  }
+  if (preset === 'year') {
+    return { from: formatYMD(new Date(today.getFullYear(), 0, 1)), to: todayStr };
+  }
+  if (preset === 'all') {
+    return { from: '2000-01-01', to: todayStr };
+  }
+  return { from: customFrom || todayStr, to: customTo || todayStr };
+}
+
+function ReportsView({ session }) {
+  const [preset, setPreset] = useState('month');
+  const [customFrom, setCustomFrom] = useState(formatYMD(todayStart()));
+  const [customTo, setCustomTo] = useState(formatYMD(todayStart()));
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const range = getReportRange(preset, customFrom, customTo);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setError(null);
+      try {
+        const params = new URLSearchParams({ from: range.from, to: range.to });
+        const data = await apiRequest(`/api/reports?${params}`, {
+          slug: session.slug, token: session.token,
+        });
+        if (!cancelled) setReport(data);
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session.slug, session.token, range.from, range.to]);
+
+  const maxMonthly = report && report.monthly_revenue.length > 0
+    ? Math.max(...report.monthly_revenue.map((r) => parseFloat(r.paid_total) || 0))
+    : 0;
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Reports</h2>
+        <div className="meta" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {formatDateString(range.from)} — {formatDateString(range.to)}
+        </div>
+      </div>
+      <div className="filter-bar">
+        <div className="chip-group">
+          {Object.entries(REPORT_PRESETS).map(([key, label]) => (
+            <button
+              key={key}
+              className={`chip ${preset === key ? 'active' : ''}`}
+              onClick={() => setPreset(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {preset === 'custom' && (
+        <div className="form-card" style={{ marginBottom: 20 }}>
+          <div className="form-grid">
+            <div>
+              <label>From</label>
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+            </div>
+            <div>
+              <label>To</label>
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && <div className="error">{error}</div>}
+      {loading ? (
+        <div className="list-empty">Loading...</div>
+      ) : report ? (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card accent">
+              <div className="label">Paid revenue</div>
+              <div className="value">{formatPrice(report.invoices.paid_total)}</div>
+              <div className="subvalue">{report.invoices.paid_count} {report.invoices.paid_count === 1 ? 'invoice' : 'invoices'}</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Outstanding</div>
+              <div className="value">{formatPrice(report.invoices.outstanding_total)}</div>
+              <div className="subvalue">{report.invoices.outstanding_count} unpaid (all time)</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Visits completed</div>
+              <div className="value">{report.completed_work}</div>
+              <div className="subvalue">in selected range</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">New customers</div>
+              <div className="value">{report.new_customers}</div>
+              <div className="subvalue">in selected range</div>
+            </div>
+          </div>
+
+          <div className="section-heading">Revenue by month</div>
+          <div className="form-card">
+            {report.monthly_revenue.length === 0 ? (
+              <div className="line-items-empty">No revenue in this range.</div>
+            ) : (
+              <div className="revenue-bars">
+                {report.monthly_revenue.map((row) => {
+                  const amount = parseFloat(row.paid_total) || 0;
+                  const pct = maxMonthly > 0 ? (amount / maxMonthly) * 100 : 0;
+                  const d = new Date(row.month + '-01');
+                  const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+                  return (
+                    <div key={row.month} className="revenue-bar-row">
+                      <div className="month">{label}</div>
+                      <div className="bar-track"><div className="bar-fill" style={{ width: `${pct}%` }}></div></div>
+                      <div className="amount">{formatPrice(amount)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="section-heading">Top customers</div>
+          <div className="list">
+            {report.top_customers.length === 0 ? (
+              <div className="list-empty">No paid invoices in this range.</div>
+            ) : (
+              report.top_customers.map((c, i) => (
+                <div key={c.id} className="row">
+                  <div className="info">
+                    <div className="name">
+                      {i + 1}. {customerDisplayName(c)}
+                      <span className="price">{formatPrice(c.paid_total)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
