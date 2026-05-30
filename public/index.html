@@ -278,6 +278,12 @@
     .cal-chip:hover { background: #d5dee3; }
     .cal-chip.done { background: #e8f1ec; color: var(--text-muted); text-decoration: line-through; }
     .cal-more { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    .pager {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 14px; font-size: 13px; color: var(--text-muted);
+    }
+    .pager .info { flex: 1; text-align: center; }
   </style>
 </head>
 <body>
@@ -1121,8 +1127,20 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
 function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 8;
 
-  const upcoming = computeOccurrences(job).filter((o) => !o.completed).slice(0, 8);
+  const allUpcoming = computeOccurrences(job, todayStart(), 730).filter((o) => !o.completed);
+  const totalPages = Math.max(1, Math.ceil(allUpcoming.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const upcoming = allUpcoming.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+  const firstIndex = allUpcoming.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
+  const lastIndex = Math.min(allUpcoming.length, (safePage + 1) * PAGE_SIZE);
+
+  useEffect(() => {
+    if (page > 0 && page > totalPages - 1) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
+
   const todayStr = formatYMD(todayStart());
   const futureSkipped = (job.skipped_dates || []).filter((d) => d >= todayStr).sort();
   const completionHistory = [...(job.completion_notes || [])].sort((a, b) => b.date.localeCompare(a.date));
@@ -1179,6 +1197,13 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
           ))
         )}
       </div>
+      {allUpcoming.length > PAGE_SIZE && (
+        <div className="pager">
+          <button className="secondary" onClick={() => setPage(safePage - 1)} disabled={safePage === 0}>← Prev</button>
+          <span className="info">Showing {firstIndex}–{lastIndex} of {allUpcoming.length}</span>
+          <button className="secondary" onClick={() => setPage(safePage + 1)} disabled={safePage >= totalPages - 1}>Next →</button>
+        </div>
+      )}
 
       {futureSkipped.length > 0 && (
         <>
