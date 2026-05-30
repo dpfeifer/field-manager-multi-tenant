@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Field Manager</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f6f8;
+      color: #1f2328;
+      min-height: 100vh;
+    }
+    .app { max-width: 480px; margin: 60px auto; padding: 0 16px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.04);
+      padding: 32px;
+    }
+    h1 { margin: 0 0 4px; font-size: 24px; }
+    .subtitle { color: #57606a; margin: 0 0 24px; font-size: 14px; }
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid #d1d5da; }
+    .tab {
+      flex: 1; padding: 10px 0; background: none; border: none;
+      cursor: pointer; font-size: 14px; color: #57606a;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: #1f2328; border-bottom-color: #1f6feb; font-weight: 600; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
+    .hint { font-weight: 400; color: #57606a; font-size: 12px; margin-left: 6px; }
+    input {
+      width: 100%; padding: 10px 12px; font-size: 14px;
+      border: 1px solid #d1d5da; border-radius: 6px;
+      background: #fff;
+    }
+    input:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
+    button.primary {
+      width: 100%; padding: 10px; margin-top: 20px;
+      background: #1f6feb; color: white; border: none;
+      border-radius: 6px; font-size: 14px; font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary:hover { background: #1858c4; }
+    button.primary:disabled { background: #94a3b8; cursor: not-allowed; }
+    .error {
+      margin-top: 16px; padding: 10px 12px;
+      background: #ffeaea; color: #9a1d1d;
+      border-radius: 6px; font-size: 13px;
+    }
+    .dashboard { padding: 32px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .row .key { color: #57606a; font-size: 13px; }
+    .row .val { font-weight: 500; font-size: 14px; }
+    .logout {
+      margin-top: 24px; padding: 8px 14px;
+      background: #f6f8fa; color: #1f2328; border: 1px solid #d1d5da;
+      border-radius: 6px; font-size: 13px; cursor: pointer;
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      background: #ddf4ff; color: #0969da; font-size: 11px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+const STORAGE = {
+  token: 'fm_token',
+  slug: 'fm_slug',
+  user: 'fm_user',
+  org: 'fm_org',
+};
+
+function loadSession() {
+  const token = localStorage.getItem(STORAGE.token);
+  const slug = localStorage.getItem(STORAGE.slug);
+  const user = JSON.parse(localStorage.getItem(STORAGE.user) || 'null');
+  const org = JSON.parse(localStorage.getItem(STORAGE.org) || 'null');
+  if (!token || !slug || !user || !org) return null;
+  return { token, slug, user, organization: org };
+}
+
+function saveSession({ token, user, organization }) {
+  localStorage.setItem(STORAGE.token, token);
+  localStorage.setItem(STORAGE.slug, organization.slug);
+  localStorage.setItem(STORAGE.user, JSON.stringify(user));
+  localStorage.setItem(STORAGE.org, JSON.stringify(organization));
+}
+
+function clearSession() {
+  Object.values(STORAGE).forEach((k) => localStorage.removeItem(k));
+}
+
+async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (slug) headers['x-organization-slug'] = slug;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const isJson = (res.headers.get('content-type') || '').includes('application/json');
+  const data = isJson ? await res.json() : await res.text();
+  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
+  return data;
+}
+
+function SignupForm({ onSuccess }) {
+  const [orgName, setOrgName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const data = await apiRequest('/api/signup', {
+        method: 'POST',
+        body: {
+          organization: { name: orgName, slug: slug || undefined },
+          user: { email, password, name: name || undefined },
+        },
+      });
+      saveSession(data);
+      onSuccess(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <label>Company name</label>
+      <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme Lawn Care" required />
+
+      <label>URL slug <span className="hint">(optional, auto-derived from company name)</span></label>
+      <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-lawn-care" />
+
+      <label>Your name <span className="hint">(optional)</span></label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
+
+      <label>Email</label>
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+
+      <label>Password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+
+      {error && <div className="error">{error}</div>}
+      <button type="submit" className="primary" disabled={busy}>
+        {busy ? 'Creating account...' : 'Create account'}
+      </button>
+    </form>
+  );
+}
+
+function LoginForm({ onSuccess }) {
+  const [slug, setSlug] = useState(localStorage.getItem(STORAGE.slug) || '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const data = await apiRequest('/api/auth/login', {
+        method: 'POST',
+        slug,
+        body: { email, password },
+      });
+      const org = await apiRequest(`/api/organizations/${slug}`);
+      const session = { token: data.token, user: data.user, organization: org };
+      saveSession(session);
+      onSuccess(session);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <label>Company URL slug</label>
+      <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-lawn-care" required />
+
+      <label>Email</label>
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+
+      <label>Password</label>
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+
+      {error && <div className="error">{error}</div>}
+      <button type="submit" className="primary" disabled={busy}>
+        {busy ? 'Signing in...' : 'Sign in'}
+      </button>
+    </form>
+  );
+}
+
+function Dashboard({ session, onLogout }) {
+  const { user, organization } = session;
+  return (
+    <div className="card dashboard">
+      <h1>{organization.name}</h1>
+      <p className="subtitle">Welcome back, {user.name || user.email}.</p>
+
+      <div className="row"><span className="key">Email</span><span className="val">{user.email}</span></div>
+      <div className="row"><span className="key">Role</span><span className="val"><span className="badge">{user.role}</span></span></div>
+      <div className="row"><span className="key">Organization slug</span><span className="val">{organization.slug}</span></div>
+
+      <button className="logout" onClick={onLogout}>Sign out</button>
+    </div>
+  );
+}
+
+function App() {
+  const [session, setSession] = useState(loadSession);
+  const [mode, setMode] = useState('login');
+
+  function handleLogout() {
+    clearSession();
+    setSession(null);
+  }
+
+  if (session) {
+    return (
+      <div className="app">
+        <Dashboard session={session} onLogout={handleLogout} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <div className="card">
+        <h1>Field Manager</h1>
+        <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
+
+        <div className="tabs">
+          <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>Sign in</button>
+          <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>Create account</button>
+        </div>
+
+        {mode === 'login'
+          ? <LoginForm onSuccess={setSession} />
+          : <SignupForm onSuccess={setSession} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

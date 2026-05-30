@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -11,27 +12,31 @@ const organizationRoutes = require('./routes/organizations');
 const authRoutes = require('./routes/auth');
 const signupRoutes = require('./routes/signup');
 
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+
 const app = express();
 
 app.set('trust proxy', 1);
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-app.get('/', (req, res) => {
-  res.json({ name: 'field-manager-api', status: 'ok' });
-});
-
 app.use('/health', healthRoutes);
-
 app.use('/api/signup', signupRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', resolveOrganization, authRoutes);
 
-app.use((req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
+});
+
+app.use(express.static(PUBLIC_DIR));
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
 app.use(errorHandler);
