@@ -193,6 +193,19 @@
 
     .row .info .secondary-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
     .row .info .price { display: inline-block; margin-left: 8px; color: var(--text); font-weight: 500; }
+
+    .section-heading {
+      margin: 28px 0 10px; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .section-heading:first-child { margin-top: 0; }
+    .inline-form { display: flex; align-items: center; gap: 8px; }
+    .inline-form input[type="date"] { width: auto; padding: 8px 10px; font-size: 13px; }
+    .schedule-summary {
+      background: var(--card); border-radius: 10px;
+      border: 1px solid var(--border); padding: 14px 18px;
+      margin-bottom: 20px; color: var(--text-muted); font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -305,26 +318,53 @@ function todayStart() {
   return new Date(t.getFullYear(), t.getMonth(), t.getDate());
 }
 
-function nextDueDate(job, today = todayStart()) {
-  if (job.type !== 'recurring' || !job.start_date) return null;
+function generatePatternDates(job, limit) {
   const start = parseDate(job.start_date);
   const end = job.end_date ? parseDate(job.end_date) : null;
-  const consumed = new Set([
-    ...(job.completed_dates || []),
-    ...(job.skipped_dates || []),
-    ...(job.deleted_dates || []),
-  ]);
+  const out = [];
   let current = new Date(start);
   for (let i = 0; i < 520; i++) {
-    if (end && current > end) return null;
-    const ymd = formatYMD(current);
-    if (current >= today && !consumed.has(ymd)) return ymd;
+    if (end && current > end) break;
+    if (current > limit) break;
+    out.push(formatYMD(current));
     if (job.recurrence_pattern === 'weekly') current = addDays(current, 7);
     else if (job.recurrence_pattern === 'biweekly') current = addDays(current, 14);
     else if (job.recurrence_pattern === 'monthly') current = addMonths(current, 1);
-    else return null;
+    else break;
   }
-  return null;
+  return out;
+}
+
+function computeOccurrences(job, today = todayStart(), horizonDays = 365) {
+  if (job.type !== 'recurring' || !job.start_date) return [];
+  const limit = addDays(today, horizonDays);
+  const pattern = generatePatternDates(job, limit);
+  const set = new Set(pattern);
+
+  const rescheduled = (job.rescheduled_dates && typeof job.rescheduled_dates === 'object') ? job.rescheduled_dates : {};
+  const rescheduledFrom = {};
+  Object.entries(rescheduled).forEach(([orig, target]) => {
+    set.delete(orig);
+    set.add(target);
+    rescheduledFrom[target] = orig;
+  });
+
+  (job.skipped_dates || []).forEach((d) => set.delete(d));
+  (job.deleted_dates || []).forEach((d) => set.delete(d));
+
+  const completed = new Set(job.completed_dates || []);
+
+  return [...set].sort().map((date) => ({
+    date,
+    completed: completed.has(date),
+    rescheduledFrom: rescheduledFrom[date] || null,
+  }));
+}
+
+function nextDueDate(job, today = todayStart()) {
+  const todayStr = formatYMD(today);
+  const upcoming = computeOccurrences(job, today).filter((o) => !o.completed && o.date >= todayStr);
+  return upcoming[0]?.date || null;
 }
 
 function lastCompletion(job) {
@@ -761,8 +801,8 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
   );
 }
 
-function CompletionForm({ job, onSubmit, onCancel, busy }) {
-  const defaultDate = job.type === 'single' && job.date ? job.date : formatYMD(new Date());
+function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
+  const defaultDate = initialDate || (job.type === 'single' && job.date ? job.date : formatYMD(new Date()));
   const [date, setDate] = useState(defaultDate);
   const [note, setNote] = useState('');
 
@@ -793,6 +833,155 @@ function CompletionForm({ job, onSubmit, onCancel, busy }) {
   );
 }
 
+function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule }) {
+  const [editing, setEditing] = useState(false);
+  const [newDate, setNewDate] = useState(occurrence.date);
+
+  if (editing) {
+    return (
+      <div className="row">
+        <div className="info">
+          <div className="name">Reschedule {formatDateString(occurrence.date)}</div>
+          <div className="meta">Pick a new date</div>
+        </div>
+        <div className="actions inline-form">
+          <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+          <button
+            className="primary"
+            disabled={busy || newDate === occurrence.date || !newDate}
+            onClick={async () => {
+              await onReschedule(occurrence.date, newDate);
+              setEditing(false);
+            }}
+          >Save</button>
+          <button className="secondary" onClick={() => setEditing(false)} disabled={busy}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="row">
+      <div className="info">
+        <div className="name">{formatDateString(occurrence.date)}</div>
+        {occurrence.rescheduledFrom && (
+          <div className="meta">Rescheduled from {formatDateString(occurrence.rescheduledFrom)}</div>
+        )}
+      </div>
+      <div className="actions">
+        <button className="primary" disabled={busy} onClick={() => onMarkComplete(occurrence.date)}>
+          Mark complete
+        </button>
+        <button className="secondary" disabled={busy} onClick={() => onSkip(occurrence.date)}>Skip</button>
+        {occurrence.rescheduledFrom ? (
+          <button className="secondary" disabled={busy} onClick={() => onCancelReschedule(occurrence.rescheduledFrom)}>
+            Undo reschedule
+          </button>
+        ) : (
+          <button className="secondary" disabled={busy} onClick={() => setEditing(true)}>Reschedule</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const upcoming = computeOccurrences(job).filter((o) => !o.completed).slice(0, 8);
+  const todayStr = formatYMD(todayStart());
+  const futureSkipped = (job.skipped_dates || []).filter((d) => d >= todayStr).sort();
+  const completionHistory = [...(job.completion_notes || [])].sort((a, b) => b.date.localeCompare(a.date));
+
+  async function call(fn) {
+    setBusy(true); setError(null);
+    try {
+      const updated = await fn();
+      await onChange(updated);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  const skip = (date) => call(() => apiRequest(`/api/jobs/${job.id}/skip`, {
+    method: 'POST', slug: session.slug, token: session.token, body: { date },
+  }));
+  const unskip = (date) => call(() => apiRequest(`/api/jobs/${job.id}/skip/${date}`, {
+    method: 'DELETE', slug: session.slug, token: session.token,
+  }));
+  const reschedule = (date, new_date) => call(() => apiRequest(`/api/jobs/${job.id}/reschedule`, {
+    method: 'POST', slug: session.slug, token: session.token, body: { date, new_date },
+  }));
+  const cancelReschedule = (date) => call(() => apiRequest(`/api/jobs/${job.id}/reschedule/${date}`, {
+    method: 'DELETE', slug: session.slug, token: session.token,
+  }));
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Schedule</h2>
+        <button className="secondary" onClick={onBack}>Back to jobs</button>
+      </div>
+      <div className="schedule-summary">
+        <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      <div className="section-heading">Upcoming</div>
+      <div className="list">
+        {upcoming.length === 0 ? (
+          <div className="list-empty">No upcoming occurrences. The series may be fully completed or past its end date.</div>
+        ) : (
+          upcoming.map((o) => (
+            <ScheduleOccurrenceRow
+              key={o.date}
+              occurrence={o}
+              busy={busy}
+              onMarkComplete={onMarkComplete}
+              onSkip={skip}
+              onReschedule={reschedule}
+              onCancelReschedule={cancelReschedule}
+            />
+          ))
+        )}
+      </div>
+
+      {futureSkipped.length > 0 && (
+        <>
+          <div className="section-heading">Skipped</div>
+          <div className="list">
+            {futureSkipped.map((d) => (
+              <div key={d} className="row">
+                <div className="info"><div className="name">{formatDateString(d)}</div></div>
+                <div className="actions">
+                  <button className="secondary" disabled={busy} onClick={() => unskip(d)}>Restore</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {completionHistory.length > 0 && (
+        <>
+          <div className="section-heading">Completion history</div>
+          <div className="list">
+            {completionHistory.map((c, i) => (
+              <div key={`${c.date}-${i}`} className="row">
+                <div className="info">
+                  <div className="name">{formatDateString(c.date)}</div>
+                  <div className="meta">by {c.completedByName}{c.note && <> — “{c.note}”</>}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function JobsView({ session }) {
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -802,6 +991,8 @@ function JobsView({ session }) {
   const [mode, setMode] = useState('list');
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [completionInitialDate, setCompletionInitialDate] = useState(null);
+  const [returnMode, setReturnMode] = useState('list');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -860,13 +1051,32 @@ function JobsView({ session }) {
   async function completeJob(values) {
     setBusy(true); setError(null);
     try {
-      await apiRequest(`/api/jobs/${editing.id}/complete`, {
+      const updated = await apiRequest(`/api/jobs/${editing.id}/complete`, {
         method: 'POST', slug: session.slug, token: session.token, body: values,
       });
-      setEditing(null); setMode('list');
       await refresh();
+      if (returnMode === 'schedule') {
+        setEditing(updated);
+        setMode('schedule');
+      } else {
+        setEditing(null);
+        setMode('list');
+      }
+      setReturnMode('list');
+      setCompletionInitialDate(null);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
+  }
+
+  function handleScheduleChange(updatedJob) {
+    setEditing(updatedJob);
+    return refresh();
+  }
+
+  function handleScheduleMarkComplete(date) {
+    setCompletionInitialDate(date);
+    setReturnMode('schedule');
+    setMode('complete');
   }
 
   function userNames(ids) {
@@ -924,6 +1134,7 @@ function JobsView({ session }) {
   }
 
   if (mode === 'complete' && editing) {
+    const cancelTarget = returnMode === 'schedule' ? 'schedule' : 'list';
     return (
       <div>
         <div className="page-header"><h2>Mark complete: {editing.title}</h2></div>
@@ -931,12 +1142,31 @@ function JobsView({ session }) {
         <div className="form-card">
           <CompletionForm
             job={editing}
+            initialDate={completionInitialDate}
             onSubmit={completeJob}
-            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            onCancel={() => {
+              setError(null);
+              setCompletionInitialDate(null);
+              setMode(cancelTarget);
+              if (cancelTarget === 'list') setEditing(null);
+              setReturnMode('list');
+            }}
             busy={busy}
           />
         </div>
       </div>
+    );
+  }
+
+  if (mode === 'schedule' && editing) {
+    return (
+      <JobScheduleView
+        session={session}
+        job={editing}
+        onBack={() => { setEditing(null); setMode('list'); }}
+        onMarkComplete={handleScheduleMarkComplete}
+        onChange={handleScheduleChange}
+      />
     );
   }
 
@@ -985,6 +1215,11 @@ function JobsView({ session }) {
                   {!isCompletedSingle && (
                     <button className="primary" onClick={() => { setEditing(j); setMode('complete'); }}>
                       Mark complete
+                    </button>
+                  )}
+                  {j.type === 'recurring' && (
+                    <button className="secondary" onClick={() => { setEditing(j); setMode('schedule'); }}>
+                      Manage schedule
                     </button>
                   )}
                   {canMutate && (

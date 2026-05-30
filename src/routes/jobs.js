@@ -269,6 +269,104 @@ router.post('/:id/complete', async (req, res, next) => {
   }
 });
 
+async function loadJobInOrg(orgId, id) {
+  const { rows } = await query(
+    'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+    [id, orgId]
+  );
+  return rows[0] || null;
+}
+
+async function returnJob(res, id) {
+  const { rows } = await query(`${BASE_SELECT} WHERE j.id = $1 LIMIT 1`, [id]);
+  res.json(rows[0]);
+}
+
+function isValidDate(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+router.post('/:id/skip', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date } = req.body || {};
+  if (!isValidDate(date)) return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    if (job.type !== 'recurring') return res.status(400).json({ error: 'Only recurring jobs can be skipped' });
+
+    const skipped = Array.isArray(job.skipped_dates) ? job.skipped_dates : [];
+    if (!skipped.includes(date)) skipped.push(date);
+
+    await query(
+      `UPDATE jobs SET skipped_dates = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(skipped)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/skip/:date', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date } = req.params;
+  if (!isValidDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+
+    const skipped = (Array.isArray(job.skipped_dates) ? job.skipped_dates : []).filter((d) => d !== date);
+
+    await query(
+      `UPDATE jobs SET skipped_dates = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(skipped)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/reschedule', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date, new_date } = req.body || {};
+  if (!isValidDate(date) || !isValidDate(new_date)) {
+    return res.status(400).json({ error: 'date and new_date are required (YYYY-MM-DD)' });
+  }
+  if (date === new_date) return res.status(400).json({ error: 'new_date must differ from date' });
+
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    if (job.type !== 'recurring') return res.status(400).json({ error: 'Only recurring jobs can be rescheduled' });
+
+    const rescheduled = (job.rescheduled_dates && typeof job.rescheduled_dates === 'object') ? { ...job.rescheduled_dates } : {};
+    rescheduled[date] = new_date;
+
+    await query(
+      `UPDATE jobs SET rescheduled_dates = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(rescheduled)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/reschedule/:date', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date } = req.params;
+  if (!isValidDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+
+    const rescheduled = (job.rescheduled_dates && typeof job.rescheduled_dates === 'object') ? { ...job.rescheduled_dates } : {};
+    delete rescheduled[date];
+
+    await query(
+      `UPDATE jobs SET rescheduled_dates = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(rescheduled)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
 router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
     const { rowCount } = await query(
