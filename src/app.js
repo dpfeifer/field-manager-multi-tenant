@@ -19,6 +19,10 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+app.get('/', (req, res) => {
+  res.json({ name: 'field-manager-api', status: 'ok' });
+});
+
 app.use('/health', healthRoutes);
 
 app.use('/api/tenants', tenantRoutes);
