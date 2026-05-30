@@ -253,26 +253,101 @@ function jobCustomerName(j) {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-function formatDateString(s) {
-  if (!s) return '';
+function parseDate(s) {
+  if (!s) return null;
   const [y, m, d] = s.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(y, m - 1, d);
+}
+
+function formatYMD(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateString(s) {
+  const d = parseDate(s);
+  if (!d) return '';
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function dayOfWeekName(s) {
-  if (!s) return '';
-  const [y, m, d] = s.split('-').map(Number);
-  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+  const d = parseDate(s);
+  if (!d) return '';
+  return DAY_NAMES[d.getDay()];
+}
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function addDays(date, n) {
+  const r = new Date(date);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function addMonths(date, n) {
+  const r = new Date(date);
+  const day = r.getDate();
+  r.setDate(1);
+  r.setMonth(r.getMonth() + n);
+  const daysInMonth = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+  r.setDate(Math.min(day, daysInMonth));
+  return r;
+}
+
+function todayStart() {
+  const t = new Date();
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+function nextDueDate(job, today = todayStart()) {
+  if (job.type !== 'recurring' || !job.start_date) return null;
+  const start = parseDate(job.start_date);
+  const end = job.end_date ? parseDate(job.end_date) : null;
+  const consumed = new Set([
+    ...(job.completed_dates || []),
+    ...(job.skipped_dates || []),
+    ...(job.deleted_dates || []),
+  ]);
+  let current = new Date(start);
+  for (let i = 0; i < 520; i++) {
+    if (end && current > end) return null;
+    const ymd = formatYMD(current);
+    if (current >= today && !consumed.has(ymd)) return ymd;
+    if (job.recurrence_pattern === 'weekly') current = addDays(current, 7);
+    else if (job.recurrence_pattern === 'biweekly') current = addDays(current, 14);
+    else if (job.recurrence_pattern === 'monthly') current = addMonths(current, 1);
+    else return null;
+  }
+  return null;
+}
+
+function lastCompletion(job) {
+  const notes = job.completion_notes || [];
+  if (notes.length === 0) return null;
+  return notes.reduce((a, b) => (a.date > b.date ? a : b));
 }
 
 function formatSchedule(j) {
   if (j.type === 'single') return formatDateString(j.date);
   if (j.type === 'recurring') {
-    const day = dayOfWeekName(j.start_date);
     const start = formatDateString(j.start_date);
     const end = j.end_date ? ` until ${formatDateString(j.end_date)}` : '';
-    return `Every ${day} starting ${start}${end}`;
+    if (j.recurrence_pattern === 'weekly') {
+      return `Every ${dayOfWeekName(j.start_date)} starting ${start}${end}`;
+    }
+    if (j.recurrence_pattern === 'biweekly') {
+      return `Every other ${dayOfWeekName(j.start_date)} starting ${start}${end}`;
+    }
+    if (j.recurrence_pattern === 'monthly') {
+      const d = parseDate(j.start_date);
+      return `Monthly on the ${ordinal(d.getDate())} starting ${start}${end}`;
+    }
   }
   return '';
 }
@@ -574,7 +649,7 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
   const [date, setDate] = useState(initial?.date || '');
   const [start_date, setStartDate] = useState(initial?.start_date || '');
   const [end_date, setEndDate] = useState(initial?.end_date || '');
-  const [recurrence_pattern] = useState(initial?.recurrence_pattern || 'weekly');
+  const [recurrence_pattern, setPattern] = useState(initial?.recurrence_pattern || 'weekly');
   const [default_price, setPrice] = useState(initial?.default_price ?? '');
   const [assigned_to, setAssigned] = useState(initial?.assigned_to || []);
 
@@ -626,7 +701,7 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
           <label>Schedule</label>
           <div className="toggle-group">
             <button type="button" className={type === 'single' ? 'active' : ''} onClick={() => setType('single')}>One-time</button>
-            <button type="button" className={type === 'recurring' ? 'active' : ''} onClick={() => setType('recurring')}>Recurring (weekly)</button>
+            <button type="button" className={type === 'recurring' ? 'active' : ''} onClick={() => setType('recurring')}>Recurring</button>
           </div>
         </div>
         {type === 'single' ? (
@@ -636,6 +711,15 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
           </div>
         ) : (
           <>
+            <div>
+              <label>Repeats</label>
+              <select value={recurrence_pattern} onChange={(e) => setPattern(e.target.value)}>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly (every 2 weeks)</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div></div>
             <div>
               <label>Start date</label>
               <input type="date" value={start_date} onChange={(e) => setStartDate(e.target.value)} required />
@@ -670,6 +754,38 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
           {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create job')}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function CompletionForm({ job, onSubmit, onCancel, busy }) {
+  const defaultDate = job.type === 'single' && job.date ? job.date : formatYMD(new Date());
+  const [date, setDate] = useState(defaultDate);
+  const [note, setNote] = useState('');
+
+  function submit(e) {
+    e.preventDefault();
+    onSubmit({ date, note: note || null });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="form-grid">
+        <div className="full">
+          <label>Date completed</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        </div>
+        <div className="full">
+          <label>Note <span className="hint">(optional)</span></label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything worth recording about this visit?" />
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Saving...' : 'Mark complete'}
         </button>
         <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
       </div>
@@ -741,6 +857,18 @@ function JobsView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function completeJob(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/jobs/${editing.id}/complete`, {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   function userNames(ids) {
     return ids
       .map((id) => users.find((u) => u.id === id))
@@ -795,6 +923,23 @@ function JobsView({ session }) {
     );
   }
 
+  if (mode === 'complete' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Mark complete: {editing.title}</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <CompletionForm
+            job={editing}
+            onSubmit={completeJob}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -810,26 +955,48 @@ function JobsView({ session }) {
         ) : jobs.length === 0 ? (
           <div className="list-empty">No jobs yet. {canMutate && 'Click "New job" to schedule the first one.'}</div>
         ) : (
-          jobs.map((j) => (
-            <div key={j.id} className="row">
-              <div className="info">
-                <div className="name">
-                  {j.title}
-                  {j.default_price != null && <span className="price">{formatPrice(j.default_price)}</span>}
+          jobs.map((j) => {
+            const isCompletedSingle = j.type === 'single' && j.status === 'completed';
+            const nextDue = j.type === 'recurring' ? nextDueDate(j) : null;
+            const last = lastCompletion(j);
+            return (
+              <div key={j.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {j.title}
+                    {j.default_price != null && <span className="price">{formatPrice(j.default_price)}</span>}
+                  </div>
+                  <div className="meta">
+                    {jobCustomerName(j)} • {formatSchedule(j)}
+                    {nextDue && <> • Next due: {formatDateString(nextDue)}</>}
+                    {isCompletedSingle && <> • Completed {formatDateString(j.date)}</>}
+                  </div>
+                  {j.assigned_to && j.assigned_to.length > 0 && (
+                    <div className="secondary-meta">Assigned: {userNames(j.assigned_to)}</div>
+                  )}
+                  {last && (
+                    <div className="secondary-meta">
+                      Last done: {formatDateString(last.date)} by {last.completedByName}
+                      {last.note && <> — “{last.note}”</>}
+                    </div>
+                  )}
                 </div>
-                <div className="meta">{jobCustomerName(j)} • {formatSchedule(j)}</div>
-                {j.assigned_to && j.assigned_to.length > 0 && (
-                  <div className="secondary-meta">Assigned: {userNames(j.assigned_to)}</div>
-                )}
-              </div>
-              {canMutate && (
                 <div className="actions">
-                  <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit</button>
-                  <button className="danger" onClick={() => deleteJob(j.id)}>Delete</button>
+                  {!isCompletedSingle && (
+                    <button className="primary" onClick={() => { setEditing(j); setMode('complete'); }}>
+                      Mark complete
+                    </button>
+                  )}
+                  {canMutate && (
+                    <>
+                      <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit</button>
+                      <button className="danger" onClick={() => deleteJob(j.id)}>Delete</button>
+                    </>
+                  )}
                 </div>
-              )}
-            </div>
-          ))
+              </div>
+            );
+          })
         )}
       </div>
     </div>

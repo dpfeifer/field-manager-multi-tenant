@@ -4,7 +4,7 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const VALID_RECURRENCE = new Set(['weekly']);
+const VALID_RECURRENCE = new Set(['weekly', 'biweekly', 'monthly']);
 
 const BASE_SELECT = `
   SELECT
@@ -206,6 +206,65 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
     res.json(rows[0]);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/:id/complete', async (req, res, next) => {
+  const { date, note } = req.body || {};
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
+  }
+
+  try {
+    const { rows: existing } = await query(
+      'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id, req.organization.id]
+    );
+    if (existing.length === 0) return res.status(404).json({ error: 'Not found' });
+    const job = existing[0];
+
+    const completedDates = Array.isArray(job.completed_dates) ? [...job.completed_dates] : [];
+    if (!completedDates.includes(date)) completedDates.push(date);
+
+    const { rows: userRows } = await query(
+      'SELECT name FROM users WHERE id = $1 LIMIT 1',
+      [req.user.sub]
+    );
+    const completedByName = userRows[0]?.name || req.user.email;
+
+    const completionEntry = {
+      date,
+      note: note || null,
+      completedBy: req.user.sub,
+      completedByName,
+      completedAt: new Date().toISOString(),
+    };
+    const completionNotes = Array.isArray(job.completion_notes) ? [...job.completion_notes, completionEntry] : [completionEntry];
+
+    const newStatus = job.type === 'single' ? 'completed' : job.status;
+
+    await query(
+      `UPDATE jobs SET
+         completed_dates = $3::jsonb,
+         completion_notes = $4::jsonb,
+         status = $5,
+         updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [
+        req.params.id, req.organization.id,
+        JSON.stringify(completedDates),
+        JSON.stringify(completionNotes),
+        newStatus,
+      ]
+    );
+
+    const { rows } = await query(
+      `${BASE_SELECT} WHERE j.id = $1 LIMIT 1`,
+      [req.params.id]
+    );
+    res.json(rows[0]);
+  } catch (err) {
     next(err);
   }
 });
