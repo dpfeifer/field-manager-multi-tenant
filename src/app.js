@@ -15,6 +15,8 @@ const signupRoutes = require('./routes/signup');
 const customersRoutes = require('./routes/customers');
 const jobsRoutes = require('./routes/jobs');
 const settingsRoutes = require('./routes/settings');
+const invoicesRoutes = require('./routes/invoices');
+const quotesRoutes = require('./routes/quotes');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -34,6 +36,8 @@ app.use('/api/auth', resolveOrganization, authRoutes);
 app.use('/api/customers', resolveOrganization, requireAuth, customersRoutes);
 app.use('/api/jobs', resolveOrganization, requireAuth, jobsRoutes);
 app.use('/api/settings', resolveOrganization, requireAuth, settingsRoutes);
+app.use('/api/invoices', resolveOrganization, requireAuth, invoicesRoutes);
+app.use('/api/quotes', resolveOrganization, requireAuth, quotesRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });

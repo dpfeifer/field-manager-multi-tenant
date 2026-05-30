@@ -284,6 +284,41 @@
       margin-top: 14px; font-size: 13px; color: var(--text-muted);
     }
     .pager .info { flex: 1; text-align: center; }
+
+    .badge.draft { background: #ece6d8; color: #6d6a64; }
+    .badge.sent { background: #dde6f0; color: #3a4d68; }
+    .badge.paid { background: #d5e8d6; color: #2f6b3a; }
+    .badge.accepted { background: #d5e8d6; color: #2f6b3a; }
+    .badge.declined { background: #f4dad6; color: #99362a; }
+
+    .line-items-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .line-items-table th {
+      text-align: left; padding: 8px 10px; font-size: 12px;
+      font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+    }
+    .line-items-table td { padding: 8px 6px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+    .line-items-table input { padding: 8px 10px; font-size: 13px; }
+    .line-items-table .col-desc { width: 50%; }
+    .line-items-table .col-qty input,
+    .line-items-table .col-rate input { width: 90px; text-align: right; }
+    .line-items-table .col-amount { text-align: right; font-weight: 500; white-space: nowrap; padding-right: 12px; }
+    .line-items-table .col-remove { width: 36px; text-align: right; }
+    .line-items-table .col-remove button {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 8px;
+    }
+    .line-items-table .col-remove button:hover { color: var(--danger); }
+    .line-items-table tfoot td {
+      font-weight: 600; border-bottom: none; border-top: 2px solid var(--border);
+      padding-top: 12px;
+    }
+    .line-items-empty {
+      padding: 18px; text-align: center; color: var(--text-muted);
+      font-size: 13px; border: 1px dashed var(--border-strong);
+      border-radius: 8px; margin: 12px 0;
+    }
   </style>
 </head>
 <body>
@@ -1549,6 +1584,542 @@ function JobsView({ session }) {
   );
 }
 
+function LineItemsEditor({ items, onChange }) {
+  function update(idx, field, value) {
+    const next = items.map((item, i) => {
+      if (i !== idx) return item;
+      const updated = { ...item, [field]: value };
+      const q = parseFloat(updated.quantity);
+      const r = parseFloat(updated.rate);
+      updated.amount = (isFinite(q) ? q : 0) * (isFinite(r) ? r : 0);
+      return updated;
+    });
+    onChange(next);
+  }
+
+  function add() {
+    onChange([...items, { description: '', quantity: 1, rate: 0, amount: 0 }]);
+  }
+
+  function remove(idx) {
+    onChange(items.filter((_, i) => i !== idx));
+  }
+
+  const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+  return (
+    <div>
+      {items.length === 0 ? (
+        <div className="line-items-empty">No line items yet. Click "Add line item" to start.</div>
+      ) : (
+        <table className="line-items-table">
+          <thead>
+            <tr>
+              <th className="col-desc">Description</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th style={{ textAlign: 'right' }}>Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, idx) => (
+              <tr key={idx}>
+                <td className="col-desc">
+                  <input
+                    value={item.description || ''}
+                    onChange={(e) => update(idx, 'description', e.target.value)}
+                    placeholder="e.g. Weekly mow service"
+                  />
+                </td>
+                <td className="col-qty">
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={item.quantity ?? ''}
+                    onChange={(e) => update(idx, 'quantity', e.target.value)}
+                  />
+                </td>
+                <td className="col-rate">
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={item.rate ?? ''}
+                    onChange={(e) => update(idx, 'rate', e.target.value)}
+                  />
+                </td>
+                <td className="col-amount">{formatPrice(item.amount)}</td>
+                <td className="col-remove">
+                  <button type="button" onClick={() => remove(idx)} aria-label="Remove">×</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan="3" style={{ textAlign: 'right' }}>Total</td>
+              <td className="col-amount">{formatPrice(total)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
+      <button type="button" className="secondary" onClick={add}>+ Add line item</button>
+    </div>
+  );
+}
+
+function lineItemsTotal(items) {
+  return (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+}
+
+function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
+  const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
+  const [description, setDescription] = useState(initial?.description || '');
+  const [date, setDate] = useState(initial?.date || formatYMD(new Date()));
+  const [line_items, setLineItems] = useState(initial?.line_items || []);
+
+  function submit(e) {
+    e.preventDefault();
+    onSubmit({ customer_id, description: description || null, date, line_items });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="form-grid">
+        <div className="full">
+          <label>Customer</label>
+          <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
+            {customers.length === 0 && <option value="">No customers — add one first</option>}
+            {customers.map((c) => <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        </div>
+        <div></div>
+        <div className="full">
+          <label>Description <span className="hint">(shown to the customer)</span></label>
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. May lawn service" />
+        </div>
+        <div className="full">
+          <label>Line items</label>
+          <LineItemsEditor items={line_items} onChange={setLineItems} />
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create invoice')}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function InvoicesView({ session }) {
+  const [invoices, setInvoices] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list');
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [invData, custData] = await Promise.all([
+        apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
+        apiRequest('/api/customers', { slug: session.slug, token: session.token }),
+      ]);
+      setInvoices(invData);
+      setCustomers(custData);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function createInvoice(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/invoices', {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function updateInvoice(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/invoices/${editing.id}`, {
+        method: 'PUT', slug: session.slug, token: session.token, body: values,
+      });
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteInvoice(id) {
+    if (!confirm('Delete this invoice?')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function transition(id, path) {
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${id}/${path}`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  if (mode === 'create') {
+    return (
+      <div>
+        <div className="page-header"><h2>New invoice</h2></div>
+        {error && <div className="error">{error}</div>}
+        {customers.length === 0 ? (
+          <div className="form-card">
+            <p style={{ margin: 0, color: 'var(--text-muted)' }}>You need a customer first. Add one in the Customers tab.</p>
+            <div className="form-actions"><button className="secondary" onClick={() => setMode('list')}>Back</button></div>
+          </div>
+        ) : (
+          <div className="form-card">
+            <InvoiceForm customers={customers} onSubmit={createInvoice} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Edit invoice #{editing.invoice_number}</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <InvoiceForm
+            initial={editing}
+            customers={customers}
+            onSubmit={updateInvoice}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Invoices</h2>
+        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : invoices.length === 0 ? (
+          <div className="list-empty">No invoices yet. {canMutate && 'Click "New invoice" to draft one.'}</div>
+        ) : (
+          invoices.map((inv) => {
+            const total = lineItemsTotal(inv.line_items);
+            return (
+              <div key={inv.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    Invoice #{inv.invoice_number}
+                    <span className="price">{formatPrice(total)}</span>
+                  </div>
+                  <div className="meta">
+                    {customerDisplayName({
+                      first_name: inv.customer_first_name,
+                      last_name: inv.customer_last_name,
+                      business_name: inv.customer_business_name,
+                    })} • {formatDateString(inv.date)} • <span className={`badge ${inv.status}`}>{inv.status}</span>
+                  </div>
+                  {inv.description && <div className="secondary-meta">{inv.description}</div>}
+                </div>
+                {canMutate && (
+                  <div className="actions">
+                    {inv.status === 'draft' && (
+                      <button className="primary" onClick={() => transition(inv.id, 'send')}>Send</button>
+                    )}
+                    {inv.status === 'sent' && (
+                      <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
+                    )}
+                    {inv.status === 'paid' && (
+                      <button className="secondary" onClick={() => transition(inv.id, 'mark-unpaid')}>Mark unpaid</button>
+                    )}
+                    <button className="secondary" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
+                    <button className="danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuoteForm({ initial, customers, onSubmit, onCancel, busy }) {
+  const initialIsProspect = initial ? !initial.customer_id : false;
+  const [isProspect, setIsProspect] = useState(initialIsProspect);
+  const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
+  const [prospect_name, setProspectName] = useState(initial?.prospect_name || '');
+  const [prospect_email, setProspectEmail] = useState(initial?.prospect_email || '');
+  const [prospect_phone, setProspectPhone] = useState(initial?.prospect_phone || '');
+  const [prospect_address, setProspectAddress] = useState(initial?.prospect_address || '');
+  const [description, setDescription] = useState(initial?.description || '');
+  const [notes, setNotes] = useState(initial?.notes || '');
+  const [line_items, setLineItems] = useState(initial?.line_items || []);
+  const [status, setStatus] = useState(initial?.status || 'draft');
+
+  function submit(e) {
+    e.preventDefault();
+    const payload = {
+      description: description || null,
+      notes: notes || null,
+      line_items, status,
+    };
+    if (isProspect) {
+      payload.customer_id = null;
+      payload.prospect_name = prospect_name;
+      payload.prospect_email = prospect_email || null;
+      payload.prospect_phone = prospect_phone || null;
+      payload.prospect_address = prospect_address || null;
+    } else {
+      payload.customer_id = customer_id;
+    }
+    onSubmit(payload);
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="form-grid">
+        <div className="full">
+          <label>Recipient</label>
+          <div className="toggle-group">
+            <button type="button" className={!isProspect ? 'active' : ''} onClick={() => setIsProspect(false)}>Existing customer</button>
+            <button type="button" className={isProspect ? 'active' : ''} onClick={() => setIsProspect(true)}>Prospect</button>
+          </div>
+        </div>
+        {!isProspect ? (
+          <div className="full">
+            <label>Customer</label>
+            <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
+              {customers.length === 0 && <option value="">No customers — add one first</option>}
+              {customers.map((c) => <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>)}
+            </select>
+          </div>
+        ) : (
+          <>
+            <div className="full">
+              <label>Prospect name</label>
+              <input value={prospect_name} onChange={(e) => setProspectName(e.target.value)} required />
+            </div>
+            <div>
+              <label>Email <span className="hint">(optional)</span></label>
+              <input type="email" value={prospect_email} onChange={(e) => setProspectEmail(e.target.value)} />
+            </div>
+            <div>
+              <label>Phone <span className="hint">(optional)</span></label>
+              <input value={prospect_phone} onChange={(e) => setProspectPhone(e.target.value)} />
+            </div>
+            <div className="full">
+              <label>Address <span className="hint">(optional)</span></label>
+              <textarea value={prospect_address} onChange={(e) => setProspectAddress(e.target.value)} />
+            </div>
+          </>
+        )}
+        <div className="full">
+          <label>Description <span className="hint">(shown on the quote)</span></label>
+          <input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Notes <span className="hint">(internal)</span></label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <div className="full">
+          <label>Line items</label>
+          <LineItemsEditor items={line_items} onChange={setLineItems} />
+        </div>
+        <div>
+          <label>Status</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="accepted">Accepted</option>
+            <option value="declined">Declined</option>
+          </select>
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create quote')}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function quoteRecipientName(q) {
+  if (q.customer_id) {
+    return customerDisplayName({
+      first_name: q.customer_first_name,
+      last_name: q.customer_last_name,
+      business_name: q.customer_business_name,
+    });
+  }
+  return q.prospect_name || '(unnamed prospect)';
+}
+
+function QuotesView({ session }) {
+  const [quotes, setQuotes] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list');
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [quoteData, custData] = await Promise.all([
+        apiRequest('/api/quotes', { slug: session.slug, token: session.token }),
+        apiRequest('/api/customers', { slug: session.slug, token: session.token }),
+      ]);
+      setQuotes(quoteData);
+      setCustomers(custData);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function createQuote(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/quotes', { method: 'POST', slug: session.slug, token: session.token, body: values });
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function updateQuote(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/quotes/${editing.id}`, { method: 'PUT', slug: session.slug, token: session.token, body: values });
+      setEditing(null); setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteQuote(id) {
+    if (!confirm('Delete this quote?')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/quotes/${id}`, { method: 'DELETE', slug: session.slug, token: session.token });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  if (mode === 'create') {
+    return (
+      <div>
+        <div className="page-header"><h2>New quote</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <QuoteForm customers={customers} onSubmit={createQuote} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && editing) {
+    return (
+      <div>
+        <div className="page-header"><h2>Edit quote</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <QuoteForm
+            initial={editing}
+            customers={customers}
+            onSubmit={updateQuote}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Quotes</h2>
+        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : quotes.length === 0 ? (
+          <div className="list-empty">No quotes yet. {canMutate && 'Click "New quote" to draft one.'}</div>
+        ) : (
+          quotes.map((q) => {
+            const total = lineItemsTotal(q.line_items);
+            return (
+              <div key={q.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {quoteRecipientName(q)}
+                    {!q.customer_id && <span className="hint" style={{ marginLeft: 8 }}>(prospect)</span>}
+                    <span className="price">{formatPrice(total)}</span>
+                  </div>
+                  <div className="meta">
+                    {formatDateString(q.created_at.split('T')[0])} • <span className={`badge ${q.status}`}>{q.status}</span>
+                  </div>
+                  {q.description && <div className="secondary-meta">{q.description}</div>}
+                </div>
+                {canMutate && (
+                  <div className="actions">
+                    <button className="secondary" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
+                    <button className="danger" onClick={() => deleteQuote(q.id)}>Delete</button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SettingsView({ session }) {
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -1689,11 +2260,15 @@ function AppShell({ session, onLogout }) {
       <div className="nav">
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => setView('jobs')}>Jobs</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
+        <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Invoices</button>
+        <button className={view === 'quotes' ? 'active' : ''} onClick={() => setView('quotes')}>Quotes</button>
         <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
       </div>
       <div className="content">
         {view === 'jobs' && <JobsView session={session} />}
         {view === 'customers' && <CustomersView session={session} />}
+        {view === 'invoices' && <InvoicesView session={session} />}
+        {view === 'quotes' && <QuotesView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
       </div>
     </div>
