@@ -3,11 +3,11 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const resolveTenant = require('./middleware/tenant');
+const resolveOrganization = require('./middleware/organization');
 const errorHandler = require('./middleware/errorHandler');
 
 const healthRoutes = require('./routes/health');
-const tenantRoutes = require('./routes/tenants');
+const organizationRoutes = require('./routes/organizations');
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -25,8 +25,8 @@ app.get('/', (req, res) => {
 
 app.use('/health', healthRoutes);
 
-app.use('/api/tenants', tenantRoutes);
-app.use('/api/auth', resolveTenant, authRoutes);
+app.use('/api/organizations', organizationRoutes);
+app.use('/api/auth', resolveOrganization, authRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

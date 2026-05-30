@@ -16,10 +16,10 @@ router.post('/register', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, rounds);
 
     const { rows } = await query(
-      `INSERT INTO users (tenant_id, email, password_hash, name)
+      `INSERT INTO users (organization_id, email, password_hash, name)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, email, name`,
-      [req.tenant.id, email.toLowerCase(), passwordHash, name || null]
+       RETURNING id, email, name, role`,
+      [req.organization.id, email.toLowerCase(), passwordHash, name || null]
     );
 
     res.status(201).json(rows[0]);
@@ -39,8 +39,8 @@ router.post('/login', async (req, res, next) => {
 
   try {
     const { rows } = await query(
-      'SELECT id, email, password_hash, name FROM users WHERE tenant_id = $1 AND email = $2 LIMIT 1',
-      [req.tenant.id, email.toLowerCase()]
+      'SELECT id, email, password_hash, name, role FROM users WHERE organization_id = $1 AND email = $2 LIMIT 1',
+      [req.organization.id, email.toLowerCase()]
     );
 
     const user = rows[0];
@@ -50,12 +50,15 @@ router.post('/login', async (req, res, next) => {
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { sub: user.id, tenant_id: req.tenant.id, email: user.email },
+      { sub: user.id, organization_id: req.organization.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    });
   } catch (err) {
     next(err);
   }

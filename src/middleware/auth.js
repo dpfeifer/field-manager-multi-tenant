@@ -10,8 +10,8 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (req.tenant && payload.tenant_id !== req.tenant.id) {
-      return res.status(403).json({ error: 'Token does not belong to this tenant' });
+    if (req.organization && payload.organization_id !== req.organization.id) {
+      return res.status(403).json({ error: 'Token does not belong to this organization' });
     }
     req.user = payload;
     next();
@@ -20,4 +20,14 @@ function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+function requireRole(...allowed) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (!allowed.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole };

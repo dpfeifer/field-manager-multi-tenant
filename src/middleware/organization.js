@@ -1,10 +1,10 @@
 const { query } = require('../config/db');
 
 function extractSlug(req) {
-  const mode = process.env.TENANT_RESOLUTION || 'subdomain';
+  const mode = process.env.ORGANIZATION_RESOLUTION || 'subdomain';
 
   if (mode === 'header') {
-    const headerName = (process.env.TENANT_HEADER || 'x-tenant-slug').toLowerCase();
+    const headerName = (process.env.ORGANIZATION_HEADER || 'x-organization-slug').toLowerCase();
     return req.headers[headerName] || null;
   }
 
@@ -17,27 +17,27 @@ function extractSlug(req) {
   return parts.length > 2 ? parts[0] : null;
 }
 
-async function resolveTenant(req, res, next) {
+async function resolveOrganization(req, res, next) {
   try {
     const slug = extractSlug(req);
     if (!slug) {
-      return res.status(400).json({ error: 'Tenant could not be resolved from request' });
+      return res.status(400).json({ error: 'Organization could not be resolved from request' });
     }
 
     const { rows } = await query(
-      'SELECT id, slug, name FROM tenants WHERE slug = $1 AND deleted_at IS NULL LIMIT 1',
+      'SELECT id, slug, name FROM organizations WHERE slug = $1 AND deleted_at IS NULL LIMIT 1',
       [slug]
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: `Unknown tenant: ${slug}` });
+      return res.status(404).json({ error: `Unknown organization: ${slug}` });
     }
 
-    req.tenant = rows[0];
+    req.organization = rows[0];
     next();
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = resolveTenant;
+module.exports = resolveOrganization;
