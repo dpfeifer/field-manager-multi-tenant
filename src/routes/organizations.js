@@ -1,31 +1,7 @@
 const express = require('express');
-const { query, withTransaction } = require('../config/db');
+const { query } = require('../config/db');
 
 const router = express.Router();
-
-router.post('/', async (req, res, next) => {
-  const { slug, name } = req.body || {};
-  if (!slug || !name) {
-    return res.status(400).json({ error: 'slug and name are required' });
-  }
-
-  try {
-    const organization = await withTransaction(async (client) => {
-      const { rows } = await client.query(
-        'INSERT INTO organizations (slug, name) VALUES ($1, $2) RETURNING id, slug, name, created_at',
-        [slug, name]
-      );
-      return rows[0];
-    });
-
-    res.status(201).json(organization);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(409).json({ error: 'Organization slug already exists' });
-    }
-    next(err);
-  }
-});
 
 router.get('/:slug', async (req, res, next) => {
   try {

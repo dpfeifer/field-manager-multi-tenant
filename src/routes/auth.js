@@ -2,13 +2,25 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const { validatePassword } = require('../utils/password');
 
 const router = express.Router();
 
-router.post('/register', async (req, res, next) => {
-  const { email, password, name } = req.body || {};
+router.post('/register', requireAuth, requireRole('admin'), async (req, res, next) => {
+  const { email, password, name, role } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'email and password are required' });
+  }
+
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
+  }
+
+  const assignedRole = role || 'employee';
+  if (!['admin', 'lead', 'employee'].includes(assignedRole)) {
+    return res.status(400).json({ error: 'role must be admin, lead, or employee' });
   }
 
   try {
@@ -16,10 +28,10 @@ router.post('/register', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, rounds);
 
     const { rows } = await query(
-      `INSERT INTO users (organization_id, email, password_hash, name)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (organization_id, email, password_hash, name, role)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, name, role`,
-      [req.organization.id, email.toLowerCase(), passwordHash, name || null]
+      [req.organization.id, email.toLowerCase(), passwordHash, name || null, assignedRole]
     );
 
     res.status(201).json(rows[0]);
