@@ -2573,6 +2573,9 @@ function AppShell({ session, onLogout }) {
         {session.user.role === 'admin' && (
           <button className={view === 'reports' ? 'active' : ''} onClick={() => setView('reports')}>Reports</button>
         )}
+        {session.user.role === 'admin' && (
+          <button className={view === 'team' ? 'active' : ''} onClick={() => setView('team')}>Team</button>
+        )}
         <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
         {session.user.is_system_admin && (
           <button className={view === 'system' ? 'active' : ''} onClick={() => setView('system')}>System</button>
@@ -2585,6 +2588,7 @@ function AppShell({ session, onLogout }) {
         {view === 'invoices' && <InvoicesView session={session} />}
         {view === 'quotes' && <QuotesView session={session} />}
         {view === 'reports' && session.user.role === 'admin' && <ReportsView session={session} />}
+        {view === 'team' && session.user.role === 'admin' && <TeamView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
       </div>
@@ -2964,6 +2968,181 @@ function ReportsView({ session }) {
           </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+function InviteForm({ onSubmit, onCancel, busy }) {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('employee');
+
+  function submit(e) {
+    e.preventDefault();
+    onSubmit({ email, name: name || null, password, role });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <p className="subtitle" style={{ marginBottom: 20 }}>
+        The teammate will sign in with this email and the temporary password you set.
+        They can change their name and (if admin) update password handling later.
+      </p>
+      <div className="form-grid">
+        <div className="full">
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div>
+          <label>Name <span className="hint">(optional)</span></label>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div>
+          <label>Role</label>
+          <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="employee">Employee — schedule + completion only</option>
+            <option value="lead">Lead — no invoicing</option>
+            <option value="admin">Admin — full access</option>
+          </select>
+        </div>
+        <div className="full">
+          <label>Temporary password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          {busy ? 'Inviting...' : 'Add teammate'}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+function TeamView({ session }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list');
+  const [busy, setBusy] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/auth/users', { slug: session.slug, token: session.token });
+      setUsers(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function inviteUser(values) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/auth/register', {
+        method: 'POST', slug: session.slug, token: session.token, body: values,
+      });
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function changeRole(userId, newRole) {
+    setError(null);
+    try {
+      await apiRequest(`/api/auth/users/${userId}`, {
+        method: 'PUT', slug: session.slug, token: session.token, body: { role: newRole },
+      });
+      setEditingRoleId(null);
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function deleteUser(userId, displayName) {
+    if (!confirm(`Remove ${displayName} from the team?`)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/auth/users/${userId}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  if (mode === 'invite') {
+    return (
+      <div>
+        <div className="page-header"><h2>Invite teammate</h2></div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <InviteForm
+            onSubmit={inviteUser}
+            onCancel={() => { setError(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Team</h2>
+        <button className="primary" onClick={() => { setError(null); setMode('invite'); }}>+ Invite teammate</button>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : users.length === 0 ? (
+          <div className="list-empty">No teammates yet.</div>
+        ) : (
+          users.map((u) => {
+            const isMe = u.id === session.user.id;
+            const displayName = u.name || u.email;
+            return (
+              <div key={u.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {displayName}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}
+                  </div>
+                  <div className="meta">{u.email}</div>
+                </div>
+                <div className="actions">
+                  {editingRoleId === u.id ? (
+                    <>
+                      <select
+                        defaultValue={u.role}
+                        onChange={(e) => changeRole(u.id, e.target.value)}
+                        style={{ width: 'auto', padding: '7px 10px', fontSize: 13 }}
+                      >
+                        <option value="employee">Employee</option>
+                        <option value="lead">Lead</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <button className="secondary" onClick={() => setEditingRoleId(null)}>Cancel</button>
+                    </>
+                  ) : (
+                    <span className="badge">{u.role}</span>
+                  )}
+                  {!isMe && editingRoleId !== u.id && (
+                    <>
+                      <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
+                      <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
