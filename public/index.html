@@ -319,6 +319,74 @@
       font-size: 13px; border: 1px dashed var(--border-strong);
       border-radius: 8px; margin: 12px 0;
     }
+
+    .public-shell { max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    .invoice-doc {
+      background: var(--card); border-radius: 14px;
+      box-shadow: var(--shadow-md); padding: 40px;
+    }
+    .invoice-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .invoice-header .company { display: flex; gap: 14px; align-items: flex-start; }
+    .invoice-header .company img { max-width: 64px; max-height: 64px; border-radius: 8px; }
+    .invoice-header .company h1 { font-size: 22px; margin: 0 0 4px; }
+    .invoice-header .company .addr {
+      font-size: 12px; color: var(--text-muted); white-space: pre-line; margin: 0;
+    }
+    .invoice-header .meta { text-align: right; font-size: 13px; }
+    .invoice-header .meta .num { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .invoice-header .meta .date { color: var(--text-muted); margin-bottom: 8px; }
+    .invoice-meta-blocks {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      padding: 24px 0; border-bottom: 1px solid var(--border);
+    }
+    .invoice-meta-blocks h3 {
+      margin: 0 0 8px; font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+    }
+    .invoice-meta-blocks p { margin: 2px 0; font-size: 14px; }
+    .invoice-meta-blocks .muted { color: var(--text-muted); font-size: 13px; white-space: pre-line; }
+    .invoice-description {
+      padding: 18px 0; font-size: 14px; border-bottom: 1px solid var(--border);
+    }
+    .invoice-items {
+      width: 100%; border-collapse: collapse; margin: 12px 0;
+    }
+    .invoice-items th {
+      text-align: left; padding: 10px; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .invoice-items th.r, .invoice-items td.r { text-align: right; }
+    .invoice-items td {
+      padding: 10px; font-size: 14px; border-bottom: 1px solid var(--border);
+    }
+    .invoice-items tr:last-child td { border-bottom: none; }
+    .invoice-total {
+      text-align: right; font-size: 18px; font-weight: 600;
+      padding: 16px 10px; border-top: 2px solid var(--text);
+    }
+    .invoice-payment {
+      margin-top: 24px; padding: 20px;
+      background: #f4efe3; border-radius: 10px;
+      font-size: 14px;
+    }
+    .invoice-payment a {
+      display: inline-block; padding: 8px 16px; margin-top: 8px;
+      background: #3D95CE; color: white; text-decoration: none;
+      border-radius: 8px; font-weight: 600;
+    }
+    .invoice-actions { margin-top: 24px; text-align: right; }
+
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .invoice-doc { box-shadow: none; padding: 0; }
+      .public-shell { margin: 0; max-width: none; }
+    }
   </style>
 </head>
 <body>
@@ -2442,8 +2510,142 @@ function AppShell({ session, onLogout }) {
   );
 }
 
+function PublicInvoiceView({ id }) {
+  const [invoice, setInvoice] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/public/invoices/${id}`);
+        if (!res.ok) {
+          if (cancelled) return;
+          setError(res.status === 404 ? 'Invoice not found.' : `Error ${res.status}`);
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        setInvoice(data);
+        document.title = `Invoice #${data.invoice_number} — ${data.company_name || data.organization_name}`;
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (error) {
+    return (
+      <div className="public-shell">
+        <div className="invoice-doc">
+          <h1>Invoice unavailable</h1>
+          <p className="subtitle">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    return <div className="public-shell"><div className="invoice-doc">Loading...</div></div>;
+  }
+
+  const total = lineItemsTotal(invoice.line_items);
+  const customerName = customerDisplayName({
+    first_name: invoice.customer_first_name,
+    last_name: invoice.customer_last_name,
+    business_name: invoice.customer_business_name,
+  });
+  const companyName = invoice.company_name || invoice.organization_name;
+
+  return (
+    <div className="public-shell">
+      <div className="invoice-doc">
+        <header className="invoice-header">
+          <div className="company">
+            {invoice.logo_url && <img src={invoice.logo_url} alt={companyName} />}
+            <div>
+              <h1>{companyName}</h1>
+              {invoice.company_address && <p className="addr">{invoice.company_address}</p>}
+              {invoice.company_phone && <p className="addr">{invoice.company_phone}</p>}
+              {invoice.company_email && <p className="addr">{invoice.company_email}</p>}
+            </div>
+          </div>
+          <div className="meta">
+            <div className="num">Invoice #{invoice.invoice_number}</div>
+            <div className="date">{formatDateString(invoice.date)}</div>
+            <span className={`badge ${invoice.status}`}>{invoice.status}</span>
+          </div>
+        </header>
+
+        <div className="invoice-meta-blocks">
+          <div>
+            <h3>Bill to</h3>
+            <p>{customerName}</p>
+            {invoice.customer_address && <p className="muted">{invoice.customer_address}</p>}
+            {invoice.customer_email && <p className="muted">{invoice.customer_email}</p>}
+            {invoice.customer_phone && <p className="muted">{invoice.customer_phone}</p>}
+          </div>
+          <div>
+            <h3>Status</h3>
+            <p style={{ textTransform: 'capitalize' }}>{invoice.status}</p>
+            {invoice.sent_date && <p className="muted">Sent {formatDateString(invoice.sent_date.split('T')[0])}</p>}
+            {invoice.paid_date && <p className="muted">Paid {formatDateString(invoice.paid_date.split('T')[0])}</p>}
+          </div>
+        </div>
+
+        {invoice.description && (
+          <div className="invoice-description">{invoice.description}</div>
+        )}
+
+        <table className="invoice-items">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th className="r">Qty</th>
+              <th className="r">Rate</th>
+              <th className="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(invoice.line_items || []).map((item, i) => (
+              <tr key={i}>
+                <td>{item.description}</td>
+                <td className="r">{item.quantity}</td>
+                <td className="r">{formatPrice(item.rate)}</td>
+                <td className="r">{formatPrice(item.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="invoice-total">Total {formatPrice(total)}</div>
+
+        {invoice.status === 'sent' && invoice.venmo_handle && (
+          <div className="invoice-payment no-print">
+            <strong>Pay via Venmo:</strong> @{invoice.venmo_handle}
+            <br />
+            <a href={`https://venmo.com/${invoice.venmo_handle}?txn=pay&amount=${total.toFixed(2)}&note=Invoice%20%23${invoice.invoice_number}`} target="_blank" rel="noopener noreferrer">
+              Open Venmo
+            </a>
+          </div>
+        )}
+
+        <div className="invoice-actions no-print">
+          <button className="secondary" onClick={() => window.print()}>Print or save as PDF</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [session, setSession] = useState(loadSession);
+  const publicMatch = typeof window !== 'undefined' && window.location.pathname.match(/^\/i\/([^/]+)/);
+
+  if (publicMatch) {
+    return <PublicInvoiceView id={publicMatch[1]} />;
+  }
+
   function handleLogout() { clearSession(); setSession(null); }
   return session
     ? <AppShell session={session} onLogout={handleLogout} />

@@ -17,6 +17,7 @@ const jobsRoutes = require('./routes/jobs');
 const settingsRoutes = require('./routes/settings');
 const invoicesRoutes = require('./routes/invoices');
 const quotesRoutes = require('./routes/quotes');
+const publicRoutes = require('./routes/public');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.use('/health', healthRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/signup', signupRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', resolveOrganization, authRoutes);
