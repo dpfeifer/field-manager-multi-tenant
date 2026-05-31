@@ -646,6 +646,26 @@
 const { useState, useEffect, useCallback } = React;
 
 const STORAGE = { token: 'fm_token', slug: 'fm_slug', user: 'fm_user', org: 'fm_org' };
+
+function useLocation() {
+  const [path, setPath] = useState(() => window.location.pathname);
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  return path;
+}
+
+function navigate(to, opts = {}) {
+  if (window.location.pathname === to && !opts.force) return;
+  if (opts.replace) {
+    window.history.replaceState({}, '', to);
+  } else {
+    window.history.pushState({}, '', to);
+  }
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
 const STAFF_STORAGE = { token: 'fm_staff_token', user: 'fm_staff_user' };
 
 function loadStaffSession() {
@@ -1037,14 +1057,14 @@ function LoginForm({ onSuccess }) {
   );
 }
 
-function LandingPage({ onEnterAuth }) {
+function LandingPage() {
   return (
     <div className="landing">
       <nav className="landing-nav">
         <div className="brand">Field Manager</div>
         <div className="nav-actions">
-          <button className="link-button" onClick={() => onEnterAuth('login')}>Sign in</button>
-          <button className="primary" onClick={() => onEnterAuth('signup')}>Get started</button>
+          <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
+          <button className="primary" onClick={() => navigate('/signup')}>Get started</button>
         </div>
       </nav>
 
@@ -1054,8 +1074,8 @@ function LandingPage({ onEnterAuth }) {
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
         </p>
         <div className="cta-row">
-          <button className="primary" onClick={() => onEnterAuth('signup')}>Start free trial</button>
-          <button className="secondary" onClick={() => onEnterAuth('login')}>Sign in</button>
+          <button className="primary" onClick={() => navigate('/signup')}>Start free trial</button>
+          <button className="secondary" onClick={() => navigate('/signin')}>Sign in</button>
         </div>
         <p style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
           <strong style={{ color: 'var(--text)' }}>$29/month</strong> after your trial · No credit card to start · Cancel anytime
@@ -1091,6 +1111,8 @@ function LandingPage({ onEnterAuth }) {
         </div>
       </section>
 
+      {/* CTA-band, pricing, footer continue below */}
+
       <section className="industries">
         <h2>Built for the businesses that go where the work is.</h2>
         <p className="lede">Whatever you call yourself, if you serve customers in the field, Field Manager fits.</p>
@@ -1123,7 +1145,7 @@ function LandingPage({ onEnterAuth }) {
             <li>Unlimited teammates with role-based access</li>
             <li>CSV import and export</li>
           </ul>
-          <button className="primary" onClick={() => onEnterAuth('signup')}>Start your free trial</button>
+          <button className="primary" onClick={() => navigate('/signup')}>Start your free trial</button>
           <div className="fineprint">Cancel anytime. No long-term contract.</div>
         </div>
       </section>
@@ -1132,13 +1154,13 @@ function LandingPage({ onEnterAuth }) {
         <div className="cta-band">
           <h2>Set up your shop in two minutes.</h2>
           <p>No credit card required. Bring your existing customers or start fresh.</p>
-          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => onEnterAuth('signup')}>Create your account</button>
+          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => navigate('/signup')}>Create your account</button>
         </div>
       </section>
 
       <footer className="landing-footer">
         <div>
-          <button className="link-button" onClick={() => onEnterAuth('login')}>Sign in</button>
+          <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
           <span style={{ margin: '0 12px' }}>·</span>
           <a href="/staff">Staff</a>
         </div>
@@ -1148,16 +1170,17 @@ function LandingPage({ onEnterAuth }) {
   );
 }
 
-function AuthShell({ onSession, initialMode = 'login' }) {
-  const [mode, setMode] = useState(initialMode);
+function AuthShell({ onSession }) {
+  const path = useLocation();
+  const mode = path === '/signup' ? 'signup' : 'login';
   return (
     <div className="auth-shell">
       <div className="card">
         <h1>Field Manager</h1>
         <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
         <div className="tabs">
-          <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>Sign in</button>
-          <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>Create account</button>
+          <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => navigate('/signin')}>Sign in</button>
+          <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => navigate('/signup')}>Create account</button>
         </div>
         {mode === 'login' ? <LoginForm onSuccess={onSession} /> : <SignupForm onSuccess={onSession} />}
       </div>
@@ -3748,14 +3771,30 @@ function SettingsView({ session }) {
   );
 }
 
+const APP_ROUTES = {
+  '/': 'dashboard',
+  '/dashboard': 'dashboard',
+  '/jobs': 'jobs',
+  '/customers': 'customers',
+  '/invoices': 'invoices',
+  '/quotes': 'quotes',
+  '/reports': 'reports',
+  '/team': 'team',
+  '/settings': 'settings',
+  '/system': 'system',
+  '/profile': 'profile',
+};
+
 function AppShell({ session, onLogout, onSessionUpdate }) {
-  const [view, setView] = useState('dashboard');
+  const path = useLocation();
+  const view = APP_ROUTES[path] || 'dashboard';
+
   return (
     <div>
       <div className="topbar">
         <div className="brand">{session.organization.name}</div>
         <div className="right">
-          <button className="link-button" onClick={() => setView('profile')}>
+          <button className="link-button" onClick={() => navigate('/profile')}>
             {session.user.name || session.user.email}
           </button>
           <span className="badge">{session.user.role}</span>
@@ -3763,20 +3802,20 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         </div>
       </div>
       <div className="nav">
-        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>Dashboard</button>
-        <button className={view === 'jobs' ? 'active' : ''} onClick={() => setView('jobs')}>Jobs</button>
-        <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Customers</button>
-        <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Invoices</button>
-        <button className={view === 'quotes' ? 'active' : ''} onClick={() => setView('quotes')}>Quotes</button>
+        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Dashboard</button>
+        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>Jobs</button>
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}>Customers</button>
+        <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}>Invoices</button>
+        <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}>Quotes</button>
         {session.user.role === 'admin' && (
-          <button className={view === 'reports' ? 'active' : ''} onClick={() => setView('reports')}>Reports</button>
+          <button className={view === 'reports' ? 'active' : ''} onClick={() => navigate('/reports')}>Reports</button>
         )}
         {session.user.role === 'admin' && (
-          <button className={view === 'team' ? 'active' : ''} onClick={() => setView('team')}>Team</button>
+          <button className={view === 'team' ? 'active' : ''} onClick={() => navigate('/team')}>Team</button>
         )}
-        <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
+        <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}>Settings</button>
         {session.user.is_system_admin && (
-          <button className={view === 'system' ? 'active' : ''} onClick={() => setView('system')}>System</button>
+          <button className={view === 'system' ? 'active' : ''} onClick={() => navigate('/system')}>System</button>
         )}
       </div>
       <div className="content">
@@ -4863,31 +4902,26 @@ function StaffApp() {
 }
 
 function App() {
+  const path = useLocation();
   const [session, setSession] = useState(loadSession);
-  const [authMode, setAuthMode] = useState(null);
-  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+
   const publicMatch = path.match(/^\/i\/([^/]+)/);
+  if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
+  if (path.startsWith('/staff')) return <StaffApp />;
 
-  if (publicMatch) {
-    return <PublicInvoiceView id={publicMatch[1]} />;
-  }
-
-  if (path.startsWith('/staff')) {
-    return <StaffApp />;
-  }
-
-  function handleLogout() { clearSession(); setSession(null); setAuthMode(null); }
+  function handleLogout() { clearSession(); setSession(null); navigate('/'); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
+  function handleAuthSuccess(next) { saveSession(next); setSession(next); navigate('/dashboard'); }
 
   if (session) {
     return <AppShell session={session} onLogout={handleLogout} onSessionUpdate={handleSessionUpdate} />;
   }
 
-  if (authMode) {
-    return <AuthShell onSession={setSession} initialMode={authMode} />;
+  if (path === '/signin' || path === '/signup') {
+    return <AuthShell onSession={handleAuthSuccess} />;
   }
 
-  return <LandingPage onEnterAuth={(m) => setAuthMode(m)} />;
+  return <LandingPage />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
