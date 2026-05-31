@@ -21,10 +21,24 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       `WITH it AS (
          SELECT
            i.id, i.status, i.paid_date, i.sent_date, i.customer_id,
-           COALESCE((
-             SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-             FROM jsonb_array_elements(i.line_items) AS item
-           ), 0) AS total
+           GREATEST(
+             (
+               COALESCE((
+                 SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                 FROM jsonb_array_elements(i.line_items) AS item
+               ), 0)
+               - CASE
+                   WHEN i.discount_type = 'percent' THEN
+                     COALESCE((
+                       SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                       FROM jsonb_array_elements(i.line_items) AS item
+                     ), 0) * i.discount_value / 100
+                   WHEN i.discount_type = 'amount' THEN i.discount_value
+                   ELSE 0
+                 END
+             ) * (1 + i.tax_rate / 100),
+             0
+           ) AS total
          FROM invoices i
          WHERE i.organization_id = $1 AND i.deleted_at IS NULL
        )
@@ -61,10 +75,24 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       `WITH it AS (
          SELECT
            i.customer_id,
-           COALESCE((
-             SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-             FROM jsonb_array_elements(i.line_items) AS item
-           ), 0) AS total
+           GREATEST(
+             (
+               COALESCE((
+                 SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                 FROM jsonb_array_elements(i.line_items) AS item
+               ), 0)
+               - CASE
+                   WHEN i.discount_type = 'percent' THEN
+                     COALESCE((
+                       SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                       FROM jsonb_array_elements(i.line_items) AS item
+                     ), 0) * i.discount_value / 100
+                   WHEN i.discount_type = 'amount' THEN i.discount_value
+                   ELSE 0
+                 END
+             ) * (1 + i.tax_rate / 100),
+             0
+           ) AS total
          FROM invoices i
          WHERE i.organization_id = $1
            AND i.deleted_at IS NULL
@@ -87,10 +115,24 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       `WITH it AS (
          SELECT
            i.paid_date,
-           COALESCE((
-             SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-             FROM jsonb_array_elements(i.line_items) AS item
-           ), 0) AS total
+           GREATEST(
+             (
+               COALESCE((
+                 SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                 FROM jsonb_array_elements(i.line_items) AS item
+               ), 0)
+               - CASE
+                   WHEN i.discount_type = 'percent' THEN
+                     COALESCE((
+                       SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                       FROM jsonb_array_elements(i.line_items) AS item
+                     ), 0) * i.discount_value / 100
+                   WHEN i.discount_type = 'amount' THEN i.discount_value
+                   ELSE 0
+                 END
+             ) * (1 + i.tax_rate / 100),
+             0
+           ) AS total
          FROM invoices i
          WHERE i.organization_id = $1
            AND i.deleted_at IS NULL

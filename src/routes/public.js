@@ -14,6 +14,7 @@ router.get('/invoices/:id', async (req, res, next) => {
       `SELECT
          i.id, i.invoice_number, i.status, i.description,
          i.date, i.sent_date, i.paid_date, i.line_items,
+         i.discount_type, i.discount_value, i.tax_rate,
          c.first_name AS customer_first_name,
          c.last_name AS customer_last_name,
          c.business_name AS customer_business_name,

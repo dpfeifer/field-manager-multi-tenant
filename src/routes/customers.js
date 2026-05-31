@@ -23,10 +23,35 @@ function hasName(body) {
 router.get('/', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, first_name, last_name, business_name, phone, email, address, notes, created_at, updated_at
-       FROM customers
-       WHERE organization_id = $1 AND deleted_at IS NULL
-       ORDER BY created_at DESC`,
+      `SELECT
+         c.id, c.first_name, c.last_name, c.business_name,
+         c.phone, c.email, c.address, c.notes,
+         c.created_at, c.updated_at,
+         COALESCE((
+           SELECT SUM(
+             GREATEST(
+               (
+                 (SELECT COALESCE(SUM((item->>'amount')::numeric), 0)
+                  FROM jsonb_array_elements(i.line_items) AS item)
+                 - CASE
+                     WHEN i.discount_type = 'percent' THEN
+                       (SELECT COALESCE(SUM((item->>'amount')::numeric), 0)
+                        FROM jsonb_array_elements(i.line_items) AS item) * i.discount_value / 100
+                     WHEN i.discount_type = 'amount' THEN i.discount_value
+                     ELSE 0
+                   END
+               ) * (1 + i.tax_rate / 100),
+               0
+             )
+           )
+           FROM invoices i
+           WHERE i.customer_id = c.id
+             AND i.status = 'sent'
+             AND i.deleted_at IS NULL
+         ), 0) AS outstanding_balance
+       FROM customers c
+       WHERE c.organization_id = $1 AND c.deleted_at IS NULL
+       ORDER BY c.created_at DESC`,
       [req.organization.id]
     );
     res.json(rows);

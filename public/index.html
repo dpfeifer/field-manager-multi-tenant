@@ -946,6 +946,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
       <div className="form-card">
         <dl className="detail-info">
+          {parseFloat(customer.outstanding_balance) > 0 && (
+            <><dt>Owes</dt><dd style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatPrice(customer.outstanding_balance)}</dd></>
+          )}
           {customer.phone && <><dt>Phone</dt><dd>{customer.phone}</dd></>}
           {customer.email && <><dt>Email</dt><dd>{customer.email}</dd></>}
           {customer.business_name && (customer.first_name || customer.last_name) && (
@@ -1339,25 +1342,31 @@ function CustomersView({ session }) {
               : 'No customers match this search.'}
           </div>
         ) : (
-          sorted.map((c) => (
-            <div key={c.id} className="row">
-              <div className="info">
-                <div className="name">{customerDisplayName(c)}</div>
-                <div className="meta">
-                  {[c.phone, c.email].filter(Boolean).join(' • ') || 'No contact info'}
+          sorted.map((c) => {
+            const balance = parseFloat(c.outstanding_balance) || 0;
+            return (
+              <div key={c.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {customerDisplayName(c)}
+                    {balance > 0 && <span className="price" style={{ color: 'var(--danger)' }}>owes {formatPrice(balance)}</span>}
+                  </div>
+                  <div className="meta">
+                    {[c.phone, c.email].filter(Boolean).join(' • ') || 'No contact info'}
+                  </div>
+                </div>
+                <div className="actions">
+                  <button className="secondary" onClick={() => { setViewing(c); setMode('detail'); }}>View</button>
+                  {canMutate && (
+                    <>
+                      <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
+                      <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="actions">
-                <button className="secondary" onClick={() => { setViewing(c); setMode('detail'); }}>View</button>
-                {canMutate && (
-                  <>
-                    <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
-                    <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
@@ -2337,6 +2346,33 @@ function lineItemsTotal(items) {
   return (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 }
 
+function invoiceMath(inv) {
+  const subtotal = lineItemsTotal(inv.line_items);
+  let discount = 0;
+  const dv = parseFloat(inv.discount_value) || 0;
+  if (dv > 0 && (inv.discount_type === 'percent' || inv.discount_type === 'amount')) {
+    discount = inv.discount_type === 'percent' ? subtotal * dv / 100 : dv;
+  }
+  const discounted = Math.max(0, subtotal - discount);
+  const taxRate = parseFloat(inv.tax_rate) || 0;
+  const tax = discounted * taxRate / 100;
+  const total = discounted + tax;
+  return { subtotal, discount, discounted, taxRate, tax, total };
+}
+
+function isInvoiceLate(inv) {
+  if (inv.status !== 'sent' || !inv.sent_date) return false;
+  const sent = new Date(inv.sent_date);
+  const ageDays = (Date.now() - sent.getTime()) / (1000 * 60 * 60 * 24);
+  return ageDays > 30;
+}
+
+function daysOutstanding(inv) {
+  if (!inv.sent_date) return 0;
+  const sent = new Date(inv.sent_date);
+  return Math.floor((Date.now() - sent.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).map((l) => l).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
@@ -2428,10 +2464,28 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
   const [description, setDescription] = useState(initial?.description || '');
   const [date, setDate] = useState(initial?.date || formatYMD(new Date()));
   const [line_items, setLineItems] = useState(initial?.line_items || []);
+  const [discount_type, setDiscountType] = useState(initial?.discount_type || 'none');
+  const [discount_value, setDiscountValue] = useState(initial?.discount_value ?? '');
+  const [tax_rate, setTaxRate] = useState(initial?.tax_rate ?? '');
+
+  const preview = invoiceMath({
+    line_items,
+    discount_type: discount_type === 'none' ? null : discount_type,
+    discount_value,
+    tax_rate,
+  });
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ customer_id, description: description || null, date, line_items });
+    onSubmit({
+      customer_id,
+      description: description || null,
+      date,
+      line_items,
+      discount_type: discount_type === 'none' ? null : discount_type,
+      discount_value: parseFloat(discount_value) || 0,
+      tax_rate: parseFloat(tax_rate) || 0,
+    });
   }
 
   return (
@@ -2457,7 +2511,54 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
           <label>Line items</label>
           <LineItemsEditor items={line_items} onChange={setLineItems} />
         </div>
+        <div>
+          <label>Discount</label>
+          <select value={discount_type} onChange={(e) => setDiscountType(e.target.value)}>
+            <option value="none">No discount</option>
+            <option value="percent">Percent (%)</option>
+            <option value="amount">Fixed amount ($)</option>
+          </select>
+        </div>
+        <div>
+          <label>Discount value</label>
+          <input
+            type="number" step="0.01" min="0"
+            value={discount_value}
+            onChange={(e) => setDiscountValue(e.target.value)}
+            disabled={discount_type === 'none'}
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <label>Tax rate <span className="hint">(%)</span></label>
+          <input
+            type="number" step="0.001" min="0"
+            value={tax_rate}
+            onChange={(e) => setTaxRate(e.target.value)}
+            placeholder="0"
+          />
+        </div>
       </div>
+
+      <div className="form-card" style={{ marginTop: 12, padding: 16, background: 'var(--row-hover)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>
+          <span>Subtotal</span><span>{formatPrice(preview.subtotal)}</span>
+        </div>
+        {preview.discount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>
+            <span>Discount</span><span>−{formatPrice(preview.discount)}</span>
+          </div>
+        )}
+        {preview.tax > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>
+            <span>Tax ({preview.taxRate}%)</span><span>{formatPrice(preview.tax)}</span>
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+          <span>Total</span><span>{formatPrice(preview.total)}</span>
+        </div>
+      </div>
+
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
           {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create invoice')}
@@ -2481,20 +2582,23 @@ function InvoicesView({ session }) {
   const [sort, setSort] = useState('newest');
 
   function exportInvoices() {
-    const headers = ['invoice_number', 'customer', 'date', 'status', 'sent_date', 'paid_date', 'total', 'description'];
-    const rows = invoices.map((inv) => [
-      inv.invoice_number,
-      customerDisplayName({
-        first_name: inv.customer_first_name,
-        last_name: inv.customer_last_name,
-        business_name: inv.customer_business_name,
-      }),
-      inv.date, inv.status,
-      inv.sent_date ? inv.sent_date.split('T')[0] : '',
-      inv.paid_date ? inv.paid_date.split('T')[0] : '',
-      lineItemsTotal(inv.line_items).toFixed(2),
-      inv.description,
-    ]);
+    const headers = ['invoice_number', 'customer', 'date', 'status', 'sent_date', 'paid_date', 'subtotal', 'discount', 'tax', 'total', 'description'];
+    const rows = invoices.map((inv) => {
+      const m = invoiceMath(inv);
+      return [
+        inv.invoice_number,
+        customerDisplayName({
+          first_name: inv.customer_first_name,
+          last_name: inv.customer_last_name,
+          business_name: inv.customer_business_name,
+        }),
+        inv.date, inv.status,
+        inv.sent_date ? inv.sent_date.split('T')[0] : '',
+        inv.paid_date ? inv.paid_date.split('T')[0] : '',
+        m.subtotal.toFixed(2), m.discount.toFixed(2), m.tax.toFixed(2), m.total.toFixed(2),
+        inv.description,
+      ];
+    });
     downloadCSV(`invoices-${formatYMD(new Date())}.csv`, headers, rows);
   }
 
@@ -2657,13 +2761,15 @@ function InvoicesView({ session }) {
           </div>
         ) : (
           sortedInvoices.map((inv) => {
-            const total = lineItemsTotal(inv.line_items);
+            const math = invoiceMath(inv);
+            const late = isInvoiceLate(inv);
+            const days = late ? daysOutstanding(inv) : 0;
             return (
               <div key={inv.id} className="row">
                 <div className="info">
                   <div className="name">
                     Invoice #{inv.invoice_number}
-                    <span className="price">{formatPrice(total)}</span>
+                    <span className="price">{formatPrice(math.total)}</span>
                   </div>
                   <div className="meta">
                     {customerDisplayName({
@@ -2671,6 +2777,7 @@ function InvoicesView({ session }) {
                       last_name: inv.customer_last_name,
                       business_name: inv.customer_business_name,
                     })} • {formatDateString(inv.date)} • <span className={`badge ${inv.status}`}>{inv.status}</span>
+                    {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late · {days}d</span></>}
                   </div>
                   {inv.description && <div className="secondary-meta">{inv.description}</div>}
                 </div>
@@ -3394,10 +3501,10 @@ function DashboardView({ session }) {
     .sort((a, b) => b.date.localeCompare(a.date));
   const outstandingInvoices = invoices.filter((i) => i.status === 'sent');
 
-  const outstandingTotal = outstandingInvoices.reduce((sum, i) => sum + lineItemsTotal(i.line_items), 0);
+  const outstandingTotal = outstandingInvoices.reduce((sum, i) => sum + invoiceMath(i).total, 0);
   const weekRevenue = invoices
     .filter((i) => i.status === 'paid' && i.paid_date && i.paid_date.split('T')[0] >= weekAgoStr && i.paid_date.split('T')[0] <= todayStr)
-    .reduce((sum, i) => sum + lineItemsTotal(i.line_items), 0);
+    .reduce((sum, i) => sum + invoiceMath(i).total, 0);
   const next7DaysProjected = computeProjectedIncome(jobs, todayStr, formatYMD(addDays(today, 6)));
 
   if (completing) {
@@ -3499,20 +3606,23 @@ function DashboardView({ session }) {
               <div className="section-heading">Outstanding invoices</div>
               <div className="list">
                 {outstandingInvoices.map((inv) => {
-                  const total = lineItemsTotal(inv.line_items);
+                  const math = invoiceMath(inv);
+                  const late = isInvoiceLate(inv);
+                  const days = daysOutstanding(inv);
                   return (
                     <div key={inv.id} className="row">
                       <div className="info">
                         <div className="name">
                           Invoice #{inv.invoice_number}
-                          <span className="price">{formatPrice(total)}</span>
+                          <span className="price">{formatPrice(math.total)}</span>
                         </div>
                         <div className="meta">
                           {customerDisplayName({
                             first_name: inv.customer_first_name,
                             last_name: inv.customer_last_name,
                             business_name: inv.customer_business_name,
-                          })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'}
+                          })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'} · {days}d outstanding
+                          {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late</span></>}
                         </div>
                       </div>
                       <div className="actions">
@@ -4231,7 +4341,7 @@ function PublicInvoiceView({ id }) {
     return <div className="public-shell"><div className="invoice-doc">Loading...</div></div>;
   }
 
-  const total = lineItemsTotal(invoice.line_items);
+  const math = invoiceMath(invoice);
   const customerName = customerDisplayName({
     first_name: invoice.customer_first_name,
     last_name: invoice.customer_last_name,
@@ -4299,13 +4409,28 @@ function PublicInvoiceView({ id }) {
             ))}
           </tbody>
         </table>
-        <div className="invoice-total">Total {formatPrice(total)}</div>
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', fontSize: 14, color: 'var(--text-muted)' }}>
+            <span>Subtotal</span><span>{formatPrice(math.subtotal)}</span>
+          </div>
+          {math.discount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', fontSize: 14, color: 'var(--text-muted)' }}>
+              <span>Discount</span><span>−{formatPrice(math.discount)}</span>
+            </div>
+          )}
+          {math.tax > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', fontSize: 14, color: 'var(--text-muted)' }}>
+              <span>Tax ({math.taxRate}%)</span><span>{formatPrice(math.tax)}</span>
+            </div>
+          )}
+          <div className="invoice-total">Total {formatPrice(math.total)}</div>
+        </div>
 
         {invoice.status === 'sent' && invoice.venmo_handle && (
           <div className="invoice-payment no-print">
             <strong>Pay via Venmo:</strong> @{invoice.venmo_handle}
             <br />
-            <a href={`https://venmo.com/${invoice.venmo_handle}?txn=pay&amount=${total.toFixed(2)}&note=Invoice%20%23${invoice.invoice_number}`} target="_blank" rel="noopener noreferrer">
+            <a href={`https://venmo.com/${invoice.venmo_handle}?txn=pay&amount=${math.total.toFixed(2)}&note=Invoice%20%23${invoice.invoice_number}`} target="_blank" rel="noopener noreferrer">
               Open Venmo
             </a>
           </div>

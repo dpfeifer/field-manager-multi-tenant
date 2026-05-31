@@ -8,6 +8,7 @@ const BASE_SELECT = `
   SELECT
     i.id, i.customer_id, i.invoice_number, i.status, i.description,
     i.date, i.sent_date, i.paid_date, i.line_items,
+    i.discount_type, i.discount_value, i.tax_rate,
     i.created_at, i.updated_at,
     c.first_name AS customer_first_name,
     c.last_name AS customer_last_name,
@@ -18,6 +19,22 @@ const BASE_SELECT = `
   FROM invoices i
   JOIN customers c ON c.id = i.customer_id
 `;
+
+function normalizeDiscount(body, existing) {
+  let discountType = body.discount_type !== undefined ? body.discount_type : existing?.discount_type;
+  let discountValue = body.discount_value !== undefined ? body.discount_value : existing?.discount_value;
+  if (discountType !== 'percent' && discountType !== 'amount') discountType = null;
+  const n = parseFloat(discountValue);
+  discountValue = isFinite(n) ? n : 0;
+  if (discountValue <= 0) discountType = null;
+  return { discountType, discountValue: discountValue || 0 };
+}
+
+function normalizeTax(body, existing) {
+  let taxRate = body.tax_rate !== undefined ? body.tax_rate : existing?.tax_rate;
+  const n = parseFloat(taxRate);
+  return isFinite(n) && n > 0 ? n : 0;
+}
 
 async function assertCustomerInOrg(orgId, customerId) {
   const { rows } = await query(
@@ -73,10 +90,13 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
       );
       const invoiceNumber = bumped.rows[0].invoice_number;
 
+      const { discountType, discountValue } = normalizeDiscount(body);
+      const taxRate = normalizeTax(body);
       const inserted = await client.query(
         `INSERT INTO invoices
-          (organization_id, customer_id, invoice_number, status, description, date, line_items)
-         VALUES ($1, $2, $3, 'draft', $4, COALESCE($5::date, CURRENT_DATE), $6::jsonb)
+          (organization_id, customer_id, invoice_number, status, description, date, line_items,
+           discount_type, discount_value, tax_rate)
+         VALUES ($1, $2, $3, 'draft', $4, COALESCE($5::date, CURRENT_DATE), $6::jsonb, $7, $8, $9)
          RETURNING id`,
         [
           req.organization.id,
@@ -85,6 +105,9 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
           body.description || null,
           body.date || null,
           JSON.stringify(Array.isArray(body.line_items) ? body.line_items : []),
+          discountType,
+          discountValue,
+          taxRate,
         ]
       );
       return inserted.rows[0].id;
@@ -113,12 +136,17 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
       await assertCustomerInOrg(req.organization.id, body.customer_id);
     }
 
+    const { discountType, discountValue } = normalizeDiscount(body, inv);
+    const taxRate = normalizeTax(body, inv);
     await query(
       `UPDATE invoices SET
          customer_id = $3,
          description = $4,
          date = $5,
          line_items = $6::jsonb,
+         discount_type = $7,
+         discount_value = $8,
+         tax_rate = $9,
          updated_at = NOW()
        WHERE id = $1 AND organization_id = $2`,
       [
@@ -127,6 +155,9 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
         body.description !== undefined ? body.description : inv.description,
         body.date !== undefined ? body.date : inv.date,
         JSON.stringify(Array.isArray(body.line_items) ? body.line_items : (inv.line_items || [])),
+        discountType,
+        discountValue,
+        taxRate,
       ]
     );
 
