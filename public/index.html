@@ -2580,6 +2580,7 @@ function InvoicesView({ session }) {
   const [copiedId, setCopiedId] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   function exportInvoices() {
     const headers = ['invoice_number', 'customer', 'date', 'status', 'sent_date', 'paid_date', 'subtotal', 'discount', 'tax', 'total', 'description'];
@@ -2712,7 +2713,14 @@ function InvoicesView({ session }) {
     );
   }
 
-  const filteredInvoices = invoices.filter((inv) => searchMatches(
+  function matchesStatus(inv) {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'late') return isInvoiceLate(inv);
+    if (statusFilter === 'unpaid') return inv.status === 'draft' || inv.status === 'sent';
+    return inv.status === statusFilter;
+  }
+
+  const filteredInvoices = invoices.filter((inv) => matchesStatus(inv) && searchMatches(
     search,
     String(inv.invoice_number),
     inv.description,
@@ -2731,6 +2739,28 @@ function InvoicesView({ session }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" onClick={exportInvoices} disabled={invoices.length === 0}>Export</button>
           {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+        </div>
+      </div>
+      <div className="filter-bar">
+        <div className="chip-group">
+          {['all', 'unpaid', 'draft', 'sent', 'paid', 'late'].map((f) => {
+            const count = invoices.filter((inv) => {
+              if (f === 'all') return true;
+              if (f === 'late') return isInvoiceLate(inv);
+              if (f === 'unpaid') return inv.status === 'draft' || inv.status === 'sent';
+              return inv.status === f;
+            }).length;
+            const labels = { all: 'All', unpaid: 'Unpaid', draft: 'Draft', sent: 'Sent', paid: 'Paid', late: 'Late' };
+            return (
+              <button
+                key={f}
+                className={`chip ${statusFilter === f ? 'active' : ''}`}
+                onClick={() => setStatusFilter(f)}
+              >
+                {labels[f]} <span style={{ opacity: 0.7 }}>({count})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -2757,7 +2787,7 @@ function InvoicesView({ session }) {
           <div className="list-empty">
             {invoices.length === 0
               ? (canMutate ? 'No invoices yet. Draft an invoice for any customer with completed work.' : 'No invoices yet.')
-              : 'No invoices match this search.'}
+              : 'No invoices match these filters.'}
           </div>
         ) : (
           sortedInvoices.map((inv) => {
