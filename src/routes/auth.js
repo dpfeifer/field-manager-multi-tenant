@@ -1,10 +1,17 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
+const { sendEmail } = require('../utils/email');
+const { passwordResetTemplate } = require('../utils/emailTemplates');
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const router = express.Router();
 
@@ -188,6 +195,80 @@ router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res, 
     );
     if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+router.post('/forgot-password', async (req, res, next) => {
+  // resolveOrganization runs first, so req.organization is set.
+  const { email } = req.body || {};
+  // Always respond success to avoid email enumeration.
+  const okResponse = { ok: true };
+
+  if (!email) return res.json(okResponse);
+
+  try {
+    const { rows } = await query(
+      'SELECT id, email, name FROM users WHERE organization_id = $1 AND email = $2 AND deleted_at IS NULL LIMIT 1',
+      [req.organization.id, email.toLowerCase()]
+    );
+    const user = rows[0];
+    if (!user) return res.json(okResponse);
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await query(
+      `UPDATE users
+       SET password_reset_token = $2, password_reset_expires_at = $3, updated_at = NOW()
+       WHERE id = $1`,
+      [user.id, tokenHash, expiresAt]
+    );
+
+    const base = process.env.APP_URL || 'https://fieldmgr.com';
+    const resetUrl = `${base}/reset-password?token=${token}&org=${encodeURIComponent(req.organization.slug)}`;
+    const { subject, html, text } = passwordResetTemplate({ user, orgSlug: req.organization.slug, resetUrl });
+    await sendEmail({ to: user.email, subject, html, text });
+
+    res.json(okResponse);
+  } catch (err) { next(err); }
+});
+
+router.post('/reset-password', async (req, res, next) => {
+  const { token, new_password } = req.body || {};
+  if (!token || !new_password) {
+    return res.status(400).json({ error: 'token and new_password are required' });
+  }
+  const passwordError = validatePassword(new_password);
+  if (passwordError) return res.status(400).json({ error: passwordError });
+
+  try {
+    const tokenHash = hashToken(token);
+    const { rows } = await query(
+      `SELECT id FROM users
+       WHERE organization_id = $1
+         AND password_reset_token = $2
+         AND password_reset_expires_at > NOW()
+         AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.organization.id, tokenHash]
+    );
+    if (rows.length === 0) return res.status(400).json({ error: 'Reset link is invalid or expired' });
+
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+    const newHash = await bcrypt.hash(new_password, rounds);
+
+    await query(
+      `UPDATE users
+       SET password_hash = $2,
+           password_reset_token = NULL,
+           password_reset_expires_at = NULL,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [rows[0].id, newHash]
+    );
+
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 

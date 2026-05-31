@@ -1,6 +1,8 @@
 const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const { sendEmail } = require('../utils/email');
+const { quoteTemplate } = require('../utils/emailTemplates');
 
 const router = express.Router();
 
@@ -158,6 +160,55 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
+});
+
+router.post('/:id/send-email', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `${BASE_SELECT} WHERE q.id = $1 AND q.organization_id = $2 AND q.deleted_at IS NULL LIMIT 1`,
+      [req.params.id, req.organization.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const quote = rows[0];
+
+    const recipientEmail = quote.customer_email || quote.prospect_email;
+    const recipientName = quote.customer_business_name
+      || [quote.customer_first_name, quote.customer_last_name].filter(Boolean).join(' ')
+      || quote.prospect_name
+      || 'there';
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'No email address on file for this recipient' });
+    }
+
+    const orgRow = await query('SELECT id, name, slug FROM organizations WHERE id = $1', [req.organization.id]);
+    const settingsRow = await query(
+      'SELECT company_name, logo_url, address, phone, email, venmo_handle FROM organization_settings WHERE organization_id = $1',
+      [req.organization.id]
+    );
+    const settings = settingsRow.rows[0] || {};
+    const total = (quote.line_items || []).reduce((s, li) => s + (parseFloat(li.amount) || 0), 0);
+
+    const { subject, html, text } = quoteTemplate({
+      quote, org: orgRow.rows[0], settings, total, recipientName,
+    });
+
+    const result = await sendEmail({
+      to: recipientEmail,
+      subject, html, text,
+      replyTo: settings.email || undefined,
+    });
+
+    if (!result.sent) {
+      return res.status(500).json({ error: `Email send failed: ${result.error || result.reason}` });
+    }
+
+    if (quote.status === 'draft') {
+      await query("UPDATE quotes SET status = 'sent', updated_at = NOW() WHERE id = $1", [quote.id]);
+    }
+
+    const { rows: r2 } = await query(`${BASE_SELECT} WHERE q.id = $1 LIMIT 1`, [quote.id]);
+    res.json({ quote: r2[0], email_id: result.id });
+  } catch (err) { next(err); }
 });
 
 router.post('/:id/promote-to-customer', requireRole('admin', 'lead'), async (req, res, next) => {

@@ -1,6 +1,8 @@
 const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const { sendEmail } = require('../utils/email');
+const { invoiceTemplate } = require('../utils/emailTemplates');
 
 const router = express.Router();
 
@@ -167,6 +169,72 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
+});
+
+router.post('/:id/send-email', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rows: existing } = await query(
+      `${BASE_SELECT}
+       JOIN organizations o ON o.id = i.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = i.organization_id
+       WHERE i.id = $1 AND i.organization_id = $2 AND i.deleted_at IS NULL
+       LIMIT 1`.replace('JOIN customers c ON c.id = i.customer_id', `JOIN customers c ON c.id = i.customer_id`),
+      [req.params.id, req.organization.id]
+    );
+    if (existing.length === 0) return res.status(404).json({ error: 'Not found' });
+    const inv = existing[0];
+
+    if (!inv.customer_email) {
+      return res.status(400).json({ error: 'Customer has no email address on file' });
+    }
+
+    const orgRow = await query('SELECT id, name, slug FROM organizations WHERE id = $1', [req.organization.id]);
+    const settingsRow = await query(
+      'SELECT company_name, logo_url, address, phone, email, venmo_handle FROM organization_settings WHERE organization_id = $1',
+      [req.organization.id]
+    );
+    const settings = settingsRow.rows[0] || {};
+
+    const subtotal = (inv.line_items || []).reduce((s, li) => s + (parseFloat(li.amount) || 0), 0);
+    let discount = 0;
+    if (parseFloat(inv.discount_value) > 0 && inv.discount_type) {
+      discount = inv.discount_type === 'percent'
+        ? subtotal * parseFloat(inv.discount_value) / 100
+        : parseFloat(inv.discount_value);
+    }
+    const discounted = Math.max(0, subtotal - discount);
+    const tax = discounted * (parseFloat(inv.tax_rate) || 0) / 100;
+    const total = discounted + tax;
+
+    const { subject, html, text } = invoiceTemplate({
+      invoice: inv,
+      org: orgRow.rows[0],
+      settings,
+      total, subtotal, discount, tax,
+    });
+
+    const result = await sendEmail({
+      to: inv.customer_email,
+      subject, html, text,
+      replyTo: settings.email || undefined,
+    });
+
+    if (!result.sent) {
+      return res.status(500).json({ error: `Email send failed: ${result.error || result.reason}` });
+    }
+
+    if (inv.status === 'draft') {
+      await query(
+        `UPDATE invoices
+         SET status = 'sent', sent_date = COALESCE(sent_date, NOW()), updated_at = NOW()
+         WHERE id = $1`,
+        [inv.id]
+      );
+    }
+
+    const { rows } = await query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [inv.id]);
+    res.json({ invoice: rows[0], email_id: result.id });
+  } catch (err) { next(err); }
 });
 
 router.post('/:id/send', requireRole('admin', 'lead'), async (req, res, next) => {

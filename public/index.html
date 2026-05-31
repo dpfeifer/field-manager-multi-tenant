@@ -1024,6 +1024,8 @@ function LoginForm({ onSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -1041,6 +1043,50 @@ function LoginForm({ onSuccess }) {
     finally { setBusy(false); }
   }
 
+  async function submitForgot(e) {
+    e.preventDefault();
+    setError(null); setBusy(true);
+    try {
+      await apiRequest('/api/auth/forgot-password', {
+        method: 'POST', slug, body: { email },
+      });
+      setForgotSent(true);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (forgotMode) {
+    if (forgotSent) {
+      return (
+        <div>
+          <p style={{ fontSize: 14 }}>
+            If an account with that email exists in <strong>{slug}</strong>, a reset link is on its way.
+            Check your inbox (and spam folder).
+          </p>
+          <button className="primary block" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+            Back to sign in
+          </button>
+        </div>
+      );
+    }
+    return (
+      <form onSubmit={submitForgot}>
+        <p className="subtitle" style={{ marginBottom: 16 }}>Enter the email + company slug for your account. We'll send a reset link.</p>
+        <label>Company URL slug</label>
+        <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} required />
+        <label>Email</label>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        {error && <div className="error">{error}</div>}
+        <button type="submit" className="primary block" disabled={busy}>
+          {busy ? 'Sending...' : 'Send reset link'}
+        </button>
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button type="button" className="link-button" onClick={() => setForgotMode(false)}>Back to sign in</button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={submit}>
       <label>Company URL slug</label>
@@ -1053,6 +1099,11 @@ function LoginForm({ onSuccess }) {
       <button type="submit" className="primary block" disabled={busy}>
         {busy ? 'Signing in...' : 'Sign in'}
       </button>
+      <div style={{ textAlign: 'center', marginTop: 12 }}>
+        <button type="button" className="link-button" onClick={() => { setForgotMode(true); setError(null); setForgotSent(false); }}>
+          Forgot your password?
+        </button>
+      </div>
     </form>
   );
 }
@@ -3021,6 +3072,18 @@ function InvoicesView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function emailInvoice(inv) {
+    if (!confirm(`Email invoice #${inv.invoice_number} to ${inv.customer_email || 'the customer'}?`)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${inv.id}/send-email`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+      alert('Invoice emailed.');
+    } catch (err) { setError(err.message); }
+  }
+
   if (mode === 'create') {
     return (
       <div>
@@ -3158,8 +3221,8 @@ function InvoicesView({ session }) {
                 </div>
                 {canMutate && (
                   <div className="actions">
-                    {inv.status === 'draft' && (
-                      <button className="primary" onClick={() => transition(inv.id, 'send')}>Send</button>
+                    {(inv.status === 'draft' || inv.status === 'sent') && (
+                      <button className="primary" onClick={() => emailInvoice(inv)}>Email to customer</button>
                     )}
                     {inv.status === 'sent' && (
                       <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
@@ -3443,6 +3506,23 @@ function QuotesView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function emailQuote(q) {
+    const email = q.customer_email || q.prospect_email;
+    if (!email) {
+      alert('This recipient has no email on file.');
+      return;
+    }
+    if (!confirm(`Email this quote to ${email}?`)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/quotes/${q.id}/send-email`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+      alert('Quote emailed.');
+    } catch (err) { setError(err.message); }
+  }
+
   async function promoteToCustomer(values) {
     setBusy(true); setError(null);
     try {
@@ -3624,8 +3704,9 @@ function QuotesView({ session }) {
                 </div>
                 {canMutate && (
                   <div className="actions">
+                    <button className="primary" onClick={() => emailQuote(q)}>Email</button>
                     {!q.customer_id && (
-                      <button className="primary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to customer</button>
+                      <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to customer</button>
                     )}
                     {q.customer_id && (
                       <>
@@ -4917,6 +4998,78 @@ function SystemView({ session }) {
   );
 }
 
+function ResetPasswordPage() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token') || '';
+  const orgSlug = params.get('org') || '';
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiRequest('/api/auth/reset-password', {
+        method: 'POST', slug: orgSlug,
+        body: { token, new_password: password },
+      });
+      setDone(true);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (!token || !orgSlug) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h1>Reset password</h1>
+          <p className="subtitle">This reset link is missing required information. Request a new one from the sign-in page.</p>
+          <button className="primary block" onClick={() => navigate('/signin')}>Back to sign in</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h1>Password updated</h1>
+          <p className="subtitle">You can now sign in with your new password.</p>
+          <button className="primary block" onClick={() => navigate('/signin')}>Sign in</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="auth-shell">
+      <div className="card">
+        <h1>Reset password</h1>
+        <p className="subtitle">Resetting password for <strong style={{ color: 'var(--text)' }}>{orgSlug}</strong>. Choose a new password.</p>
+        <form onSubmit={submit}>
+          <label>New password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus />
+          <label>Confirm new password</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+          {error && <div className="error">{error}</div>}
+          <button type="submit" className="primary block" disabled={busy}>
+            {busy ? 'Saving...' : 'Set new password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function PublicInvoiceView({ id }) {
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState(null);
@@ -5133,6 +5286,7 @@ function App() {
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
   if (path.startsWith('/staff')) return <StaffApp />;
+  if (path === '/reset-password') return <ResetPasswordPage />;
 
   function handleLogout() { clearSession(); setSession(null); navigate('/'); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
