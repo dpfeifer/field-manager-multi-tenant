@@ -1515,10 +1515,6 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
           </>
         )}
         <div>
-          <label>Default price <span className="hint">(optional)</span></label>
-          <input type="number" step="0.01" min="0" value={default_price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
-        </div>
-        <div>
           <label>Start time <span className="hint">(optional)</span></label>
           <input type="time" value={start_time} onChange={(e) => setStartTime(e.target.value)} />
         </div>
@@ -1536,6 +1532,10 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
               {formatTimeRange(start_time, duration_minutes)} ({formatDuration(duration_minutes)})
             </div>
           )}
+        </div>
+        <div>
+          <label>Default price <span className="hint">(optional)</span></label>
+          <input type="number" step="0.01" min="0" value={default_price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
         </div>
         <div className="full">
           <label>Assigned to <span className="hint">(optional)</span></label>
