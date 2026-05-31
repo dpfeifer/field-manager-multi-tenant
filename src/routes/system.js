@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { query } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
+const { sendEmail } = require('../utils/email');
 
 const router = express.Router();
 
@@ -101,6 +102,26 @@ router.delete('/admins/:id', async (req, res, next) => {
     if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.status(204).end();
   } catch (err) { next(err); }
+});
+
+router.post('/test-email', async (req, res, next) => {
+  const { to } = req.body || {};
+  if (!to) return res.status(400).json({ error: 'to email required' });
+  const result = await sendEmail({
+    to,
+    subject: 'Field Manager — test email',
+    html: '<p>This is a test email from Field Manager to verify Resend is configured correctly.</p>',
+    text: 'This is a test email from Field Manager to verify Resend is configured correctly.',
+  });
+  res.json({
+    result,
+    env: {
+      has_resend_api_key: !!process.env.RESEND_API_KEY,
+      has_email_from: !!process.env.EMAIL_FROM,
+      email_from_preview: process.env.EMAIL_FROM ? process.env.EMAIL_FROM.slice(0, 60) : null,
+      app_url: process.env.APP_URL || null,
+    },
+  });
 });
 
 module.exports = router;
