@@ -61,6 +61,10 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
 
     res.json({ url: session.url });
   } catch (err) {
+    console.error('Stripe checkout error:', err);
+    if (err.type && err.type.startsWith('Stripe')) {
+      return res.status(400).json({ error: `Stripe: ${err.message}`, code: err.code || null });
+    }
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
@@ -83,6 +87,10 @@ router.post('/portal', requireRole('admin'), async (req, res, next) => {
     });
     res.json({ url: session.url });
   } catch (err) {
+    console.error('Stripe portal error:', err);
+    if (err.type && err.type.startsWith('Stripe')) {
+      return res.status(400).json({ error: `Stripe: ${err.message}`, code: err.code || null });
+    }
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
