@@ -582,6 +582,33 @@
       border-radius: 999px; font-size: 14px; font-weight: 500;
     }
 
+    .pricing { padding: 80px 0 40px; text-align: center; }
+    .pricing h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .pricing .lede { color: var(--text-muted); margin: 0 0 40px; font-size: 15px; }
+    .price-card {
+      max-width: 440px; margin: 0 auto;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 16px; padding: 40px;
+      box-shadow: var(--shadow-md);
+    }
+    .price-card .amount {
+      font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1;
+    }
+    .price-card .amount-suffix { color: var(--text-muted); font-size: 16px; font-weight: 500; }
+    .price-card .trial-hint {
+      color: var(--text-muted); font-size: 14px; margin: 14px 0 24px;
+    }
+    .price-card ul {
+      list-style: none; padding: 0; margin: 24px 0;
+      text-align: left; font-size: 14px;
+    }
+    .price-card li { padding: 6px 0; }
+    .price-card li::before {
+      content: '✓'; color: var(--primary); font-weight: 600; margin-right: 10px;
+    }
+    .price-card button.primary { width: 100%; padding: 14px; font-size: 15px; margin-top: 4px; }
+    .price-card .fineprint { color: var(--text-muted); font-size: 12px; margin-top: 14px; }
+
     .cta-band {
       padding: 80px 40px; text-align: center;
       background: var(--card); border-radius: 16px; margin: 60px auto;
@@ -1027,9 +1054,12 @@ function LandingPage({ onEnterAuth }) {
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
         </p>
         <div className="cta-row">
-          <button className="primary" onClick={() => onEnterAuth('signup')}>Start free</button>
+          <button className="primary" onClick={() => onEnterAuth('signup')}>Start free trial</button>
           <button className="secondary" onClick={() => onEnterAuth('login')}>Sign in</button>
         </div>
+        <p style={{ marginTop: 16, fontSize: 13, color: 'var(--text-muted)' }}>
+          14-day free trial · No credit card required
+        </p>
       </header>
 
       <section className="landing-section">
@@ -1072,6 +1102,29 @@ function LandingPage({ onEnterAuth }) {
           <div className="industry-chip">Mobile hair &amp; barber</div>
           <div className="industry-chip">Pool service</div>
           <div className="industry-chip">Pressure washing</div>
+        </div>
+      </section>
+
+      <section className="landing-section pricing">
+        <h2>Simple pricing. One plan.</h2>
+        <p className="lede">No tiers to puzzle over. Every feature, every teammate, every customer — one price.</p>
+        <div className="price-card">
+          <div>
+            <span className="amount">$29</span>
+            <span className="amount-suffix"> / month</span>
+          </div>
+          <div className="trial-hint">14-day free trial · No credit card to start</div>
+          <ul>
+            <li>Unlimited customers, jobs, and invoices</li>
+            <li>Recurring schedules with skip / reschedule</li>
+            <li>Public invoice links with Venmo pay</li>
+            <li>Quotes that convert to customers, jobs, and invoices</li>
+            <li>Reports, projected income, late-invoice flagging</li>
+            <li>Unlimited teammates with role-based access</li>
+            <li>CSV import and export</li>
+          </ul>
+          <button className="primary" onClick={() => onEnterAuth('signup')}>Start your free trial</button>
+          <div className="fineprint">Cancel anytime. No long-term contract.</div>
         </div>
       </section>
 
