@@ -534,6 +534,82 @@
       .cal-grid { gap: 2px; }
       .cal-dow { font-size: 9px; padding: 4px 2px; }
     }
+
+    .landing { min-height: 100vh; }
+    .landing-nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 40px; max-width: 1100px; margin: 0 auto;
+    }
+    .landing-nav .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .landing-nav .nav-actions { display: flex; gap: 12px; align-items: center; }
+    .landing-section { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+    .landing-hero {
+      padding: 80px 40px 60px; text-align: center; max-width: 760px; margin: 0 auto;
+    }
+    .landing-hero h1 {
+      font-size: 48px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 18px;
+    }
+    .landing-hero .lede {
+      font-size: 18px; color: var(--text-muted); line-height: 1.55; margin: 0 0 32px;
+    }
+    .landing-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .landing-hero .cta-row button.primary { padding: 14px 28px; font-size: 15px; }
+    .landing-hero .cta-row button.secondary { padding: 14px 28px; font-size: 15px; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px; padding: 60px 0;
+    }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .feature-card h3 { margin: 0 0 10px; font-size: 17px; }
+    .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.55; }
+
+    .industries {
+      padding: 60px 0; text-align: center;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .industries h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .industries .lede { color: var(--text-muted); margin: 0 0 36px; font-size: 15px; }
+    .industries-row {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+    }
+    .industry-chip {
+      padding: 10px 18px; background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 999px; font-size: 14px; font-weight: 500;
+    }
+
+    .cta-band {
+      padding: 80px 40px; text-align: center;
+      background: var(--card); border-radius: 16px; margin: 60px auto;
+      max-width: 760px; box-shadow: var(--shadow-sm);
+    }
+    .cta-band h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .cta-band p { color: var(--text-muted); margin: 0 0 24px; font-size: 15px; }
+
+    .landing-footer {
+      padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px;
+      border-top: 1px solid var(--border); margin-top: 40px;
+    }
+    .landing-footer a {
+      color: var(--text-muted); text-decoration: none; margin: 0 12px;
+    }
+    .landing-footer a:hover { color: var(--text); text-decoration: underline; }
+
+    @media (max-width: 720px) {
+      .landing-nav { padding: 16px 20px; }
+      .landing-hero { padding: 50px 20px 40px; }
+      .landing-hero h1 { font-size: 32px; }
+      .landing-hero .lede { font-size: 16px; }
+      .landing-section { padding: 0 20px; }
+      .features-grid { padding: 40px 0; gap: 14px; }
+      .feature-card { padding: 22px; }
+      .industries { padding: 40px 0; }
+      .cta-band { padding: 50px 24px; margin: 40px 16px; }
+    }
   </style>
 </head>
 <body>
@@ -934,8 +1010,93 @@ function LoginForm({ onSuccess }) {
   );
 }
 
-function AuthShell({ onSession }) {
-  const [mode, setMode] = useState('login');
+function LandingPage({ onEnterAuth }) {
+  return (
+    <div className="landing">
+      <nav className="landing-nav">
+        <div className="brand">Field Manager</div>
+        <div className="nav-actions">
+          <button className="link-button" onClick={() => onEnterAuth('login')}>Sign in</button>
+          <button className="primary" onClick={() => onEnterAuth('signup')}>Get started</button>
+        </div>
+      </nav>
+
+      <header className="landing-hero">
+        <h1>Run your service business in one place.</h1>
+        <p className="lede">
+          Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
+        </p>
+        <div className="cta-row">
+          <button className="primary" onClick={() => onEnterAuth('signup')}>Start free</button>
+          <button className="secondary" onClick={() => onEnterAuth('login')}>Sign in</button>
+        </div>
+      </header>
+
+      <section className="landing-section">
+        <div className="features-grid">
+          <div className="feature-card">
+            <h3>Recurring schedules that actually work</h3>
+            <p>Weekly, biweekly, or monthly visits per customer. Skip a week, reschedule one occurrence, mark visits complete with notes — without nuking the whole series.</p>
+          </div>
+          <div className="feature-card">
+            <h3>Customer-first invoices</h3>
+            <p>Send a public link your customer can open on any device. Per-line items, optional tax + discount, Venmo pay-link built in.</p>
+          </div>
+          <div className="feature-card">
+            <h3>Quotes that become work</h3>
+            <p>Quote a prospect, promote them to a customer in one click, convert the quote into a scheduled job or a draft invoice.</p>
+          </div>
+          <div className="feature-card">
+            <h3>Reports for the owner</h3>
+            <p>Paid revenue, outstanding balance per customer, projected income from upcoming visits, late invoices flagged automatically.</p>
+          </div>
+          <div className="feature-card">
+            <h3>Teammates without confusion</h3>
+            <p>Admins, leads, and employees each see only what they need. Assign jobs to specific people; employees only see their own work.</p>
+          </div>
+          <div className="feature-card">
+            <h3>Bring your data with you</h3>
+            <p>Import existing customers from CSV. Export everything back out anytime. Your data stays yours.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="industries">
+        <h2>Built for the businesses that go where the work is.</h2>
+        <p className="lede">Whatever you call yourself, if you serve customers in the field, Field Manager fits.</p>
+        <div className="industries-row">
+          <div className="industry-chip">Lawn care</div>
+          <div className="industry-chip">House cleaning</div>
+          <div className="industry-chip">Handyman</div>
+          <div className="industry-chip">Pet care</div>
+          <div className="industry-chip">Mobile hair &amp; barber</div>
+          <div className="industry-chip">Pool service</div>
+          <div className="industry-chip">Pressure washing</div>
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <div className="cta-band">
+          <h2>Set up your shop in two minutes.</h2>
+          <p>No credit card required. Bring your existing customers or start fresh.</p>
+          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => onEnterAuth('signup')}>Create your account</button>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div>
+          <button className="link-button" onClick={() => onEnterAuth('login')}>Sign in</button>
+          <span style={{ margin: '0 12px' }}>·</span>
+          <a href="/staff">Staff</a>
+        </div>
+        <div style={{ marginTop: 16 }}>© Field Manager</div>
+      </footer>
+    </div>
+  );
+}
+
+function AuthShell({ onSession, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode);
   return (
     <div className="auth-shell">
       <div className="card">
@@ -4650,6 +4811,7 @@ function StaffApp() {
 
 function App() {
   const [session, setSession] = useState(loadSession);
+  const [authMode, setAuthMode] = useState(null);
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   const publicMatch = path.match(/^\/i\/([^/]+)/);
 
@@ -4661,11 +4823,18 @@ function App() {
     return <StaffApp />;
   }
 
-  function handleLogout() { clearSession(); setSession(null); }
+  function handleLogout() { clearSession(); setSession(null); setAuthMode(null); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
-  return session
-    ? <AppShell session={session} onLogout={handleLogout} onSessionUpdate={handleSessionUpdate} />
-    : <AuthShell onSession={setSession} />;
+
+  if (session) {
+    return <AppShell session={session} onLogout={handleLogout} onSessionUpdate={handleSessionUpdate} />;
+  }
+
+  if (authMode) {
+    return <AuthShell onSession={setSession} initialMode={authMode} />;
+  }
+
+  return <LandingPage onEnterAuth={(m) => setAuthMode(m)} />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
