@@ -53,10 +53,14 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
       metadata: { organization_id: req.organization.id, organization_slug: org.slug },
       subscription_data: {
         metadata: { organization_id: req.organization.id, organization_slug: org.slug },
+        description: 'Field Manager — monthly subscription',
       },
       success_url: `${origin}/billing?success=true`,
       cancel_url: `${origin}/billing?canceled=true`,
       allow_promotion_codes: true,
+      custom_text: {
+        submit: { message: 'You can cancel any time from the Billing tab.' },
+      },
     });
 
     res.json({ url: session.url });
