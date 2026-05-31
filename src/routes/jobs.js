@@ -10,6 +10,7 @@ const BASE_SELECT = `
   SELECT
     j.id, j.customer_id, j.assigned_to, j.title, j.description, j.type,
     j.date, j.start_date, j.end_date, j.recurrence_pattern, j.default_price,
+    j.start_time::text AS start_time, j.duration_minutes,
     j.status, j.completed_dates, j.skipped_dates, j.rescheduled_dates,
     j.deleted_dates, j.completion_notes, j.created_at, j.updated_at,
     c.first_name AS customer_first_name,
@@ -18,6 +19,19 @@ const BASE_SELECT = `
   FROM jobs j
   JOIN customers c ON c.id = j.customer_id
 `;
+
+function normalizeStartTime(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const s = String(v).trim();
+  if (!/^\d{2}:\d{2}(:\d{2})?$/.test(s)) return null;
+  return s.length === 5 ? `${s}:00` : s;
+}
+
+function normalizeDurationMinutes(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = parseInt(v, 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 async function validateAssignedTo(orgId, ids) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
@@ -117,8 +131,9 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
     const { rows: insertedRows } = await query(
       `INSERT INTO jobs
         (organization_id, customer_id, assigned_to, title, description, type,
-         date, start_date, end_date, recurrence_pattern, default_price)
-       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11)
+         date, start_date, end_date, recurrence_pattern, default_price,
+         start_time, duration_minutes)
+       VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $12::time, $13)
        RETURNING id`,
       [
         req.organization.id,
@@ -132,6 +147,8 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
         body.type === 'recurring' ? (body.end_date || null) : null,
         body.type === 'recurring' ? body.recurrence_pattern : null,
         body.default_price ?? null,
+        normalizeStartTime(body.start_time),
+        normalizeDurationMinutes(body.duration_minutes),
       ]
     );
 
@@ -176,6 +193,8 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
       end_date: body.end_date !== undefined ? body.end_date : job.end_date,
       recurrence_pattern: body.recurrence_pattern !== undefined ? body.recurrence_pattern : job.recurrence_pattern,
       default_price: body.default_price !== undefined ? body.default_price : job.default_price,
+      start_time: body.start_time !== undefined ? normalizeStartTime(body.start_time) : job.start_time,
+      duration_minutes: body.duration_minutes !== undefined ? normalizeDurationMinutes(body.duration_minutes) : job.duration_minutes,
     };
 
     if (body.type) {
@@ -198,6 +217,8 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
          end_date = $10,
          recurrence_pattern = $11,
          default_price = $12,
+         start_time = $13::time,
+         duration_minutes = $14,
          updated_at = NOW()
        WHERE id = $1 AND organization_id = $2`,
       [
@@ -206,6 +227,7 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
         merged.title, merged.description, merged.type,
         merged.date, merged.start_date, merged.end_date,
         merged.recurrence_pattern, merged.default_price,
+        merged.start_time, merged.duration_minutes,
       ]
     );
 

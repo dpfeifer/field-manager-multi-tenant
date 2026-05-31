@@ -780,22 +780,66 @@ function lastCompletion(job) {
 }
 
 function formatSchedule(j) {
-  if (j.type === 'single') return formatDateString(j.date);
+  const timeRange = formatTimeRange(j.start_time, j.duration_minutes);
+  const timeSuffix = timeRange ? ` · ${timeRange}` : '';
+  if (j.type === 'single') return formatDateString(j.date) + timeSuffix;
   if (j.type === 'recurring') {
     const start = formatDateString(j.start_date);
     const end = j.end_date ? ` until ${formatDateString(j.end_date)}` : '';
     if (j.recurrence_pattern === 'weekly') {
-      return `Every ${dayOfWeekName(j.start_date)} starting ${start}${end}`;
+      return `Every ${dayOfWeekName(j.start_date)} starting ${start}${end}${timeSuffix}`;
     }
     if (j.recurrence_pattern === 'biweekly') {
-      return `Every other ${dayOfWeekName(j.start_date)} starting ${start}${end}`;
+      return `Every other ${dayOfWeekName(j.start_date)} starting ${start}${end}${timeSuffix}`;
     }
     if (j.recurrence_pattern === 'monthly') {
       const d = parseDate(j.start_date);
-      return `Monthly on the ${ordinal(d.getDate())} starting ${start}${end}`;
+      return `Monthly on the ${ordinal(d.getDate())} starting ${start}${end}${timeSuffix}`;
     }
   }
   return '';
+}
+
+function formatTimeOfDay(hhmm) {
+  if (!hhmm) return '';
+  const s = String(hhmm);
+  const m = s.match(/^(\d{2}):(\d{2})/);
+  if (!m) return '';
+  const h = parseInt(m[1], 10);
+  const min = m[2];
+  const period = h >= 12 ? 'PM' : 'AM';
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:${min} ${period}`;
+}
+
+function addMinutesToTime(hhmm, minsToAdd) {
+  if (!hhmm) return null;
+  const m = String(hhmm).match(/^(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const total = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + (parseInt(minsToAdd, 10) || 0);
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const mm = wrapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function formatDuration(mins) {
+  const n = parseInt(mins, 10);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const h = Math.floor(n / 60);
+  const m = n % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function formatTimeRange(startTime, durationMinutes) {
+  if (!startTime) return '';
+  const start = formatTimeOfDay(startTime);
+  const mins = parseInt(durationMinutes, 10);
+  if (!Number.isFinite(mins) || mins <= 0) return start;
+  const endTime = addMinutesToTime(startTime, mins);
+  return `${start} – ${formatTimeOfDay(endTime)}`;
 }
 
 function formatPrice(p) {
@@ -1388,6 +1432,8 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
   const [recurrence_pattern, setPattern] = useState(initial?.recurrence_pattern || 'weekly');
   const [default_price, setPrice] = useState(initial?.default_price ?? '');
   const [assigned_to, setAssigned] = useState(initial?.assigned_to || []);
+  const [start_time, setStartTime] = useState((initial?.start_time || '').slice(0, 5));
+  const [duration_minutes, setDuration] = useState(initial?.duration_minutes ?? '');
 
   function toggleAssigned(userId) {
     setAssigned((a) => a.includes(userId) ? a.filter((x) => x !== userId) : [...a, userId]);
@@ -1402,6 +1448,8 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
       type,
       default_price: default_price === '' ? null : Number(default_price),
       assigned_to,
+      start_time: start_time || null,
+      duration_minutes: duration_minutes === '' ? null : parseInt(duration_minutes, 10) || null,
     };
     if (type === 'single') {
       payload.date = date;
@@ -1469,6 +1517,25 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
         <div>
           <label>Default price <span className="hint">(optional)</span></label>
           <input type="number" step="0.01" min="0" value={default_price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
+        </div>
+        <div>
+          <label>Start time <span className="hint">(optional)</span></label>
+          <input type="time" value={start_time} onChange={(e) => setStartTime(e.target.value)} />
+        </div>
+        <div>
+          <label>Duration <span className="hint">(minutes, optional)</span></label>
+          <input
+            type="number" min="0" step="15"
+            value={duration_minutes}
+            onChange={(e) => setDuration(e.target.value)}
+            placeholder="e.g. 60"
+            disabled={!start_time}
+          />
+          {start_time && duration_minutes && (
+            <div className="hint" style={{ marginTop: 4 }}>
+              {formatTimeRange(start_time, duration_minutes)} ({formatDuration(duration_minutes)})
+            </div>
+          )}
         </div>
         <div className="full">
           <label>Assigned to <span className="hint">(optional)</span></label>
@@ -1552,6 +1619,9 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
         </div>
         <div className="meta">
           {jobCustomerName(occurrence.job)}
+          {formatTimeRange(occurrence.job.start_time, occurrence.job.duration_minutes) && (
+            <> · {formatTimeRange(occurrence.job.start_time, occurrence.job.duration_minutes)}</>
+          )}
           {isOverdue && <> · <span style={{ color: 'var(--danger)', fontWeight: 500 }}>Overdue</span></>}
           {occurrence.completed && <> · Completed</>}
           {occurrence.rescheduledFrom && <> · Rescheduled from {formatDateString(occurrence.rescheduledFrom)}</>}
