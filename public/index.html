@@ -307,7 +307,11 @@
       display: flex; flex-direction: column; gap: 2px;
     }
     .cal-cell.empty { background: #f9f5ec; border-color: transparent; }
+    .cal-cell { cursor: pointer; transition: background 0.12s, border-color 0.12s; }
+    .cal-cell:hover:not(.empty) { background: var(--row-hover); }
     .cal-cell.today { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-ring); }
+    .cal-cell.selected { border-color: var(--primary); background: var(--tinted); }
+    .cal-cell.selected.today { box-shadow: 0 0 0 2px var(--primary-ring); }
     .cal-cell .cal-date { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
     .cal-cell.today .cal-date { color: var(--primary); }
     .cal-chip {
@@ -1563,9 +1567,11 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
   );
 }
 
-function CalendarView({ jobs, onChipClick }) {
+function CalendarView({ jobs, onChipClick, onMarkComplete }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const today = todayStart();
+  const todayStr = formatYMD(today);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
   const viewMonth = addMonths(today, monthOffset);
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
@@ -1585,42 +1591,74 @@ function CalendarView({ jobs, onChipClick }) {
   for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
-  const todayStr = formatYMD(today);
   const monthLabel = viewMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
   const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  const selectedOccurrences = selectedDate ? (byDate[selectedDate] || []) : [];
+
   return (
-    <div className="calendar">
-      <div className="cal-nav">
-        <button className="secondary" onClick={() => setMonthOffset(monthOffset - 1)}>← Prev</button>
-        <span className="cal-month">{monthLabel}</span>
-        <button className="secondary" onClick={() => setMonthOffset(monthOffset + 1)}>Next →</button>
+    <div>
+      <div className="calendar">
+        <div className="cal-nav">
+          <button className="secondary" onClick={() => setMonthOffset(monthOffset - 1)}>← Prev</button>
+          <span className="cal-month">{monthLabel}</span>
+          <button className="secondary" onClick={() => setMonthOffset(monthOffset + 1)}>Next →</button>
+        </div>
+        <div className="cal-grid">
+          {dows.map((dow) => <div key={dow} className="cal-dow">{dow}</div>)}
+          {cells.map((d, i) => {
+            if (d === null) return <div key={i} className="cal-cell empty"></div>;
+            const dateStr = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const occs = byDate[dateStr] || [];
+            const isToday = dateStr === todayStr;
+            const isSelected = dateStr === selectedDate;
+            const classes = ['cal-cell'];
+            if (isToday) classes.push('today');
+            if (isSelected) classes.push('selected');
+            return (
+              <div key={i} className={classes.join(' ')} onClick={() => setSelectedDate(dateStr)}>
+                <div className="cal-date">{d}</div>
+                {occs.slice(0, 3).map((o, j) => (
+                  <div
+                    key={j}
+                    className={`cal-chip ${o.completed ? 'done' : ''}`}
+                    title={`${o.job.title} — ${jobCustomerName(o.job)}`}
+                    onClick={(e) => { e.stopPropagation(); onChipClick(o.job); }}
+                  >
+                    {o.job.title}
+                  </div>
+                ))}
+                {occs.length > 3 && <div className="cal-more">+{occs.length - 3} more</div>}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="cal-grid">
-        {dows.map((dow) => <div key={dow} className="cal-dow">{dow}</div>)}
-        {cells.map((d, i) => {
-          if (d === null) return <div key={i} className="cal-cell empty"></div>;
-          const dateStr = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          const occs = byDate[dateStr] || [];
-          const isToday = dateStr === todayStr;
-          return (
-            <div key={i} className={`cal-cell ${isToday ? 'today' : ''}`}>
-              <div className="cal-date">{d}</div>
-              {occs.slice(0, 3).map((o, j) => (
-                <div
-                  key={j}
-                  className={`cal-chip ${o.completed ? 'done' : ''}`}
-                  title={`${o.job.title} — ${jobCustomerName(o.job)}`}
-                  onClick={() => onChipClick(o.job)}
-                >
-                  {o.job.title}
-                </div>
-              ))}
-              {occs.length > 3 && <div className="cal-more">+{occs.length - 3} more</div>}
-            </div>
-          );
-        })}
-      </div>
+
+      {selectedDate && (
+        <>
+          <div className="section-heading">
+            {formatDateString(selectedDate)}
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
+              ({selectedOccurrences.length} {selectedOccurrences.length === 1 ? 'visit' : 'visits'})
+            </span>
+          </div>
+          <div className="list">
+            {selectedOccurrences.length === 0 ? (
+              <div className="list-empty">No visits scheduled.</div>
+            ) : (
+              selectedOccurrences.map((o, i) => (
+                <OccurrenceRow
+                  key={`${o.job.id}-${o.date}-${i}`}
+                  occurrence={o}
+                  onMarkComplete={onMarkComplete}
+                  onEdit={onChipClick}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -2180,7 +2218,7 @@ function JobsView({ session }) {
         loading ? (
           <div className="list-empty">Loading...</div>
         ) : (
-          <CalendarView jobs={searchedJobs} onChipClick={openEdit} />
+          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} />
         )
       ) : occurrences !== null ? (
         <div className="list">
