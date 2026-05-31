@@ -303,6 +303,61 @@ function isValidDate(s) {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
+router.put('/:id/completions/:index', requireRole('admin', 'lead'), async (req, res, next) => {
+  const idx = parseInt(req.params.index, 10);
+  if (!Number.isInteger(idx) || idx < 0) {
+    return res.status(400).json({ error: 'index must be a non-negative integer' });
+  }
+  const { note } = req.body || {};
+
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    const notes = Array.isArray(job.completion_notes) ? [...job.completion_notes] : [];
+    if (idx >= notes.length) return res.status(404).json({ error: 'Completion not found' });
+
+    notes[idx] = { ...notes[idx], note: note === '' ? null : note };
+
+    await query(
+      `UPDATE jobs SET completion_notes = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(notes)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/completions/:index', requireRole('admin', 'lead'), async (req, res, next) => {
+  const idx = parseInt(req.params.index, 10);
+  if (!Number.isInteger(idx) || idx < 0) {
+    return res.status(400).json({ error: 'index must be a non-negative integer' });
+  }
+
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    const notes = Array.isArray(job.completion_notes) ? [...job.completion_notes] : [];
+    if (idx >= notes.length) return res.status(404).json({ error: 'Completion not found' });
+
+    const removed = notes.splice(idx, 1)[0];
+    const remainingDates = new Set(notes.map((n) => n.date));
+    const completedDates = (Array.isArray(job.completed_dates) ? job.completed_dates : [])
+      .filter((d) => d !== removed.date || remainingDates.has(d));
+
+    let newStatus = job.status;
+    if (job.type === 'single' && job.status === 'completed' && notes.length === 0) {
+      newStatus = 'scheduled';
+    }
+
+    await query(
+      `UPDATE jobs SET completion_notes = $3::jsonb, completed_dates = $4::jsonb, status = $5, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(notes), JSON.stringify(completedDates), newStatus]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
 router.post('/:id/skip', requireRole('admin', 'lead'), async (req, res, next) => {
   const { date } = req.body || {};
   if (!isValidDate(date)) return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });

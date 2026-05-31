@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Field Manager</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('fm_theme');
+        if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -24,7 +32,40 @@
       --danger-bg: #fbe9e5;
       --shadow-sm: 0 1px 2px rgba(45, 42, 38, 0.04);
       --shadow-md: 0 4px 14px rgba(45, 42, 38, 0.06), 0 1px 3px rgba(45, 42, 38, 0.04);
+      --row-hover: var(--row-hover);
+      --tinted: #f4efe3;
     }
+    :root[data-theme="dark"] {
+      --bg: #16191f;
+      --card: #1f2330;
+      --text: #e6e2d8;
+      --text-muted: #908b81;
+      --border: #2c3142;
+      --border-strong: #3b4258;
+      --primary: #7a91b0;
+      --primary-hover: #92a8c8;
+      --primary-ring: rgba(122, 145, 176, 0.25);
+      --accent: #e8a78c;
+      --accent-hover: #d68768;
+      --danger: #d76b5d;
+      --danger-bg: #3b1f1b;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+      --row-hover: #252a39;
+      --tinted: #2c3142;
+    }
+    :root[data-theme="dark"] .cal-cell.empty { background: #1a1d27; }
+    :root[data-theme="dark"] .cal-chip { background: #2c3142; color: var(--text); }
+    :root[data-theme="dark"] .cal-chip:hover { background: #3b4258; }
+    :root[data-theme="dark"] .cal-chip.done { background: #1f3328; color: var(--text-muted); }
+    :root[data-theme="dark"] .check-list label.checked { background: #2c3a4e; color: var(--primary); }
+    :root[data-theme="dark"] .badge.draft { background: #2e2a22; color: #b0a99a; }
+    :root[data-theme="dark"] .badge.sent { background: #1f2a3b; color: #92a8c8; }
+    :root[data-theme="dark"] .badge.paid { background: #1c2e22; color: #7ab089; }
+    :root[data-theme="dark"] .badge.accepted { background: #1c2e22; color: #7ab089; }
+    :root[data-theme="dark"] .badge.declined { background: #3b1f1b; color: #d76b5d; }
+    :root[data-theme="dark"] .badge { background: #3a2820; color: #e8a78c; }
+    :root[data-theme="dark"] input:disabled, :root[data-theme="dark"] textarea:disabled { background: #1a1d27; color: var(--text-muted); }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -82,7 +123,7 @@
       font-size: 13px; font-weight: 500; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    button.secondary:hover { background: #f5f1e8; border-color: var(--primary); }
+    button.secondary:hover { background: var(--row-hover); border-color: var(--primary); }
     button.danger {
       padding: 9px 14px; background: var(--card); color: var(--danger);
       border: 1px solid var(--border-strong); border-radius: 8px;
@@ -142,7 +183,7 @@
       gap: 12px; transition: background 0.12s;
     }
     .row:last-child { border-bottom: none; }
-    .row:hover { background: #fbf9f3; }
+    .row:hover { background: var(--row-hover); }
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions { display: flex; gap: 8px; flex-shrink: 0; }
@@ -166,7 +207,7 @@
     select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
 
     .toggle-group {
-      display: inline-flex; background: #f4efe3; border-radius: 8px;
+      display: inline-flex; background: var(--tinted); border-radius: 8px;
       padding: 4px; gap: 4px;
     }
     .toggle-group button {
@@ -187,7 +228,7 @@
       cursor: pointer; margin: 0;
       background: var(--card); transition: background 0.15s, border-color 0.15s;
     }
-    .check-list label:hover { background: #f5f1e8; }
+    .check-list label:hover { background: var(--row-hover); }
     .check-list label.checked { background: #eaf0f2; border-color: var(--primary); color: var(--primary); }
     .check-list input { display: none; }
 
@@ -218,7 +259,7 @@
       font-size: 13px; font-weight: 500; cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .chip:hover { color: var(--text); background: #f5f1e8; }
+    .chip:hover { color: var(--text); background: var(--row-hover); }
     .chip.active {
       background: var(--primary); color: white; border-color: var(--primary);
     }
@@ -226,10 +267,10 @@
     .occurrence-row { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .occurrence-row:last-child { border-bottom: none; }
     .occurrence-row.completed { opacity: 0.55; }
-    .occurrence-row:hover { background: #fbf9f3; }
+    .occurrence-row:hover { background: var(--row-hover); }
     .occurrence-row .date {
       flex-shrink: 0; min-width: 90px; padding: 6px 10px;
-      background: #f4efe3; border-radius: 8px; text-align: center;
+      background: var(--tinted); border-radius: 8px; text-align: center;
     }
     .occurrence-row .date .day { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
     .occurrence-row .date .num { font-size: 18px; font-weight: 600; line-height: 1.1; }
@@ -406,7 +447,7 @@
     }
     .invoice-payment {
       margin-top: 24px; padding: 20px;
-      background: #f4efe3; border-radius: 10px;
+      background: var(--tinted); border-radius: 10px;
       font-size: 14px;
     }
     .invoice-payment a {
@@ -452,6 +493,43 @@
       font-family: inherit;
     }
     .link-button:hover { color: var(--text); text-decoration: underline; }
+
+    @media (max-width: 720px) {
+      .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+      .topbar .brand { font-size: 14px; }
+      .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
+      .nav { padding: 0 8px; overflow-x: auto; flex-wrap: nowrap; }
+      .nav::-webkit-scrollbar { display: none; }
+      .nav button { white-space: nowrap; padding: 12px 10px; font-size: 13px; }
+      .content { padding: 0 16px; margin: 20px auto; }
+      .form-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .page-header h2 { font-size: 18px; }
+      .row, .occurrence-row, .compact-row { flex-wrap: wrap; }
+      .row .actions, .occurrence-row .actions { flex-wrap: wrap; width: 100%; margin-top: 8px; }
+      .occurrence-row .date { min-width: 70px; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .filter-bar .toggle-group { align-self: flex-start; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-card { padding: 14px; }
+      .stat-card .value { font-size: 20px; }
+      .cal-cell { min-height: 60px; padding: 4px 6px; }
+      .cal-cell .cal-date { font-size: 11px; }
+      .cal-chip { font-size: 10px; padding: 1px 4px; }
+      .auth-shell { margin: 30px auto; }
+      .card { padding: 24px; }
+      .invoice-doc { padding: 24px; }
+      .invoice-header { flex-direction: column; align-items: flex-start; }
+      .invoice-header .meta { text-align: left; margin-top: 12px; }
+      .invoice-meta-blocks { grid-template-columns: 1fr; }
+      .search-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .search-bar select { width: 100% !important; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .cal-grid { gap: 2px; }
+      .cal-dow { font-size: 9px; padding: 4px 2px; }
+    }
   </style>
 </head>
 <body>
@@ -1103,9 +1181,16 @@ function CustomersView({ session }) {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('name');
   const [busy, setBusy] = useState(false);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  function exportCustomers() {
+    const headers = ['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes'];
+    const rows = customers.map((c) => headers.map((h) => c[h]));
+    downloadCSV(`customers-${formatYMD(new Date())}.csv`, headers, rows);
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -1210,38 +1295,51 @@ function CustomersView({ session }) {
     search,
     c.first_name, c.last_name, c.business_name, c.phone, c.email, c.address
   ));
+  const sortKey = sort === 'name'
+    ? (c) => (c.business_name || `${c.last_name || ''} ${c.first_name || ''}`).toLowerCase()
+    : 'created_at';
+  const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' ? 'asc' : 'desc');
 
   return (
     <div>
       <div className="page-header">
         <h2>Customers</h2>
-        {canMutate && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="secondary" onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" onClick={exportCustomers} disabled={customers.length === 0}>Export</button>
+          {canMutate && (
+            <>
+              <button className="secondary" onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
+              <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
+            </>
+          )}
+        </div>
       </div>
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customers by name, phone, email..."
+          style={{ flex: 1 }}
         />
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          <option value="name">Sort: Name</option>
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+        </select>
       </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="list-empty">
             {customers.length === 0
-              ? (canMutate ? 'No customers yet. Click "+ New customer" or "Import CSV" to start.' : 'No customers yet.')
+              ? (canMutate ? 'No customers yet. Add your first customer to start scheduling jobs and sending invoices.' : 'No customers yet.')
               : 'No customers match this search.'}
           </div>
         ) : (
-          filtered.map((c) => (
+          sorted.map((c) => (
             <div key={c.id} className="row">
               <div className="info">
                 <div className="name">{customerDisplayName(c)}</div>
@@ -1596,7 +1694,11 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
 
   const todayStr = formatYMD(todayStart());
   const futureSkipped = (job.skipped_dates || []).filter((d) => d >= todayStr).sort();
-  const completionHistory = [...(job.completion_notes || [])].sort((a, b) => b.date.localeCompare(a.date));
+  const completionHistory = (job.completion_notes || [])
+    .map((c, idx) => ({ ...c, _idx: idx }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const [editingCompletionIdx, setEditingCompletionIdx] = useState(null);
+  const [editedNote, setEditedNote] = useState('');
 
   async function call(fn) {
     setBusy(true); setError(null);
@@ -1619,6 +1721,20 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
   const cancelReschedule = (date) => call(() => apiRequest(`/api/jobs/${job.id}/reschedule/${date}`, {
     method: 'DELETE', slug: session.slug, token: session.token,
   }));
+
+  function saveCompletionEdit(idx) {
+    return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+      method: 'PUT', slug: session.slug, token: session.token,
+      body: { note: editedNote },
+    })).then(() => { setEditingCompletionIdx(null); setEditedNote(''); });
+  }
+
+  function deleteCompletion(idx, date) {
+    if (!confirm(`Delete the completion entry for ${formatDateString(date)}?`)) return;
+    return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+      method: 'DELETE', slug: session.slug, token: session.token,
+    }));
+  }
 
   async function generateInvoice() {
     setGenerateBusy(true); setError(null); setGenerateResult(null);
@@ -1740,14 +1856,43 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
         <>
           <div className="section-heading">Completion history</div>
           <div className="list">
-            {completionHistory.map((c, i) => (
-              <div key={`${c.date}-${i}`} className="row">
-                <div className="info">
-                  <div className="name">{formatDateString(c.date)}</div>
-                  <div className="meta">by {c.completedByName}{c.note && <> — “{c.note}”</>}</div>
+            {completionHistory.map((c) => {
+              const isEditing = editingCompletionIdx === c._idx;
+              return (
+                <div key={`${c.date}-${c._idx}`} className="row">
+                  <div className="info">
+                    <div className="name">{formatDateString(c.date)}</div>
+                    {isEditing ? (
+                      <div className="meta" style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                        <input
+                          value={editedNote}
+                          onChange={(e) => setEditedNote(e.target.value)}
+                          placeholder="Note (or leave empty to clear)"
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="meta">by {c.completedByName}{c.note && <> — “{c.note}”</>}</div>
+                    )}
+                  </div>
+                  {canMutate && (
+                    <div className="actions">
+                      {isEditing ? (
+                        <>
+                          <button className="primary" disabled={busy} onClick={() => saveCompletionEdit(c._idx)}>Save</button>
+                          <button className="secondary" disabled={busy} onClick={() => { setEditingCompletionIdx(null); setEditedNote(''); }}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="secondary" onClick={() => { setEditingCompletionIdx(c._idx); setEditedNote(c.note || ''); }}>Edit note</button>
+                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Delete</button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -1769,8 +1914,18 @@ function JobsView({ session }) {
   const [filter, setFilter] = useState('all');
   const [layout, setLayout] = useState('list');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('newest');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  function exportJobs() {
+    const headers = ['title', 'customer', 'type', 'schedule', 'default_price', 'status', 'description'];
+    const rows = jobs.map((j) => [
+      j.title, jobCustomerName(j), j.type, formatSchedule(j),
+      j.default_price, j.status, j.description,
+    ]);
+    downloadCSV(`jobs-${formatYMD(new Date())}.csv`, headers, rows);
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -1962,24 +2117,37 @@ function JobsView({ session }) {
     return searchMatches(search, j.title, j.description, jobCustomerName(j));
   }
 
-  const searchedJobs = jobs.filter(jobMatchesSearch);
+  const jobSortKey = sort === 'title' ? (j) => (j.title || '').toLowerCase()
+    : sort === 'price' ? (j) => parseFloat(j.default_price) || 0
+    : 'created_at';
+  const searchedJobs = sortBy(jobs.filter(jobMatchesSearch), jobSortKey, sort === 'oldest' ? 'asc' : sort === 'title' ? 'asc' : 'desc');
   const occurrences = expandJobsToOccurrences(searchedJobs, filter);
 
   return (
     <div>
       <div className="page-header">
         <h2>Jobs</h2>
-        {canMutate && (
-          <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" onClick={exportJobs} disabled={jobs.length === 0}>Export</button>
+          {canMutate && (
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
+          )}
+        </div>
       </div>
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by job title, customer, or description..."
+          style={{ flex: 1 }}
         />
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="title">Sort: Title</option>
+          <option value="price">Sort: Price (high)</option>
+        </select>
       </div>
       <div className="filter-bar">
         <div className="chip-group">
@@ -2029,7 +2197,7 @@ function JobsView({ session }) {
         ) : searchedJobs.length === 0 ? (
           <div className="list-empty">
             {jobs.length === 0
-              ? (canMutate ? 'No jobs yet. Click "New job" to schedule the first one.' : 'No jobs yet.')
+              ? (canMutate ? 'No jobs yet. Create one to start tracking work for a customer.' : 'No jobs assigned to you yet.')
               : 'No jobs match this search.'}
           </div>
         ) : (
@@ -2208,6 +2376,38 @@ function searchMatches(needle, ...fields) {
   return fields.some((f) => f && String(f).toLowerCase().includes(n));
 }
 
+function downloadCSV(filename, headers, rows) {
+  const escape = (cell) => {
+    if (cell == null) return '';
+    const s = String(cell);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [headers, ...rows].map((row) => row.map(escape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 200);
+}
+
+function sortBy(items, key, dir = 'asc') {
+  const arr = [...items];
+  arr.sort((a, b) => {
+    const av = typeof key === 'function' ? key(a) : a[key];
+    const bv = typeof key === 'function' ? key(b) : b[key];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') return dir === 'asc' ? av - bv : bv - av;
+    return dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+  return arr;
+}
+
 function computeProjectedIncome(jobs, fromStr, toStr) {
   const todayStr = formatYMD(todayStart());
   const effectiveFrom = fromStr > todayStr ? fromStr : todayStr;
@@ -2278,6 +2478,25 @@ function InvoicesView({ session }) {
   const [busy, setBusy] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('newest');
+
+  function exportInvoices() {
+    const headers = ['invoice_number', 'customer', 'date', 'status', 'sent_date', 'paid_date', 'total', 'description'];
+    const rows = invoices.map((inv) => [
+      inv.invoice_number,
+      customerDisplayName({
+        first_name: inv.customer_first_name,
+        last_name: inv.customer_last_name,
+        business_name: inv.customer_business_name,
+      }),
+      inv.date, inv.status,
+      inv.sent_date ? inv.sent_date.split('T')[0] : '',
+      inv.paid_date ? inv.paid_date.split('T')[0] : '',
+      lineItemsTotal(inv.line_items).toFixed(2),
+      inv.description,
+    ]);
+    downloadCSV(`invoices-${formatYMD(new Date())}.csv`, headers, rows);
+  }
 
   async function copyPublicLink(invoiceId) {
     const url = `${window.location.origin}/i/${invoiceId}`;
@@ -2395,33 +2614,49 @@ function InvoicesView({ session }) {
     inv.description,
     inv.customer_first_name, inv.customer_last_name, inv.customer_business_name
   ));
+  const invSortKey = sort === 'number' ? 'invoice_number'
+    : sort === 'total' ? (inv) => lineItemsTotal(inv.line_items)
+    : sort === 'status' ? 'status'
+    : 'created_at';
+  const sortedInvoices = sortBy(filteredInvoices, invSortKey, sort === 'oldest' ? 'asc' : sort === 'status' ? 'asc' : 'desc');
 
   return (
     <div>
       <div className="page-header">
         <h2>Invoices</h2>
-        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" onClick={exportInvoices} disabled={invoices.length === 0}>Export</button>
+          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+        </div>
       </div>
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by invoice #, customer, or description..."
+          style={{ flex: 1 }}
         />
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="number">Sort: Invoice # (high)</option>
+          <option value="total">Sort: Total (high)</option>
+          <option value="status">Sort: Status</option>
+        </select>
       </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : filteredInvoices.length === 0 ? (
+        ) : sortedInvoices.length === 0 ? (
           <div className="list-empty">
             {invoices.length === 0
-              ? (canMutate ? 'No invoices yet. Click "New invoice" to draft one.' : 'No invoices yet.')
+              ? (canMutate ? 'No invoices yet. Draft an invoice for any customer with completed work.' : 'No invoices yet.')
               : 'No invoices match this search.'}
           </div>
         ) : (
-          filteredInvoices.map((inv) => {
+          sortedInvoices.map((inv) => {
             const total = lineItemsTotal(inv.line_items);
             return (
               <div key={inv.id} className="row">
@@ -2664,8 +2899,21 @@ function QuotesView({ session }) {
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('newest');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  function exportQuotes() {
+    const headers = ['recipient', 'is_prospect', 'description', 'status', 'total', 'created_at'];
+    const rows = quotes.map((q) => [
+      quoteRecipientName(q),
+      q.customer_id ? 'no' : 'yes',
+      q.description, q.status,
+      lineItemsTotal(q.line_items).toFixed(2),
+      q.created_at ? q.created_at.split('T')[0] : '',
+    ]);
+    downloadCSV(`quotes-${formatYMD(new Date())}.csv`, headers, rows);
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -2837,33 +3085,47 @@ function QuotesView({ session }) {
     q.prospect_email,
     q.prospect_phone
   ));
+  const qSortKey = sort === 'total' ? (q) => lineItemsTotal(q.line_items)
+    : sort === 'status' ? 'status'
+    : 'created_at';
+  const sortedQuotes = sortBy(filteredQuotes, qSortKey, sort === 'oldest' ? 'asc' : sort === 'status' ? 'asc' : 'desc');
 
   return (
     <div>
       <div className="page-header">
         <h2>Quotes</h2>
-        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" onClick={exportQuotes} disabled={quotes.length === 0}>Export</button>
+          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
+        </div>
       </div>
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by customer, prospect, or description..."
+          style={{ flex: 1 }}
         />
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="total">Sort: Total (high)</option>
+          <option value="status">Sort: Status</option>
+        </select>
       </div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : filteredQuotes.length === 0 ? (
+        ) : sortedQuotes.length === 0 ? (
           <div className="list-empty">
             {quotes.length === 0
-              ? (canMutate ? 'No quotes yet. Click "New quote" to draft one.' : 'No quotes yet.')
+              ? (canMutate ? 'No quotes yet. Draft a quote for an existing customer or a prospect.' : 'No quotes yet.')
               : 'No quotes match this search.'}
           </div>
         ) : (
-          filteredQuotes.map((q) => {
+          sortedQuotes.map((q) => {
             const total = lineItemsTotal(q.line_items);
             return (
               <div key={q.id} className="row">
@@ -3459,6 +3721,13 @@ function ProfileView({ session, onSessionUpdate }) {
   const [pwBusy, setPwBusy] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light');
+
+  function changeTheme(next) {
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('fm_theme', next); } catch (e) {}
+  }
 
   async function saveName(e) {
     e.preventDefault();
@@ -3534,6 +3803,15 @@ function ProfileView({ session, onSessionUpdate }) {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Appearance</div>
+        <label>Theme</label>
+        <div className="toggle-group">
+          <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => changeTheme('light')}>Light</button>
+          <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')}>Dark</button>
+        </div>
       </div>
     </div>
   );
