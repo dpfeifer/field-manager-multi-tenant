@@ -14,6 +14,16 @@ function stripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+router.get('/_diag', async (req, res) => {
+  res.json({
+    has_secret_key: !!process.env.STRIPE_SECRET_KEY,
+    has_webhook_secret: !!process.env.STRIPE_WEBHOOK_SECRET,
+    has_price_id: !!process.env.STRIPE_PRICE_ID,
+    price_id_prefix: process.env.STRIPE_PRICE_ID ? process.env.STRIPE_PRICE_ID.slice(0, 8) : null,
+    secret_key_prefix: process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.slice(0, 8) : null,
+  });
+});
+
 router.get('/status', async (req, res, next) => {
   try {
     const { rows } = await query(
