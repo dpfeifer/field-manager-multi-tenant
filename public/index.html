@@ -3958,7 +3958,7 @@ function statusLabel(s, trialEnds) {
   if (s === 'free') return 'Free';
   if (s === 'trialing') {
     const d = daysUntil(trialEnds);
-    return d !== null && d <= 0 ? 'Trial expired' : 'Trialing';
+    return d !== null && d <= 0 ? 'Trial expired' : 'Free trial';
   }
   if (s === 'active') return 'Active';
   if (s === 'past_due') return 'Past due';
