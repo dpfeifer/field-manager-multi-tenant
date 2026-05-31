@@ -13,6 +13,7 @@ router.get('/organizations', async (req, res, next) => {
     const { rows } = await query(
       `SELECT
          o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
+         o.subscription_status, o.trial_ends_at, o.stripe_subscription_id,
          (SELECT COUNT(*)::int FROM users WHERE organization_id = o.id AND deleted_at IS NULL) AS user_count,
          (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
          (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
@@ -23,6 +24,29 @@ router.get('/organizations', async (req, res, next) => {
        ORDER BY o.created_at DESC`
     );
     res.json(rows);
+  } catch (err) { next(err); }
+});
+
+router.put('/organizations/:id/billing', async (req, res, next) => {
+  const { status } = req.body || {};
+  if (!['free', 'trialing'].includes(status)) {
+    return res.status(400).json({ error: "status must be 'free' or 'trialing'" });
+  }
+  try {
+    const sql = status === 'free'
+      ? `UPDATE organizations
+         SET subscription_status = 'free', trial_ends_at = NULL, updated_at = NOW()
+         WHERE id = $1 AND deleted_at IS NULL
+         RETURNING id, slug, subscription_status, trial_ends_at`
+      : `UPDATE organizations
+         SET subscription_status = 'trialing',
+             trial_ends_at = NOW() + INTERVAL '14 days',
+             updated_at = NOW()
+         WHERE id = $1 AND deleted_at IS NULL
+         RETURNING id, slug, subscription_status, trial_ends_at`;
+    const { rows } = await query(sql, [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
   } catch (err) { next(err); }
 });
 

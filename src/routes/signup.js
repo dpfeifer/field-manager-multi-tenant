@@ -40,7 +40,10 @@ router.post('/', async (req, res, next) => {
 
     const result = await withTransaction(async (client) => {
       const orgRes = await client.query(
-        'INSERT INTO organizations (slug, name) VALUES ($1, $2) RETURNING id, slug, name, created_at',
+        `INSERT INTO organizations
+          (slug, name, subscription_status, trial_ends_at)
+         VALUES ($1, $2, 'trialing', NOW() + INTERVAL '14 days')
+         RETURNING id, slug, name, created_at`,
         [slug, orgName]
       );
       const org = orgRes.rows[0];

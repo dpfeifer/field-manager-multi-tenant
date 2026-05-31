@@ -3780,14 +3780,213 @@ const APP_ROUTES = {
   '/quotes': 'quotes',
   '/reports': 'reports',
   '/team': 'team',
+  '/billing': 'billing',
   '/settings': 'settings',
   '/system': 'system',
   '/profile': 'profile',
 };
 
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const ms = new Date(dateStr).getTime() - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+function BillingBanner({ status, trialDaysLeft, isAdmin }) {
+  if (!status) return null;
+  let body = null;
+  let bg = '#fff5e6';
+  let color = '#8c5a00';
+
+  if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
+    body = isAdmin
+      ? <>Your free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep editing</button>.</>
+      : <>Your organization's free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. Ask an admin to subscribe.</>;
+  } else if (status === 'trial_expired' || (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 0)) {
+    bg = 'var(--danger-bg)'; color = 'var(--danger)';
+    body = isAdmin
+      ? <>Trial ended. You can still record completions, but editing is locked. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe</button>.</>
+      : <>Trial ended. Ask an admin to subscribe to re-enable editing.</>;
+  } else if (status === 'past_due') {
+    bg = 'var(--danger-bg)'; color = 'var(--danger)';
+    body = isAdmin
+      ? <>Your latest payment failed. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Update payment method</button>.</>
+      : <>Payment is past due. Ask an admin to update the payment method.</>;
+  } else if (status === 'canceled') {
+    bg = 'var(--danger-bg)'; color = 'var(--danger)';
+    body = isAdmin
+      ? <>Subscription canceled. Editing is locked. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Resubscribe</button>.</>
+      : <>Subscription canceled. Ask an admin to resubscribe.</>;
+  }
+
+  if (!body) return null;
+  return (
+    <div style={{
+      background: bg, color, padding: '10px 24px', textAlign: 'center',
+      fontSize: 13, fontWeight: 500, borderBottom: '1px solid var(--border)',
+    }}>
+      {body}
+    </div>
+  );
+}
+
+function BillingView({ session }) {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const params = new URLSearchParams(window.location.search);
+  const justSucceeded = params.get('success') === 'true';
+  const justCanceled = params.get('canceled') === 'true';
+
+  const isAdmin = session.user.role === 'admin';
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/billing/status', { slug: session.slug, token: session.token });
+      setStatus(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function startCheckout() {
+    setBusy(true); setError(null);
+    try {
+      const r = await apiRequest('/api/billing/checkout', {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      window.location.href = r.url;
+    } catch (err) { setError(err.message); setBusy(false); }
+  }
+
+  async function openPortal() {
+    setBusy(true); setError(null);
+    try {
+      const r = await apiRequest('/api/billing/portal', {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      window.location.href = r.url;
+    } catch (err) { setError(err.message); setBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header"><h2>Billing</h2></div>
+
+      {justSucceeded && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
+          Payment succeeded. Your subscription is active.
+        </div>
+      )}
+      {justCanceled && (
+        <div className="error" style={{ background: 'var(--tinted)', color: 'var(--text)' }}>
+          Checkout canceled. You can subscribe anytime.
+        </div>
+      )}
+      {error && <div className="error">{error}</div>}
+
+      {loading ? (
+        <div className="list-empty">Loading...</div>
+      ) : !status ? null : (
+        <>
+          <div className="form-card">
+            <div className="section-heading" style={{ marginTop: 0 }}>Current plan</div>
+            <div style={{ fontSize: 14 }}>
+              <div style={{ marginBottom: 10 }}>
+                Status: <span className={`badge ${badgeForStatus(status.status)}`}>{statusLabel(status.status, status.trial_ends_at)}</span>
+              </div>
+              {status.status === 'trialing' && status.trial_ends_at && (
+                <div style={{ color: 'var(--text-muted)' }}>
+                  Free trial ends {formatDateString(status.trial_ends_at.split('T')[0])} — {daysUntil(status.trial_ends_at)} {daysUntil(status.trial_ends_at) === 1 ? 'day' : 'days'} left.
+                </div>
+              )}
+              {status.status === 'free' && (
+                <div style={{ color: 'var(--text-muted)' }}>
+                  Comp'd account — no billing. (Set by platform staff.)
+                </div>
+              )}
+              {status.status === 'active' && (
+                <div style={{ color: 'var(--text-muted)' }}>Subscription is active — $29/month.</div>
+              )}
+              {status.status === 'past_due' && (
+                <div style={{ color: 'var(--danger)' }}>Payment failed. Update your payment method to avoid losing access.</div>
+              )}
+              {status.status === 'canceled' && (
+                <div style={{ color: 'var(--danger)' }}>Subscription canceled. Resubscribe to restore editing.</div>
+              )}
+            </div>
+
+            {isAdmin && (
+              <div className="form-actions">
+                {(status.status === 'trialing' || status.status === 'canceled') && (
+                  <button className="primary" disabled={busy} onClick={startCheckout}>
+                    {busy ? 'Loading...' : 'Subscribe — $29/month'}
+                  </button>
+                )}
+                {(status.status === 'active' || status.status === 'past_due') && status.has_subscription && (
+                  <button className="primary" disabled={busy} onClick={openPortal}>
+                    {busy ? 'Loading...' : 'Manage billing'}
+                  </button>
+                )}
+                <button className="secondary" disabled={busy} onClick={load}>Refresh</button>
+              </div>
+            )}
+            {!isAdmin && (
+              <p className="hint" style={{ marginTop: 16 }}>
+                Only admins can change billing. Ask your admin to make changes.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function badgeForStatus(s) {
+  if (s === 'free' || s === 'active') return 'paid';
+  if (s === 'trialing') return 'sent';
+  if (s === 'past_due' || s === 'canceled') return 'declined';
+  return 'draft';
+}
+
+function statusLabel(s, trialEnds) {
+  if (s === 'free') return 'Free';
+  if (s === 'trialing') {
+    const d = daysUntil(trialEnds);
+    return d !== null && d <= 0 ? 'Trial expired' : 'Trialing';
+  }
+  if (s === 'active') return 'Active';
+  if (s === 'past_due') return 'Past due';
+  if (s === 'canceled') return 'Canceled';
+  return s;
+}
+
 function AppShell({ session, onLogout, onSessionUpdate }) {
   const path = useLocation();
   const view = APP_ROUTES[path] || 'dashboard';
+  const [billing, setBilling] = useState(null);
+  const isAdmin = session.user.role === 'admin';
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiRequest('/api/billing/status', { slug: session.slug, token: session.token });
+        if (!cancelled) setBilling(data);
+      } catch (err) {
+        // billing endpoint failure shouldn't break the app
+        console.error('billing status load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session.slug, session.token, path]);
+
+  const trialDaysLeft = billing && billing.trial_ends_at ? daysUntil(billing.trial_ends_at) : null;
 
   return (
     <div>
@@ -3801,6 +4000,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           <button className="secondary" onClick={onLogout}>Sign out</button>
         </div>
       </div>
+      {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>Jobs</button>
@@ -3812,6 +4012,9 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         )}
         {session.user.role === 'admin' && (
           <button className={view === 'team' ? 'active' : ''} onClick={() => navigate('/team')}>Team</button>
+        )}
+        {session.user.role === 'admin' && (
+          <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}>Billing</button>
         )}
         <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}>Settings</button>
         {session.user.is_system_admin && (
@@ -3826,6 +4029,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'quotes' && <QuotesView session={session} />}
         {view === 'reports' && session.user.role === 'admin' && <ReportsView session={session} />}
         {view === 'team' && session.user.role === 'admin' && <TeamView session={session} />}
+        {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} />}
         {view === 'settings' && <SettingsView session={session} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
@@ -4637,21 +4841,30 @@ function SystemView({ session }) {
 
   const isStaff = session.user && session.user.is_staff;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true); setError(null);
-      try {
-        const data = await apiRequest('/api/system/organizations', { token: session.token });
-        if (!cancelled) setOrgs(data);
-      } catch (err) {
-        if (!cancelled) setError(err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/system/organizations', { token: session.token });
+      setOrgs(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, [session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function setOrgBilling(orgId, status) {
+    const label = status === 'free'
+      ? 'Mark this org as comped/free?'
+      : 'Reset this org to a fresh 14-day trial?';
+    if (!confirm(label)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/billing`, {
+        method: 'PUT', token: session.token, body: { status },
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
 
   return (
     <div>
@@ -4670,7 +4883,12 @@ function SystemView({ session }) {
           orgs.map((o) => (
             <div key={o.id} className="row">
               <div className="info">
-                <div className="name">{o.name}</div>
+                <div className="name">
+                  {o.name}
+                  <span className={`badge ${badgeForStatus(o.subscription_status)}`} style={{ marginLeft: 10 }}>
+                    {statusLabel(o.subscription_status, o.trial_ends_at)}
+                  </span>
+                </div>
                 <div className="meta">
                   {o.slug} • Created {formatDateString(o.created_at.split('T')[0])} • Next invoice #{o.next_invoice_number}
                 </div>
@@ -4681,6 +4899,13 @@ function SystemView({ session }) {
                   {' '}{o.invoice_count} {o.invoice_count === 1 ? 'invoice' : 'invoices'} •
                   {' '}{o.quote_count} {o.quote_count === 1 ? 'quote' : 'quotes'}
                 </div>
+              </div>
+              <div className="actions">
+                {o.subscription_status === 'free' ? (
+                  <button className="secondary" onClick={() => setOrgBilling(o.id, 'trialing')}>Remove free</button>
+                ) : (
+                  <button className="secondary" onClick={() => setOrgBilling(o.id, 'free')}>Set free</button>
+                )}
               </div>
             </div>
           ))
