@@ -461,6 +461,23 @@
 const { useState, useEffect, useCallback } = React;
 
 const STORAGE = { token: 'fm_token', slug: 'fm_slug', user: 'fm_user', org: 'fm_org' };
+const STAFF_STORAGE = { token: 'fm_staff_token', user: 'fm_staff_user' };
+
+function loadStaffSession() {
+  const token = localStorage.getItem(STAFF_STORAGE.token);
+  const user = JSON.parse(localStorage.getItem(STAFF_STORAGE.user) || 'null');
+  if (!token || !user) return null;
+  return { token, user };
+}
+
+function saveStaffSession({ token, user }) {
+  localStorage.setItem(STAFF_STORAGE.token, token);
+  localStorage.setItem(STAFF_STORAGE.user, JSON.stringify(user));
+}
+
+function clearStaffSession() {
+  Object.values(STAFF_STORAGE).forEach((k) => localStorage.removeItem(k));
+}
 
 function loadSession() {
   const token = localStorage.getItem(STORAGE.token);
@@ -3730,10 +3747,116 @@ function TeamView({ session }) {
   );
 }
 
+function StaffManagementSection({ token, currentUserId }) {
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('list');
+  const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/system/admins', { token });
+      setStaff(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function addStaff(e) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/system/admins', {
+        method: 'POST', token,
+        body: { email: newEmail, password: newPassword, name: newName || null },
+      });
+      setNewEmail(''); setNewName(''); setNewPassword('');
+      setMode('list');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteStaff(id, name) {
+    if (!confirm(`Revoke staff access for ${name}?`)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/system/admins/${id}`, { method: 'DELETE', token });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <>
+      <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Staff accounts</span>
+        {mode === 'list' && (
+          <button className="secondary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => setMode('create')}>+ Add staff</button>
+        )}
+      </div>
+      {error && <div className="error">{error}</div>}
+      {mode === 'create' && (
+        <form onSubmit={addStaff} className="form-card">
+          <div className="form-grid">
+            <div className="full">
+              <label>Email</label>
+              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label>Name <span className="hint">(optional)</span></label>
+              <input value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </div>
+            <div>
+              <label>Temp password <span className="hint">(complexity required)</span></label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={busy}>{busy ? 'Creating...' : 'Create staff account'}</button>
+            <button type="button" className="secondary" onClick={() => setMode('list')} disabled={busy}>Cancel</button>
+          </div>
+        </form>
+      )}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : staff.length === 0 ? (
+          <div className="list-empty">No dedicated staff yet. Add one to give a teammate platform access without an org login.</div>
+        ) : (
+          staff.map((s) => {
+            const isMe = currentUserId === s.id;
+            return (
+              <div key={s.id} className="row">
+                <div className="info">
+                  <div className="name">{s.name || s.email}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}</div>
+                  <div className="meta">{s.email} • Added {formatDateString(s.created_at.split('T')[0])}</div>
+                </div>
+                {!isMe && (
+                  <div className="actions">
+                    <button className="danger" onClick={() => deleteStaff(s.id, s.name || s.email)}>Revoke</button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
 function SystemView({ session }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const isStaff = session.user && session.user.is_staff;
 
   useEffect(() => {
     let cancelled = false;
@@ -3754,9 +3877,10 @@ function SystemView({ session }) {
   return (
     <div>
       <div className="page-header">
-        <h2>All organizations</h2>
-        <span className="badge">System admin</span>
+        <h2>System</h2>
+        <span className="badge">{isStaff ? 'Staff' : 'System admin'}</span>
       </div>
+      <div className="section-heading" style={{ marginTop: 0 }}>Organizations</div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
@@ -3783,6 +3907,8 @@ function SystemView({ session }) {
           ))
         )}
       </div>
+
+      <StaffManagementSection token={session.token} currentUserId={session.user.id} />
     </div>
   );
 }
@@ -3915,12 +4041,83 @@ function PublicInvoiceView({ id }) {
   );
 }
 
+function StaffLoginForm({ onSession }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null); setBusy(true);
+    try {
+      const data = await apiRequest('/api/system/login', {
+        method: 'POST', body: { email, password },
+      });
+      saveStaffSession({ token: data.token, user: data.user });
+      onSession({ token: data.token, user: data.user });
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <label>Email</label>
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+      <label>Password</label>
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      {error && <div className="error">{error}</div>}
+      <button type="submit" className="primary block" disabled={busy}>
+        {busy ? 'Signing in...' : 'Staff sign in'}
+      </button>
+    </form>
+  );
+}
+
+function StaffApp() {
+  const [session, setSession] = useState(loadStaffSession);
+  function handleLogout() { clearStaffSession(); setSession(null); }
+
+  if (!session) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h1>Staff</h1>
+          <p className="subtitle">Platform admin sign-in. For regular customer accounts use the main login page.</p>
+          <StaffLoginForm onSession={setSession} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="topbar">
+        <div className="brand">Field Manager Platform</div>
+        <div className="right">
+          <span className="user">{session.user.name || session.user.email}</span>
+          <span className="badge">Staff</span>
+          <button className="secondary" onClick={handleLogout}>Sign out</button>
+        </div>
+      </div>
+      <div className="content">
+        <SystemView session={session} />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [session, setSession] = useState(loadSession);
-  const publicMatch = typeof window !== 'undefined' && window.location.pathname.match(/^\/i\/([^/]+)/);
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const publicMatch = path.match(/^\/i\/([^/]+)/);
 
   if (publicMatch) {
     return <PublicInvoiceView id={publicMatch[1]} />;
+  }
+
+  if (path.startsWith('/staff')) {
+    return <StaffApp />;
   }
 
   function handleLogout() { clearSession(); setSession(null); }

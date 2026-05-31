@@ -20,6 +20,7 @@ const quotesRoutes = require('./routes/quotes');
 const reportsRoutes = require('./routes/reports');
 const publicRoutes = require('./routes/public');
 const systemRoutes = require('./routes/system');
+const systemAuthRoutes = require('./routes/systemAuth');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -34,6 +35,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.use('/health', healthRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/system', systemAuthRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/signup', signupRoutes);
 app.use('/api/organizations', organizationRoutes);
