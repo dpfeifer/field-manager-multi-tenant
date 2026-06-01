@@ -3834,6 +3834,7 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
 }
 
 function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) {
+  const terms = useTerms();
   const today = todayStart();
   const todayStr = formatYMD(today);
   const [view, setView] = useState('day');
@@ -3959,7 +3960,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) 
           <div className="cal-day-header">
             <h3>{selectedDateLabel}</h3>
             <span className="cal-day-count">
-              {dayOccurrences.length} {dayOccurrences.length === 1 ? 'visit' : 'visits'}
+              {dayOccurrences.length} {dayOccurrences.length === 1 ? terms.jobLower : terms.jobsLower}
             </span>
           </div>
           <DayTimeGrid
@@ -4024,6 +4025,8 @@ function sendSmsTemplate(phone, template, customer) {
 }
 
 function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplates = [] }) {
+  const terms = useTerms();
+  const jobsLowerLabel = terms.jobsLower;
   const untimed = occurrences.filter((o) => !o.job.start_time);
   const timed = occurrences.filter((o) => o.job.start_time);
 
@@ -4059,7 +4062,7 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
     <div className="day-grid">
       {untimed.length > 0 && (
         <div className="day-untimed-section">
-          <div className="day-untimed-header">No time set · {untimed.length} {untimed.length === 1 ? 'visit' : 'visits'}</div>
+          <div className="day-untimed-header">No time set · {untimed.length} {untimed.length === 1 ? terms.jobLower : terms.jobsLower}</div>
           <div className="day-untimed-list">
             {untimed.map((o, i) => {
               const phone = o.job.customer_phone;
@@ -4110,7 +4113,7 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
         </div>
       )}
       {timed.length === 0 && untimed.length === 0 ? (
-        <div className="list-empty" style={{ borderRadius: 0 }}>No visits scheduled for this day.</div>
+        <div className="list-empty" style={{ borderRadius: 0 }}>No {jobsLowerLabel} scheduled for this day.</div>
       ) : (
         <div className="day-grid-body">
           <div className="day-grid-hours" style={{ height: hours.length * PX_PER_HOUR }}>
@@ -4227,6 +4230,7 @@ function CalendarWeekGrid({ weekDays, weekByDate, todayStr, selectedDate, onSele
 }
 
 function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDate, setSelectedDate, monthOffset, setMonthOffset, onChipClick, onMarkComplete }) {
+  const terms = useTerms();
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
   const firstDayOfWeek = monthStart.getDay();
@@ -4283,12 +4287,12 @@ function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDa
           <div className="section-heading">
             {formatDateString(selectedDate)}
             <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
-              ({selectedOccurrences.length} {selectedOccurrences.length === 1 ? 'visit' : 'visits'})
+              ({selectedOccurrences.length} {selectedOccurrences.length === 1 ? terms.jobLower : terms.jobsLower})
             </span>
           </div>
           <div className="list">
             {selectedOccurrences.length === 0 ? (
-              <div className="list-empty">No visits scheduled.</div>
+              <div className="list-empty">No {terms.jobsLower} scheduled.</div>
             ) : (
               selectedOccurrences.map((o, i) => (
                 <OccurrenceRow
@@ -7049,6 +7053,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
 }
 
 function DashboardView({ session }) {
+  const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -7145,7 +7150,7 @@ function DashboardView({ session }) {
         <>
           <div className="stats-grid">
             <div className="stat-card accent">
-              <div className="label">Today's visits</div>
+              <div className="label">Today's {terms.jobsLower}</div>
               <div className="value">{todayOccurrences.length}</div>
               <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
             </div>
@@ -7174,7 +7179,7 @@ function DashboardView({ session }) {
           <div className="section-heading">Today</div>
           <div className="list">
             {todayOccurrences.length === 0 ? (
-              <div className="list-empty">No visits scheduled today.</div>
+              <div className="list-empty">No {terms.jobsLower} scheduled today.</div>
             ) : (
               todayOccurrences.map((o, i) => (
                 <OccurrenceRow
