@@ -143,11 +143,8 @@
       display: block;
       line-height: 1.15;
       padding-bottom: 0.06em;
-      /* Slightly smaller than the surrounding h1 so even longer phrases
-         like 'pressure washing business' stay on a single line down to
-         narrow phones. */
-      font-size: clamp(28px, 6.5vw, 72px);
       white-space: nowrap;
+      /* Inherits the h1's font-size — all three lines stay the same scale. */
     }
     .cycle-word {
       font-style: italic;
@@ -681,7 +678,10 @@
       letter-spacing: 0.06em; text-transform: uppercase;
     }
     .landing-hero h1 {
-      font-size: clamp(44px, 9vw, 92px);
+      /* Clamp tuned so the longest cycle phrase ('pressure washing business',
+         25 chars) fits on one line at every viewport size — from a 320px
+         phone up through 1100px desktop. */
+      font-size: clamp(22px, 5.8vw, 76px);
       line-height: 0.98; letter-spacing: -0.045em; margin: 0 0 28px;
       font-weight: 800;
     }
@@ -1320,8 +1320,9 @@ function SignupForm({ onSuccess }) {
           user: { email, password, name: name || undefined },
         },
       });
-      saveSession(data);
-      onSuccess(data);
+      const session = { ...data, slug: data.organization && data.organization.slug };
+      saveSession(session);
+      onSuccess(session);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -1364,7 +1365,7 @@ function LoginForm({ onSuccess }) {
         body: { email, password },
       });
       const org = await apiRequest(`/api/organizations/${slug}`);
-      const session = { token: data.token, user: data.user, organization: org };
+      const session = { token: data.token, user: data.user, organization: org, slug: org.slug };
       saveSession(session);
       onSuccess(session);
     } catch (err) { setError(err.message); }
