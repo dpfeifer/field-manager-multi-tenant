@@ -4033,10 +4033,12 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
             )}
             {timed.map((o, i) => {
               const top = timeToY(o.job.start_time);
-              const minH = 32;
-              const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - 4);
               const phone = o.job.customer_phone;
-              const showSms = phone && smsTemplates.length > 0 && height >= 90;
+              const showSms = phone && smsTemplates.length > 0 && !o.completed;
+              // Reserve enough block height when SMS select is present so it
+              // never gets clipped. Short jobs visually expand to fit.
+              const minH = showSms ? 100 : 32;
+              const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - 4);
               return (
                 <div
                   key={i}
