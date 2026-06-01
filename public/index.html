@@ -692,6 +692,149 @@
       66%      { transform: translate(-12px, 14px) scale(0.95); }
     }
 
+    /* Variant picker (preview comparison UI — remove once a winner is chosen) */
+    .variant-picker {
+      position: sticky; top: 14px; z-index: 50;
+      display: inline-flex; align-items: center; gap: 4px;
+      margin: 14px 14px 0 auto; padding: 4px 6px 4px 10px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 999px; font-size: 12px;
+      box-shadow: 0 6px 18px -8px rgba(40, 30, 20, 0.18);
+      width: fit-content; float: right; clear: both;
+    }
+    .variant-picker-label {
+      color: var(--text-muted); font-weight: 600;
+      letter-spacing: 0.02em; padding-right: 4px;
+    }
+    .variant-picker button {
+      background: none; border: none; cursor: pointer;
+      padding: 5px 10px; border-radius: 999px;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      color: var(--text-muted); transition: background 0.15s, color 0.15s;
+    }
+    .variant-picker button:hover { color: var(--text); background: var(--tinted); }
+    .variant-picker button.on {
+      background: var(--primary); color: white; font-weight: 600;
+    }
+
+    /* Playful variant — sparkles + hand-drawn arrow */
+    .hero-doodle.doodle-arrow {
+      position: absolute; pointer-events: none;
+      bottom: 100px; right: 14%;
+      width: 120px; height: 90px;
+      transform: scaleX(-1);
+      animation: doodleDraw 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+    }
+    .hero-doodle.doodle-arrow path:first-child {
+      animation: doodleStroke 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+    }
+    @keyframes doodleStroke {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes doodleDraw {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .hero-doodle.doodle-note {
+      position: absolute; bottom: 200px; right: 12%;
+      font-family: var(--serif); font-style: italic;
+      color: var(--accent); font-size: 18px;
+      transform: rotate(-8deg);
+      opacity: 0; animation: doodleDraw 0.6s ease-out 1.4s forwards;
+    }
+
+    .hero-sparkles { position: absolute; inset: 0; pointer-events: none; }
+    .hero-sparkles .sparkle {
+      position: absolute; width: 8px; height: 8px;
+      background: var(--accent); border-radius: 50%;
+      animation: sparkleTwinkle 3s ease-in-out infinite;
+    }
+    .hero-sparkles .sparkle::before,
+    .hero-sparkles .sparkle::after {
+      content: ''; position: absolute; background: var(--accent);
+    }
+    .hero-sparkles .sparkle::before {
+      left: 50%; top: -6px; width: 2px; height: 20px;
+      transform: translateX(-50%); border-radius: 2px;
+    }
+    .hero-sparkles .sparkle::after {
+      top: 50%; left: -6px; width: 20px; height: 2px;
+      transform: translateY(-50%); border-radius: 2px;
+    }
+    .hero-sparkles .s0 { top: 14%; left: 10%; animation-delay: 0s;    transform: scale(0.6); }
+    .hero-sparkles .s1 { top: 22%; right: 12%; animation-delay: 0.4s; transform: scale(0.8); }
+    .hero-sparkles .s2 { top: 48%; left: 6%; animation-delay: 1.0s;   transform: scale(0.5); }
+    .hero-sparkles .s3 { top: 64%; right: 8%; animation-delay: 1.4s;  transform: scale(0.7); }
+    .hero-sparkles .s4 { top: 28%; left: 22%; animation-delay: 0.8s;  transform: scale(0.45); }
+    .hero-sparkles .s5 { top: 8%;  right: 28%; animation-delay: 0.2s; transform: scale(0.55); }
+    .hero-sparkles .s6 { bottom: 16%; left: 18%; animation-delay: 1.6s; transform: scale(0.6); }
+    .hero-sparkles .s7 { bottom: 30%; right: 22%; animation-delay: 0.6s; transform: scale(0.5); }
+    @keyframes sparkleTwinkle {
+      0%, 100% { opacity: 0; transform: scale(var(--s, 0.6)) rotate(0deg); }
+      50%      { opacity: 0.9; transform: scale(var(--s, 0.6)) rotate(45deg); }
+    }
+
+    /* Stats variant — 4 tile band below the price line */
+    .hero-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      max-width: 760px; margin: 40px auto 0;
+    }
+    .stat-tile {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 14px; text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .stat-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .stat-tile .stat-num {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 32px; letter-spacing: -0.03em; line-height: 1; color: var(--text);
+      margin-bottom: 8px;
+    }
+    .stat-tile .stat-num span {
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      margin-left: 4px; letter-spacing: 0;
+    }
+    .stat-tile .stat-label {
+      font-size: 12px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+    }
+    @media (max-width: 720px) {
+      .hero-stats { grid-template-columns: repeat(2, 1fr); }
+      .stat-tile .stat-num { font-size: 26px; }
+    }
+
+    /* Marquee variant — scrolling industry strip at the bottom of hero */
+    .hero-marquee {
+      margin: 48px -40px 0;
+      padding: 18px 0;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+              mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+    }
+    .marquee-track {
+      display: flex; gap: 28px;
+      width: max-content;
+      animation: marqueeScroll 50s linear infinite;
+    }
+    .marquee-item {
+      display: inline-flex; align-items: center; gap: 14px;
+      font-size: 15px; font-weight: 600; color: var(--text);
+      white-space: nowrap;
+    }
+    .marquee-dot {
+      color: var(--accent); font-size: 8px;
+    }
+    @keyframes marqueeScroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    @media (max-width: 720px) {
+      .hero-marquee { margin-left: -20px; margin-right: -20px; }
+    }
+
     /* Floating sticker badges flanking the hero */
     .hero-sticker {
       position: absolute; display: inline-flex; align-items: center; gap: 7px;
@@ -1574,7 +1717,45 @@ function CyclingHeadline() {
   );
 }
 
+function VariantPicker({ variant, onChange }) {
+  const VARIANTS = [
+    ['clean', 'Clean'],
+    ['playful', 'Playful'],
+    ['stats', 'Stats'],
+    ['marquee', 'Marquee'],
+    ['stickers', 'Stickers'],
+  ];
+  return (
+    <div className="variant-picker" aria-label="Hero variant picker (preview only)">
+      <span className="variant-picker-label">Hero preview:</span>
+      {VARIANTS.map(([k, l]) => (
+        <button
+          key={k}
+          type="button"
+          className={variant === k ? 'on' : ''}
+          onClick={() => onChange(k)}
+        >{l}</button>
+      ))}
+    </div>
+  );
+}
+
 function LandingPage() {
+  const [variant, _setVariant] = useState(() => {
+    if (typeof window === 'undefined') return 'clean';
+    const u = new URLSearchParams(window.location.search);
+    const v = u.get('v');
+    return ['clean','playful','stats','marquee','stickers'].includes(v) ? v : 'clean';
+  });
+  function setVariant(v) {
+    _setVariant(v);
+    try {
+      const url = new URL(window.location.href);
+      if (v === 'clean') url.searchParams.delete('v'); else url.searchParams.set('v', v);
+      window.history.replaceState({}, '', url.toString());
+    } catch (err) {}
+  }
+
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
       document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-revealed'));
@@ -1616,16 +1797,24 @@ function LandingPage() {
         </div>
       </nav>
 
-      <header className="landing-hero">
+      <VariantPicker variant={variant} onChange={setVariant} />
+      <header className={`landing-hero variant-${variant}`}>
         <span className="hero-orb orb-a" aria-hidden="true" />
         <span className="hero-orb orb-b" aria-hidden="true" />
         <span className="hero-orb orb-c" aria-hidden="true" />
-        <div className="hero-sticker left fade-in-delay-3" aria-hidden="true">
-          <span className="dot" /> Setup in 60 seconds
-        </div>
-        <div className="hero-sticker right fade-in-delay-3" aria-hidden="true">
-          <span className="dot" /> 14 days free · No card
-        </div>
+
+        {variant === 'playful' && (
+          <>
+            <svg className="hero-doodle doodle-arrow" viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M 10 10 Q 60 0 80 35 T 95 78" stroke="var(--accent)" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeDasharray="180" strokeDashoffset="180" />
+              <path d="M 88 70 L 95 78 L 86 80" stroke="var(--accent)" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div className="hero-doodle doodle-note">setup in 60 sec ↘</div>
+            <div className="hero-sparkles" aria-hidden="true">
+              {[0,1,2,3,4,5,6,7].map((i) => <span key={i} className={`sparkle s${i}`} />)}
+            </div>
+          </>
+        )}
 
         <span className="eyebrow fade-in">For small service teams</span>
         <CyclingHeadline />
@@ -1639,6 +1828,36 @@ function LandingPage() {
         <p className="fade-in-delay-3" style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
           <strong style={{ color: 'var(--text)' }}>$29/month</strong> after your trial · No credit card to start · Cancel anytime
         </p>
+
+        {variant === 'stats' && (
+          <div className="hero-stats fade-in-delay-3">
+            <div className="stat-tile"><div className="stat-num">60<span>sec</span></div><div className="stat-label">Setup</div></div>
+            <div className="stat-tile"><div className="stat-num">14<span>days</span></div><div className="stat-label">Free trial</div></div>
+            <div className="stat-tile"><div className="stat-num">∞</div><div className="stat-label">Customers + jobs</div></div>
+            <div className="stat-tile"><div className="stat-num">$29<span>/mo</span></div><div className="stat-label">One simple plan</div></div>
+          </div>
+        )}
+
+        {variant === 'marquee' && (
+          <div className="hero-marquee" aria-hidden="true">
+            <div className="marquee-track">
+              {['Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service','Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service'].map((s, i) => (
+                <span key={i} className="marquee-item">{s}<span className="marquee-dot">●</span></span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {variant === 'stickers' && (
+          <>
+            <div className="hero-sticker left fade-in-delay-3" aria-hidden="true">
+              <span className="dot" /> Setup in 60 seconds
+            </div>
+            <div className="hero-sticker right fade-in-delay-3" aria-hidden="true">
+              <span className="dot" /> 14 days free · No card
+            </div>
+          </>
+        )}
       </header>
 
       <section className="how-band">
