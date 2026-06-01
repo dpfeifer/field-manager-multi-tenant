@@ -602,6 +602,170 @@
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
     .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    /* Day view — time grid */
+    .day-grid {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .day-grid-untimed {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--tinted);
+    }
+    .day-grid-untimed-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      flex-shrink: 0; padding-top: 6px;
+    }
+    .day-grid-untimed-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+    .day-untimed-chip {
+      padding: 6px 12px; background: var(--card);
+      border: 1px solid var(--border-strong); border-radius: 999px;
+      font-size: 13px; cursor: pointer; font-family: inherit;
+      color: var(--text); transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .day-untimed-chip:hover { border-color: var(--primary); box-shadow: 0 2px 8px -2px rgba(40,30,20,0.1); }
+    .day-untimed-chip.done { opacity: 0.55; text-decoration: line-through; }
+
+    .day-grid-body { display: flex; position: relative; }
+    .day-grid-hours {
+      width: 64px; flex-shrink: 0; position: relative;
+      border-right: 1px solid var(--border);
+    }
+    .day-grid-hour {
+      position: relative; border-bottom: 1px dashed var(--border);
+    }
+    .day-grid-hour:last-child { border-bottom: none; }
+    .day-grid-hour-label {
+      position: absolute; top: -7px; left: 8px;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted); background: var(--card);
+      padding: 0 4px;
+    }
+    .day-grid-blocks { flex: 1; position: relative; }
+    .day-grid-lane { border-bottom: 1px dashed var(--border); }
+    .day-grid-lane:last-child { border-bottom: none; }
+    .day-grid-now {
+      position: absolute; left: 0; right: 0; z-index: 2;
+      pointer-events: none;
+    }
+    .day-grid-now-dot {
+      position: absolute; left: -5px; top: -5px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(201, 133, 88, 0.2);
+    }
+    .day-grid-now-line {
+      display: block; height: 2px; background: var(--accent);
+      margin-left: 6px;
+    }
+    .day-block {
+      position: absolute; left: 8px; right: 8px;
+      background: var(--primary); color: white;
+      border-radius: 8px; padding: 6px 10px;
+      font-size: 12px; cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 4px 14px -6px rgba(40,30,20,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 1; border: none; text-align: left;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .day-block:hover {
+      transform: translateX(2px);
+      box-shadow: 0 6px 18px -6px rgba(40,30,20,0.5);
+    }
+    .day-block.completed {
+      background: var(--text-muted); opacity: 0.65;
+    }
+    .day-block-head { display: flex; justify-content: space-between; align-items: baseline; }
+    .day-block-time { font-weight: 700; opacity: 0.9; font-size: 11px; letter-spacing: 0.02em; }
+    .day-block-price {
+      font-family: var(--serif); font-weight: 600; font-size: 12px;
+      letter-spacing: -0.01em;
+    }
+    .day-block-title { font-weight: 600; line-height: 1.2; }
+    .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
+    .day-block-complete {
+      position: absolute; right: 8px; bottom: 8px;
+      background: rgba(255,255,255,0.18); color: white;
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
+      padding: 4px 9px; font-size: 11px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .day-block-complete:hover { background: rgba(255,255,255,0.32); }
+
+    /* Week view — 7 columns of day summaries */
+    .week-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+    }
+    .week-col {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; display: flex; flex-direction: column;
+      min-height: 200px; overflow: hidden;
+    }
+    .week-col.today { border-color: var(--primary); }
+    .week-col.selected { box-shadow: 0 0 0 1px var(--accent) inset; }
+    .week-col-head {
+      padding: 10px 8px; border: none; background: var(--tinted);
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .week-col-head:hover { background: var(--row-hover); }
+    .week-col.today .week-col-head { background: var(--primary); color: white; }
+    .week-col-dow {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .week-col-num {
+      font-family: var(--serif); font-size: 18px; font-weight: 600;
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .week-col-body {
+      padding: 8px; display: flex; flex-direction: column; gap: 4px;
+      flex: 1;
+    }
+    .week-col-empty {
+      color: var(--text-muted); font-size: 12px; text-align: center;
+      margin-top: auto; margin-bottom: auto; opacity: 0.5;
+    }
+    .week-pill {
+      display: flex; flex-direction: column; gap: 1px;
+      padding: 6px 8px; background: var(--tinted);
+      border: 1px solid var(--border); border-radius: 6px;
+      text-align: left; font-family: inherit; cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .week-pill:hover {
+      border-color: var(--primary); transform: translateY(-1px);
+    }
+    .week-pill.done { opacity: 0.55; }
+    .week-pill.done .week-pill-title { text-decoration: line-through; }
+    .week-pill-time {
+      font-size: 10px; font-weight: 700;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .week-pill-title {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      line-height: 1.2;
+    }
+    .week-pill-customer {
+      font-size: 11px; color: var(--text-muted);
+      line-height: 1.2;
+    }
+    @media (max-width: 860px) {
+      .week-grid { grid-template-columns: repeat(7, minmax(110px, 1fr)); overflow-x: auto; }
+    }
+
+    .cal-week-label {
+      font-size: 14px; font-weight: 600; color: var(--text);
+      padding: 0 8px; letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
     .cal-mode-row {
       display: flex; align-items: center; gap: 16px;
       margin-bottom: 16px; flex-wrap: wrap;
@@ -3437,12 +3601,28 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
     cur.setDate(cur.getDate() + delta);
     setSelectedDate(formatYMD(cur));
   }
+  function shiftWeek(delta) { shiftDay(delta * 7); }
   function jumpToToday() {
     setSelectedDate(todayStr);
     setMonthOffset(0);
   }
 
-  // For month view, compute the visible month + occurrences within it.
+  // Compute week start (Sunday) for the selected date.
+  const weekStartDate = (() => {
+    const d = new Date(selectedDate + 'T00:00:00');
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  })();
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStartDate);
+    d.setDate(d.getDate() + i);
+    weekDays.push(d);
+  }
+  const weekStartStr = formatYMD(weekStartDate);
+  const weekEndStr = formatYMD(weekDays[6]);
+
+  // Month range for the month view.
   const viewMonth = addMonths(today, monthOffset);
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
@@ -3455,8 +3635,6 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
     });
   });
 
-  // For day view, only compute the single day's occurrences and sort by
-  // start_time (untimed jobs sink to the bottom).
   const dayOccurrences = (() => {
     if (view !== 'day') return [];
     const out = [];
@@ -3470,9 +3648,32 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
     });
   })();
 
+  const weekByDate = (() => {
+    if (view !== 'week') return {};
+    const map = {};
+    jobs.forEach((j) => {
+      jobOccurrencesInRange(j, weekStartStr, weekEndStr).forEach((o) => {
+        (map[o.date] = map[o.date] || []).push(o);
+      });
+    });
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) => (a.job.start_time || '99:99').localeCompare(b.job.start_time || '99:99'));
+    });
+    return map;
+  })();
+
   const selectedDateLabel = (() => {
     const d = new Date(selectedDate + 'T00:00:00');
     return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  })();
+  const weekRangeLabel = (() => {
+    const s = weekDays[0], e = weekDays[6];
+    const sameMonth = s.getMonth() === e.getMonth();
+    const sMo = s.toLocaleDateString(undefined, { month: 'short' });
+    const eMo = e.toLocaleDateString(undefined, { month: 'short' });
+    return sameMonth
+      ? `${sMo} ${s.getDate()} – ${e.getDate()}, ${e.getFullYear()}`
+      : `${sMo} ${s.getDate()} – ${eMo} ${e.getDate()}, ${e.getFullYear()}`;
   })();
 
   return (
@@ -3480,6 +3681,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
       <div className="cal-mode-row">
         <div className="toggle-group cal-mode-toggle">
           <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>Day</button>
+          <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>Week</button>
           <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Month</button>
         </div>
         {view === 'day' && (
@@ -3496,6 +3698,16 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
             )}
           </div>
         )}
+        {view === 'week' && (
+          <div className="cal-day-nav">
+            <button className="secondary" onClick={() => shiftWeek(-1)} aria-label="Previous week">←</button>
+            <span className="cal-week-label">{weekRangeLabel}</span>
+            <button className="secondary" onClick={() => shiftWeek(1)} aria-label="Next week">→</button>
+            {selectedDate !== todayStr && (
+              <button className="secondary" onClick={jumpToToday}>Today</button>
+            )}
+          </div>
+        )}
       </div>
 
       {view === 'day' && (
@@ -3506,21 +3718,24 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
               {dayOccurrences.length} {dayOccurrences.length === 1 ? 'visit' : 'visits'}
             </span>
           </div>
-          <div className="list">
-            {dayOccurrences.length === 0 ? (
-              <div className="list-empty">No visits scheduled for this day.</div>
-            ) : (
-              dayOccurrences.map((o, i) => (
-                <OccurrenceRow
-                  key={`${o.job.id}-${o.date}-${i}`}
-                  occurrence={o}
-                  onMarkComplete={onMarkComplete}
-                  onEdit={onChipClick}
-                />
-              ))
-            )}
-          </div>
+          <DayTimeGrid
+            occurrences={dayOccurrences}
+            isToday={selectedDate === todayStr}
+            onOpen={onChipClick}
+            onMarkComplete={onMarkComplete}
+          />
         </>
+      )}
+
+      {view === 'week' && (
+        <CalendarWeekGrid
+          weekDays={weekDays}
+          weekByDate={weekByDate}
+          todayStr={todayStr}
+          selectedDate={selectedDate}
+          onSelectDate={(d) => { setSelectedDate(d); setView('day'); }}
+          onOpen={onChipClick}
+        />
       )}
 
       {view === 'month' && (
@@ -3537,6 +3752,155 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
           onMarkComplete={onMarkComplete}
         />
       )}
+    </div>
+  );
+}
+
+function formatHourLabel(h) {
+  if (h === 0) return '12 AM';
+  if (h === 12) return 'Noon';
+  if (h < 12) return `${h} AM`;
+  return `${h - 12} PM`;
+}
+
+function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete }) {
+  const untimed = occurrences.filter((o) => !o.job.start_time);
+  const timed = occurrences.filter((o) => o.job.start_time);
+
+  let startHour = 7;
+  let endHour = 19;
+  timed.forEach((o) => {
+    const [h] = o.job.start_time.split(':').map(Number);
+    if (h < startHour) startHour = Math.max(0, h);
+    const durMin = o.job.duration_minutes || 60;
+    const endH = h + Math.ceil(durMin / 60);
+    if (endH > endHour) endHour = Math.min(24, endH);
+  });
+  const hours = [];
+  for (let h = startHour; h <= endHour; h++) hours.push(h);
+  const PX_PER_HOUR = 56;
+
+  function timeToY(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h - startHour) * PX_PER_HOUR + (m / 60) * PX_PER_HOUR;
+  }
+
+  // "Now" line for today.
+  let nowY = null;
+  if (isToday) {
+    const now = new Date();
+    const hh = now.getHours();
+    if (hh >= startHour && hh <= endHour) {
+      nowY = (hh - startHour) * PX_PER_HOUR + (now.getMinutes() / 60) * PX_PER_HOUR;
+    }
+  }
+
+  return (
+    <div className="day-grid">
+      {untimed.length > 0 && (
+        <div className="day-grid-untimed">
+          <span className="day-grid-untimed-label">No time set</span>
+          <div className="day-grid-untimed-chips">
+            {untimed.map((o, i) => (
+              <button key={i} className={`day-untimed-chip${o.completed ? ' done' : ''}`} onClick={() => onOpen(o.job)}>
+                {o.job.title} · {jobCustomerName(o.job)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {timed.length === 0 && untimed.length === 0 ? (
+        <div className="list-empty" style={{ borderRadius: 0 }}>No visits scheduled for this day.</div>
+      ) : (
+        <div className="day-grid-body">
+          <div className="day-grid-hours" style={{ height: hours.length * PX_PER_HOUR }}>
+            {hours.map((h) => (
+              <div key={h} className="day-grid-hour" style={{ height: PX_PER_HOUR }}>
+                <span className="day-grid-hour-label">{formatHourLabel(h)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="day-grid-blocks" style={{ height: hours.length * PX_PER_HOUR }}>
+            {hours.map((h) => (
+              <div key={h} className="day-grid-lane" style={{ height: PX_PER_HOUR }} />
+            ))}
+            {nowY !== null && (
+              <div className="day-grid-now" style={{ top: nowY }}>
+                <span className="day-grid-now-dot" />
+                <span className="day-grid-now-line" />
+              </div>
+            )}
+            {timed.map((o, i) => {
+              const top = timeToY(o.job.start_time);
+              const minH = 32;
+              const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - 4);
+              return (
+                <div
+                  key={i}
+                  className={`day-block${o.completed ? ' completed' : ''}`}
+                  style={{ top, height }}
+                  onClick={() => onOpen(o.job)}
+                >
+                  <div className="day-block-head">
+                    <span className="day-block-time">{formatTimeOfDay(o.job.start_time)}</span>
+                    {o.job.default_price != null && <span className="day-block-price">{formatPrice(o.job.default_price)}</span>}
+                  </div>
+                  <div className="day-block-title">{o.job.title}</div>
+                  {height >= 56 && (
+                    <div className="day-block-customer">{jobCustomerName(o.job)}</div>
+                  )}
+                  {!o.completed && height >= 72 && (
+                    <button
+                      className="day-block-complete"
+                      onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                    >Mark complete</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CalendarWeekGrid({ weekDays, weekByDate, todayStr, selectedDate, onSelectDate, onOpen }) {
+  return (
+    <div className="week-grid">
+      {weekDays.map((d) => {
+        const dateStr = formatYMD(d);
+        const occs = weekByDate[dateStr] || [];
+        const isToday = dateStr === todayStr;
+        const isSelected = dateStr === selectedDate;
+        return (
+          <div key={dateStr} className={`week-col${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}`}>
+            <button className="week-col-head" onClick={() => onSelectDate(dateStr)}>
+              <span className="week-col-dow">{d.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+              <span className="week-col-num">{d.getDate()}</span>
+            </button>
+            <div className="week-col-body">
+              {occs.length === 0 ? (
+                <div className="week-col-empty">—</div>
+              ) : (
+                occs.map((o, i) => (
+                  <button
+                    key={i}
+                    className={`week-pill${o.completed ? ' done' : ''}`}
+                    onClick={() => onOpen(o.job)}
+                  >
+                    <span className="week-pill-time">
+                      {o.job.start_time ? formatTimeOfDay(o.job.start_time) : 'Anytime'}
+                    </span>
+                    <span className="week-pill-title">{o.job.title}</span>
+                    <span className="week-pill-customer">{jobCustomerName(o.job)}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
