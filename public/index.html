@@ -20,42 +20,51 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root {
-      --bg: #faf8f4;
+      --bg: #f7f4ec;
+      --bg-elevated: #fcfaf3;
       --card: #ffffff;
-      --text: #2d2a26;
-      --text-muted: #6d6a64;
-      --border: #ece6d8;
-      --border-strong: #d9d2c0;
-      --primary: #4a5e7a;
-      --primary-hover: #3a4d68;
-      --primary-ring: rgba(74, 94, 122, 0.18);
-      --accent: #e8a78c;
-      --accent-hover: #d68768;
-      --danger: #b04a3c;
-      --danger-bg: #fbe9e5;
-      --shadow-sm: 0 1px 2px rgba(45, 42, 38, 0.04);
-      --shadow-md: 0 4px 14px rgba(45, 42, 38, 0.06), 0 1px 3px rgba(45, 42, 38, 0.04);
-      --row-hover: var(--row-hover);
-      --tinted: #f4efe3;
+      --text: #19170f;
+      --text-muted: #66635c;
+      --border: #e8e1d1;
+      --border-strong: #d4cab4;
+      --primary: #2c3e57;
+      --primary-hover: #1b2940;
+      --primary-ring: rgba(44, 62, 87, 0.16);
+      --accent: #c98558;
+      --accent-hover: #b16f43;
+      --danger: #a23b2c;
+      --danger-bg: #f9e3df;
+      --success: #2d6b4a;
+      --success-bg: #e1ede5;
+      --shadow-sm: 0 1px 2px rgba(25, 23, 15, 0.04), 0 1px 1px rgba(25, 23, 15, 0.02);
+      --shadow-md: 0 1px 2px rgba(25, 23, 15, 0.04), 0 8px 24px -8px rgba(25, 23, 15, 0.08), 0 16px 48px -16px rgba(25, 23, 15, 0.06);
+      --shadow-lg: 0 2px 4px rgba(25, 23, 15, 0.06), 0 16px 40px -8px rgba(25, 23, 15, 0.12), 0 32px 72px -16px rgba(25, 23, 15, 0.08);
+      --row-hover: #faf6ea;
+      --tinted: #efe7d3;
+      --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
     }
     :root[data-theme="dark"] {
-      --bg: #16191f;
-      --card: #1f2330;
-      --text: #e6e2d8;
-      --text-muted: #908b81;
-      --border: #2c3142;
-      --border-strong: #3b4258;
-      --primary: #7a91b0;
-      --primary-hover: #92a8c8;
-      --primary-ring: rgba(122, 145, 176, 0.25);
-      --accent: #e8a78c;
-      --accent-hover: #d68768;
-      --danger: #d76b5d;
-      --danger-bg: #3b1f1b;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
-      --row-hover: #252a39;
-      --tinted: #2c3142;
+      --bg: #0d1117;
+      --bg-elevated: #131820;
+      --card: #1a1f2a;
+      --text: #ede7d6;
+      --text-muted: #8a857a;
+      --border: #2a3142;
+      --border-strong: #3d4459;
+      --primary: #8da6c8;
+      --primary-hover: #a8bedc;
+      --primary-ring: rgba(141, 166, 200, 0.22);
+      --accent: #dca176;
+      --accent-hover: #c98558;
+      --danger: #db6b5c;
+      --danger-bg: #3a1c17;
+      --success: #62a87e;
+      --success-bg: #1a2e22;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+      --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.5), 0 16px 40px -8px rgba(0, 0, 0, 0.55), 0 32px 72px -16px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.55), 0 24px 64px -8px rgba(0, 0, 0, 0.6);
+      --row-hover: #1e2533;
+      --tinted: #2a3142;
     }
     :root[data-theme="dark"] .cal-cell.empty { background: #1a1d27; }
     :root[data-theme="dark"] .cal-chip { background: #2c3142; color: var(--text); }
@@ -91,16 +100,18 @@
     button { font-family: inherit; }
 
     /* Auth screens */
-    .auth-shell { max-width: 460px; margin: 80px auto; padding: 0 16px; }
+    .auth-shell { max-width: 480px; margin: 80px auto; padding: 0 16px; }
     .card {
       background: var(--card);
-      border-radius: 14px;
-      box-shadow: var(--shadow-md);
-      padding: 36px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      padding: 44px 40px;
+      border: 1px solid var(--border);
     }
-    h1 { margin: 0 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
-    h2 { font-weight: 600; letter-spacing: -0.01em; }
-    .subtitle { color: var(--text-muted); margin: 0 0 28px; font-size: 14px; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    h2 { font-size: 22px; }
+    h3 { font-size: 17px; }
+    .subtitle { color: var(--text-muted); margin: 0 0 28px; font-size: 14px; line-height: 1.6; }
     .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
     .tab {
       flex: 1; padding: 12px 0; background: none; border: none;
@@ -124,23 +135,28 @@
     }
     input::placeholder, textarea::placeholder { color: #b0a99a; }
     button.primary {
-      padding: 11px 18px; background: var(--primary); color: white;
-      border: none; border-radius: 8px; font-size: 14px;
-      font-weight: 600; cursor: pointer; transition: background 0.15s;
+      padding: 11px 20px; background: var(--primary); color: white;
+      border: none; border-radius: 10px; font-size: 14px;
+      font-weight: 600; cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+      letter-spacing: -0.005em;
     }
-    button.primary:hover { background: var(--primary-hover); }
-    button.primary:disabled { background: #a8a59c; cursor: not-allowed; }
+    button.primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px -2px rgba(44, 62, 87, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04) inset; }
+    button.primary:active { transform: translateY(1px); }
+    button.primary:disabled { background: #a8a59c; cursor: not-allowed; box-shadow: none; }
     button.primary.block { width: 100%; margin-top: 24px; }
     button.secondary {
-      padding: 9px 14px; background: var(--card); color: var(--text);
-      border: 1px solid var(--border-strong); border-radius: 8px;
+      padding: 9px 16px; background: var(--card); color: var(--text);
+      border: 1px solid var(--border-strong); border-radius: 10px;
       font-size: 13px; font-weight: 500; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
     button.secondary:hover { background: var(--row-hover); border-color: var(--primary); }
+    button.secondary:active { transform: translateY(1px); }
     button.danger {
-      padding: 9px 14px; background: var(--card); color: var(--danger);
-      border: 1px solid var(--border-strong); border-radius: 8px;
+      padding: 9px 16px; background: var(--card); color: var(--danger);
+      border: 1px solid var(--border-strong); border-radius: 10px;
       font-size: 13px; font-weight: 500; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
@@ -159,10 +175,10 @@
     /* App shell */
     .topbar {
       background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 14px 28px; display: flex;
+      padding: 16px 32px; display: flex;
       align-items: center; justify-content: space-between;
     }
-    .topbar .brand { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+    .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
     .topbar .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
     .topbar .right .user { color: var(--text-muted); }
     .nav {
@@ -558,13 +574,28 @@
     .landing-nav .nav-actions { display: flex; gap: 12px; align-items: center; }
     .landing-section { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
     .landing-hero {
-      padding: 80px 40px 60px; text-align: center; max-width: 760px; margin: 0 auto;
+      padding: 96px 40px 72px; text-align: center; max-width: 820px; margin: 0 auto;
+      position: relative;
+    }
+    .landing-hero::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; z-index: -1;
+      background: radial-gradient(ellipse 60% 40% at 50% 20%, var(--tinted), transparent 70%);
+      opacity: 0.6;
+    }
+    .landing-hero .eyebrow {
+      display: inline-block; padding: 4px 12px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 999px; font-size: 12px; color: var(--text-muted);
+      font-weight: 500; margin-bottom: 20px; letter-spacing: 0.02em;
     }
     .landing-hero h1 {
-      font-size: 48px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 18px;
+      font-size: 60px; line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 22px;
+      font-weight: 600;
     }
     .landing-hero .lede {
-      font-size: 18px; color: var(--text-muted); line-height: 1.55; margin: 0 0 32px;
+      font-size: 19px; color: var(--text-muted); line-height: 1.55; margin: 0 0 36px;
+      max-width: 580px; margin-left: auto; margin-right: auto;
     }
     .landing-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .landing-hero .cta-row button.primary { padding: 14px 28px; font-size: 15px; }
@@ -576,11 +607,16 @@
     }
     .feature-card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 28px;
+      border-radius: 16px; padding: 32px 28px;
       box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .feature-card h3 { margin: 0 0 10px; font-size: 17px; }
-    .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.55; }
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .feature-card h3 { margin: 0 0 12px; font-size: 18px; line-height: 1.2; }
+    .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
 
     .industries {
       padding: 60px 0; text-align: center;
@@ -600,13 +636,19 @@
     .pricing h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
     .pricing .lede { color: var(--text-muted); margin: 0 0 40px; font-size: 15px; }
     .price-card {
-      max-width: 440px; margin: 0 auto;
+      max-width: 460px; margin: 0 auto;
       background: var(--card); border: 1px solid var(--border-strong);
-      border-radius: 16px; padding: 40px;
-      box-shadow: var(--shadow-md);
+      border-radius: 20px; padding: 44px 40px;
+      box-shadow: var(--shadow-lg);
+      position: relative; overflow: hidden;
+    }
+    .price-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(to right, var(--primary), var(--accent));
     }
     .price-card .amount {
-      font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1;
+      font-family: var(--serif);
+      font-size: 64px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;
     }
     .price-card .amount-suffix { color: var(--text-muted); font-size: 16px; font-weight: 500; }
     .price-card .trial-hint {
@@ -1134,6 +1176,7 @@ function LandingPage() {
       </nav>
 
       <header className="landing-hero">
+        <span className="eyebrow">For small service teams</span>
         <h1>Run your service business in one place.</h1>
         <p className="lede">
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
