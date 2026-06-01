@@ -20,10 +20,10 @@ router.post('/complete', requireRole('admin'), async (req, res, next) => {
   try {
     const features = normalizeFeatures(req.body && req.body.features);
     const t = (req.body && req.body.terminology) || {};
-    const customer_label = trimOrNull(t.customer_label);
-    const customer_label_plural = trimOrNull(t.customer_label_plural);
-    const job_label = trimOrNull(t.job_label);
-    const job_label_plural = trimOrNull(t.job_label_plural);
+    const customer_label = normalizeLabel(t.customer_label);
+    const customer_label_plural = normalizeLabel(t.customer_label_plural);
+    const job_label = normalizeLabel(t.job_label);
+    const job_label_plural = normalizeLabel(t.job_label_plural);
 
     await query(
       `UPDATE organizations
@@ -55,10 +55,14 @@ router.post('/complete', requireRole('admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-function trimOrNull(v) {
+function normalizeLabel(v) {
   if (typeof v !== 'string') return null;
   const t = v.trim();
-  return t || null;
+  if (!t) return null;
+  if (t === t.toUpperCase() && t !== t.toLowerCase()) {
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }
+  return t;
 }
 
 router.put('/features', requireRole('admin'), async (req, res, next) => {

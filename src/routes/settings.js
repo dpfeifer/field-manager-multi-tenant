@@ -33,6 +33,24 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+const TERMINOLOGY_FIELDS = new Set([
+  'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
+]);
+
+// Normalize a user-typed terminology label: trim, and if the value is
+// entirely uppercase letters (e.g. 'CLIENTS') down-case all but the first
+// letter so the nav doesn't read as shouting. Otherwise leave the user's
+// casing alone so 'eBook' or 'pet-sitter' survive unchanged.
+function normalizeLabel(v) {
+  if (typeof v !== 'string') return v;
+  const trimmed = v.trim();
+  if (!trimmed) return null;
+  if (trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase()) {
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  }
+  return trimmed;
+}
+
 router.put('/', requireRole('admin'), async (req, res, next) => {
   const body = req.body || {};
   const setClauses = [];
@@ -40,7 +58,8 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
 
   FIELDS.forEach((f) => {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
-      const v = body[f] === '' ? null : body[f];
+      let v = body[f] === '' ? null : body[f];
+      if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
       values.push(v);
       setClauses.push(`${f} = $${values.length}`);
     }

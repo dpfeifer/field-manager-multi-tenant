@@ -100,4 +100,33 @@ router.post('/portal', requireRole('admin'), async (req, res, next) => {
   }
 });
 
+// Admin-initiated self-destruct: deletes the org permanently. Mirrors the
+// staff version in routes/system.js but requires the admin to type their
+// own slug into confirm_slug.
+router.post('/cancel-account', requireRole('admin'), async (req, res, next) => {
+  const { confirm_slug } = req.body || {};
+  try {
+    const { rows } = await query(
+      'SELECT slug, name, stripe_subscription_id FROM organizations WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+      [req.organization.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const org = rows[0];
+    if (confirm_slug !== org.slug) {
+      return res.status(400).json({ error: `Type "${org.slug}" exactly to confirm.` });
+    }
+
+    if (org.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+      try {
+        await stripe().subscriptions.cancel(org.stripe_subscription_id);
+      } catch (err) {
+        console.warn(`stripe cancel failed during self-destruct (${org.slug}):`, err.message);
+      }
+    }
+
+    await query('DELETE FROM organizations WHERE id = $1', [req.organization.id]);
+    res.json({ ok: true, deleted_slug: org.slug });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

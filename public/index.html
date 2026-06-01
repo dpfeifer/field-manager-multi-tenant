@@ -526,6 +526,27 @@
     }
     .usage-bar-fill.over { background: var(--accent); }
 
+    .danger-zone {
+      margin-top: 24px; padding: 24px;
+      background: var(--card);
+      border: 1px solid var(--danger);
+      border-radius: 16px;
+    }
+    .danger-zone-summary {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 18px;
+    }
+    .danger-zone-summary strong { font-size: 14px; color: var(--text); display: block; }
+    .danger-zone-summary p { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; max-width: 500px; }
+    .danger-zone-summary button.danger { flex-shrink: 0; }
+    .danger-zone-confirm p { font-size: 13px; color: var(--text); margin: 0 0 12px; line-height: 1.5; }
+    .danger-zone-confirm code {
+      background: var(--tinted); padding: 2px 6px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-size: 13px;
+    }
+    @media (max-width: 600px) {
+      .danger-zone-summary { flex-direction: column; }
+    }
+
     .billing-locked-list, .billing-included-list {
       list-style: none; padding: 0; margin: 0;
       font-size: 14px; color: var(--text);
@@ -866,9 +887,19 @@
       font-weight: 500;
     }
     @media (max-width: 600px) {
+      .cal-mode-row { gap: 10px; }
       .cal-day-nav { margin-left: 0; width: 100%; }
-      .cal-day-picker { flex: 1; }
+      .cal-day-picker { flex: 1; min-width: 0; }
       .cal-day-header h3 { font-size: 20px; }
+      .cal-week-label { font-size: 12px; padding: 0 4px; }
+      .day-grid-hours { width: 44px !important; }
+      .day-grid-hour-label { font-size: 10px; left: 4px; padding: 0 2px; }
+      .day-block { left: 4px; right: 4px; padding: 5px 8px; }
+      .day-block-time { font-size: 10px; }
+      .day-block-title { font-size: 11px; }
+      .day-block-customer { font-size: 10px; }
+      .day-grid-untimed { flex-direction: column; gap: 6px; padding: 10px 12px; }
+      .day-grid-untimed-label { padding-top: 0; }
     }
 
     .calendar {
@@ -1992,16 +2023,6 @@ function getTerms(source) {
 
 const TermsContext = React.createContext(getTerms(null));
 function useTerms() { return React.useContext(TermsContext); }
-
-const INDUSTRY_PRESETS = {
-  'lawn-care':       { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
-  'cleaning':        { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
-  'handyman':        { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
-  'pet-care':        { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Visit', job_label_plural: 'Visits' },
-  'barber':          { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Appointment', job_label_plural: 'Appointments' },
-  'food-truck':      { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Event', job_label_plural: 'Events' },
-  'photographer':    { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Booking', job_label_plural: 'Bookings' },
-};
 
 async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -5867,13 +5888,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  function applyPreset(presetKey) {
-    const preset = INDUSTRY_PRESETS[presetKey];
-    if (!preset) return;
-    setForm((f) => ({ ...f, ...preset }));
-    setSaved(false);
-  }
-
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError(null); setSaved(false);
@@ -6120,37 +6134,52 @@ function daysUntil(dateStr) {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
-function BillingBanner({ status, trialDaysLeft, isAdmin }) {
+function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
   if (!status) return null;
+  const trialEnded = status === 'trial_expired' || (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 0);
+  const droppedToFree = trialEnded || status === 'canceled';
+  const dismissKey = droppedToFree && orgId ? `fm_dropped_to_free_seen_${orgId}` : null;
+  const [dismissed, setDismissed] = useState(() => {
+    if (!dismissKey) return false;
+    try { return localStorage.getItem(dismissKey) === '1'; } catch (e) { return false; }
+  });
+  function dismiss() {
+    setDismissed(true);
+    if (dismissKey) { try { localStorage.setItem(dismissKey, '1'); } catch (e) {} }
+  }
+
   let body = null;
   let bg = '#fff5e6';
   let color = '#8c5a00';
+  let showDismiss = false;
 
   if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft > 3) {
     bg = 'var(--tinted)';
     color = 'var(--text-muted)';
     body = isAdmin
-      ? <>You're on a free trial — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to lock in your subscription.</>
-      : <>This organization is on a free trial — {trialDaysLeft} days left.</>;
+      ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to keep Pro after the trial.</>
+      : <>This organization is on a Pro trial — {trialDaysLeft} days left.</>;
   } else if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     body = isAdmin
-      ? <>Your free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep editing</button>.</>
-      : <>Your organization's free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. Ask an admin to subscribe.</>;
-  } else if (status === 'trial_expired' || (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 0)) {
-    bg = 'var(--danger-bg)'; color = 'var(--danger)';
+      ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep Pro</button>, or do nothing to drop to Free.</>
+      : <>This organization's Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}.</>;
+  } else if (trialEnded && !dismissed) {
+    bg = 'var(--tinted)'; color = 'var(--text)';
+    showDismiss = true;
     body = isAdmin
-      ? <>Trial ended. You can still record completions, but editing is locked. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe</button>.</>
-      : <>Trial ended. Ask an admin to subscribe to re-enable editing.</>;
+      ? <>Your Pro trial ended — you're now on <strong>Free</strong> with caps of 5 customers + 20 jobs. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }} onClick={() => startUpgrade(session)}>Upgrade to Pro · $29/mo</button>.</>
+      : <>This organization's Pro trial ended. It's now on the Free plan.</>;
   } else if (status === 'past_due') {
     bg = 'var(--danger-bg)'; color = 'var(--danger)';
     body = isAdmin
-      ? <>Your latest payment failed. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Update payment method</button>.</>
+      ? <>Your latest payment failed — editing is locked until it clears. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Update payment method</button>.</>
       : <>Payment is past due. Ask an admin to update the payment method.</>;
-  } else if (status === 'canceled') {
-    bg = 'var(--danger-bg)'; color = 'var(--danger)';
+  } else if (status === 'canceled' && !dismissed) {
+    bg = 'var(--tinted)'; color = 'var(--text)';
+    showDismiss = true;
     body = isAdmin
-      ? <>Subscription canceled. Editing is locked. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Resubscribe</button>.</>
-      : <>Subscription canceled. Ask an admin to resubscribe.</>;
+      ? <>Your Pro subscription is canceled — you're on <strong>Free</strong> now. Data and settings are preserved. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }} onClick={() => startUpgrade(session)}>Resubscribe</button>.</>
+      : <>Your organization's Pro subscription was canceled. It's now on the Free plan.</>;
   }
 
   if (!body) return null;
@@ -6158,8 +6187,20 @@ function BillingBanner({ status, trialDaysLeft, isAdmin }) {
     <div style={{
       background: bg, color, padding: '10px 24px', textAlign: 'center',
       fontSize: 13, fontWeight: 500, borderBottom: '1px solid var(--border)',
+      position: 'relative',
     }}>
       {body}
+      {showDismiss && isAdmin && (
+        <button
+          aria-label="Dismiss"
+          onClick={dismiss}
+          style={{
+            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'inherit', fontSize: 18, lineHeight: 1, padding: 4, opacity: 0.6,
+          }}
+        >×</button>
+      )}
     </div>
   );
 }
@@ -6339,7 +6380,71 @@ function BillingView({ session, me }) {
               </ul>
             </div>
           )}
+
+          {isAdmin && (
+            <DangerZone session={session} orgSlug={session.organization && session.organization.slug} orgName={session.organization && session.organization.name} />
+          )}
         </>
+      )}
+    </div>
+  );
+}
+
+function DangerZone({ session, orgSlug, orgName }) {
+  const [open, setOpen] = useState(false);
+  const [confirmSlug, setConfirmSlug] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function destroy() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/billing/cancel-account', {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { confirm_slug: confirmSlug },
+      });
+      clearSession();
+      window.location.href = '/?account_deleted=1';
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="danger-zone">
+      <div className="section-heading" style={{ marginTop: 0, color: 'var(--danger)' }}>Danger zone</div>
+      {!open ? (
+        <div className="danger-zone-summary">
+          <div>
+            <strong>Close this account</strong>
+            <p>Cancels the Stripe subscription and permanently deletes <strong>{orgName}</strong> and all its data. This cannot be undone.</p>
+          </div>
+          <button className="danger" onClick={() => { setOpen(true); setError(null); setConfirmSlug(''); }}>
+            Delete account…
+          </button>
+        </div>
+      ) : (
+        <div className="danger-zone-confirm">
+          <p>
+            Type <code>{orgSlug}</code> below to confirm permanent deletion. All customers, jobs, invoices, quotes, settings, and teammates will be removed. Your Stripe subscription (if any) will be canceled.
+          </p>
+          <input
+            value={confirmSlug}
+            onChange={(e) => setConfirmSlug(e.target.value)}
+            placeholder={orgSlug}
+            autoFocus
+          />
+          {error && <div className="error">{error}</div>}
+          <div className="form-actions">
+            <button className="danger" disabled={busy || confirmSlug !== orgSlug} onClick={destroy}>
+              {busy ? 'Deleting...' : 'Permanently delete account'}
+            </button>
+            <button className="secondary" disabled={busy} onClick={() => { setOpen(false); setConfirmSlug(''); setError(null); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -6570,7 +6675,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           }
         </div>
       )}
-      {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
+      {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} orgId={me && me.organization_id} session={session} />}
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>
@@ -7049,12 +7154,6 @@ function OnboardingPage({ session, onDone }) {
 
   function setTermField(key, value) {
     setTerminology((t) => ({ ...t, [key]: value }));
-  }
-
-  function applyPreset(presetKey) {
-    const preset = INDUSTRY_PRESETS[presetKey];
-    if (!preset) return;
-    setTerminology(preset);
   }
 
   async function submit() {
