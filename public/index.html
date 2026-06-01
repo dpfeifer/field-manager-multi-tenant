@@ -3864,6 +3864,8 @@ const APP_ROUTES = {
   '/billing': 'billing',
   '/settings': 'settings',
   '/system': 'system',
+  '/system/staff': 'system',
+  '/system/templates': 'system',
   '/profile': 'profile',
 };
 
@@ -4945,11 +4947,45 @@ function StaffManagementSection({ token, currentUserId }) {
 }
 
 function SystemView({ session }) {
+  const path = useLocation();
+  const subView = path === '/system/staff' ? 'staff'
+    : path === '/system/templates' ? 'templates'
+    : 'organizations';
+  const isStaff = session.user && session.user.is_staff;
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>System</h2>
+        <span className="badge">{isStaff ? 'Staff' : 'System admin'}</span>
+      </div>
+      <div className="filter-bar">
+        <div className="chip-group">
+          <button
+            className={`chip ${subView === 'organizations' ? 'active' : ''}`}
+            onClick={() => navigate('/system')}
+          >Organizations</button>
+          <button
+            className={`chip ${subView === 'staff' ? 'active' : ''}`}
+            onClick={() => navigate('/system/staff')}
+          >Staff accounts</button>
+          <button
+            className={`chip ${subView === 'templates' ? 'active' : ''}`}
+            onClick={() => navigate('/system/templates')}
+          >Email templates</button>
+        </div>
+      </div>
+      {subView === 'organizations' && <OrganizationsSection session={session} />}
+      {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
+      {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
+    </div>
+  );
+}
+
+function OrganizationsSection({ session }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const isStaff = session.user && session.user.is_staff;
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -4977,12 +5013,7 @@ function SystemView({ session }) {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h2>System</h2>
-        <span className="badge">{isStaff ? 'Staff' : 'System admin'}</span>
-      </div>
-      <div className="section-heading" style={{ marginTop: 0 }}>Organizations</div>
+    <>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {loading ? (
@@ -5021,10 +5052,7 @@ function SystemView({ session }) {
           ))
         )}
       </div>
-
-      <StaffManagementSection token={session.token} currentUserId={session.user.id} />
-      <EmailTemplatesSection token={session.token} />
-    </div>
+    </>
   );
 }
 
