@@ -715,26 +715,68 @@
       background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; overflow: hidden;
     }
-    .day-grid-untimed {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 12px 16px;
+    .day-untimed-section {
       border-bottom: 1px solid var(--border);
-      background: var(--tinted);
     }
-    .day-grid-untimed-label {
+    .day-untimed-header {
+      padding: 9px 16px;
+      background: var(--tinted);
       font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--text-muted);
-      flex-shrink: 0; padding-top: 6px;
+      border-bottom: 1px solid var(--border);
     }
-    .day-grid-untimed-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
-    .day-untimed-chip {
-      padding: 6px 12px; background: var(--card);
-      border: 1px solid var(--border-strong); border-radius: 999px;
-      font-size: 13px; cursor: pointer; font-family: inherit;
-      color: var(--text); transition: border-color 0.15s, box-shadow 0.15s;
+    .day-untimed-list { display: flex; flex-direction: column; }
+    .day-untimed-block {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .day-untimed-chip:hover { border-color: var(--primary); box-shadow: 0 2px 8px -2px rgba(40,30,20,0.1); }
-    .day-untimed-chip.done { opacity: 0.55; text-decoration: line-through; }
+    .day-untimed-block:last-child { border-bottom: none; }
+    .day-untimed-block:hover { background: var(--row-hover); }
+    .day-untimed-block.completed { opacity: 0.55; }
+    .day-untimed-main { flex: 1; min-width: 0; }
+    .day-untimed-title {
+      font-weight: 600; font-size: 14px; color: var(--text);
+      line-height: 1.3;
+    }
+    .day-untimed-customer {
+      font-size: 13px; color: var(--text-muted); margin-top: 2px;
+    }
+    .day-untimed-sms {
+      margin-top: 8px; padding: 5px 10px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      font-size: 12px; font-family: inherit; cursor: pointer;
+      color: var(--text); font-weight: 500;
+      max-width: 240px;
+    }
+    .day-untimed-meta {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      flex-shrink: 0;
+    }
+    .day-untimed-price {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 16px; letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .day-untimed-complete {
+      padding: 6px 12px; background: var(--primary); color: white;
+      border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .day-untimed-complete:hover { background: var(--primary-hover); }
+    .day-untimed-done-pill {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+    @media (max-width: 600px) {
+      .day-untimed-block { padding: 10px 12px; gap: 10px; }
+      .day-untimed-meta { gap: 6px; }
+    }
 
     .day-grid-body { display: flex; position: relative; }
     .day-grid-hours {
@@ -3999,14 +4041,52 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
   return (
     <div className="day-grid">
       {untimed.length > 0 && (
-        <div className="day-grid-untimed">
-          <span className="day-grid-untimed-label">No time set</span>
-          <div className="day-grid-untimed-chips">
-            {untimed.map((o, i) => (
-              <button key={i} className={`day-untimed-chip${o.completed ? ' done' : ''}`} onClick={() => onOpen(o.job)}>
-                {o.job.title} · {jobCustomerName(o.job)}
-              </button>
-            ))}
+        <div className="day-untimed-section">
+          <div className="day-untimed-header">No time set · {untimed.length} {untimed.length === 1 ? 'visit' : 'visits'}</div>
+          <div className="day-untimed-list">
+            {untimed.map((o, i) => {
+              const phone = o.job.customer_phone;
+              const showSms = phone && smsTemplates.length > 0 && !o.completed;
+              return (
+                <div key={i} className={`day-untimed-block${o.completed ? ' completed' : ''}`} onClick={() => onOpen(o.job)}>
+                  <div className="day-untimed-main">
+                    <div className="day-untimed-title">{o.job.title}</div>
+                    <div className="day-untimed-customer">{jobCustomerName(o.job)}</div>
+                    {showSms && (
+                      <select
+                        className="day-untimed-sms"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                          if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                          e.target.value = '';
+                        }}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>💬 Text customer…</option>
+                        {smsTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>{t.label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="day-untimed-meta">
+                    {o.job.default_price != null && (
+                      <div className="day-untimed-price">{formatPrice(o.job.default_price)}</div>
+                    )}
+                    {!o.completed && (
+                      <button
+                        className="day-untimed-complete"
+                        onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                      >Mark complete</button>
+                    )}
+                    {o.completed && (
+                      <span className="day-untimed-done-pill">Completed</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
