@@ -5964,24 +5964,8 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           )}
           <form onSubmit={submit} className="form-card">
             <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-              What you call jobs and customers throughout the app. "Job" might be an appointment, visit, event, or booking. "Customer" might be a client. Pick a preset or type your own.
+              What you call jobs and customers throughout the app. "Job" might be an appointment, visit, event, or booking. "Customer" might be a client.
             </p>
-            {isAdmin && (
-              <>
-                <label style={{ marginTop: 4 }}>Industry presets</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
-                  {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
-                    <button
-                      key={key} type="button" className="chip"
-                      onClick={() => applyPreset(key)}
-                      title={`${preset.customer_label} / ${preset.job_label}`}
-                    >
-                      {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
             <div className="form-grid">
               <div>
                 <label>Singular word for a customer</label>
@@ -7092,22 +7076,9 @@ function OnboardingPage({ session, onDone }) {
             Step 2 of 2
           </p>
           <h1>What do you call your work?</h1>
-          <p className="subtitle" style={{ marginBottom: 16 }}>
+          <p className="subtitle" style={{ marginBottom: 20 }}>
             Every business is different. Tell us what you call jobs and customers and we'll use those words throughout the app. You can change this later in Settings → Terminology.
           </p>
-
-          <label style={{ marginTop: 4 }}>Industry presets</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
-            {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
-              <button
-                key={key} type="button" className="chip"
-                onClick={() => applyPreset(key)}
-                title={`${preset.customer_label} / ${preset.job_label}`}
-              >
-                {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              </button>
-            ))}
-          </div>
 
           <div className="form-grid">
             <div>
