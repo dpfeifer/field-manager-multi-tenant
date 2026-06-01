@@ -4,7 +4,10 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { requirePro, computePlan } = require('../middleware/plan');
 const { validatePassword } = require('../utils/password');
+
+const requireProForTeam = requirePro('team');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
 const { sendEmail } = require('../utils/email');
 const { passwordResetTemplate } = require('../utils/emailTemplates');
@@ -21,9 +24,12 @@ router.get('/me', requireAuth, async (req, res, next) => {
       `SELECT u.id, u.email, u.name, u.role, u.created_at, u.email_verified_at,
               o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name,
               o.features, o.onboarding_completed_at,
+              o.subscription_status, o.trial_ends_at,
               s.company_name AS settings_company_name,
               s.customer_label, s.customer_label_plural,
-              s.job_label, s.job_label_plural
+              s.job_label, s.job_label_plural,
+              (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
+              (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count
        FROM users u
        JOIN organizations o ON o.id = u.organization_id
        LEFT JOIN organization_settings s ON s.organization_id = o.id
@@ -33,6 +39,11 @@ router.get('/me', requireAuth, async (req, res, next) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     const row = rows[0];
     row.display_name = row.settings_company_name || row.organization_name;
+    row.plan = computePlan({
+      subscription_status: row.subscription_status,
+      trial_ends_at: row.trial_ends_at,
+    });
+    row.limits = { customers: 5, jobs: 20 };
     res.json(row);
   } catch (err) { next(err); }
 });
@@ -119,7 +130,7 @@ router.get('/users', requireAuth, async (req, res, next) => {
   }
 });
 
-router.post('/register', requireAuth, requireRole('admin'), async (req, res, next) => {
+router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, async (req, res, next) => {
   const { email, password, name, role } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'email and password are required' });

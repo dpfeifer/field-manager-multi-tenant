@@ -6,7 +6,7 @@ const morgan = require('morgan');
 
 const resolveOrganization = require('./middleware/organization');
 const { requireAuth } = require('./middleware/auth');
-const { requirePaidOrg } = require('./middleware/billing');
+const { blockPastDue, requirePro, enforceLimit } = require('./middleware/plan');
 const errorHandler = require('./middleware/errorHandler');
 
 const healthRoutes = require('./routes/health');
@@ -50,12 +50,12 @@ app.use('/api/system', systemRoutes);
 app.use('/api/signup', signupRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', resolveOrganization, authRoutes);
-app.use('/api/customers', resolveOrganization, requireAuth, requirePaidOrg, customersRoutes);
-app.use('/api/jobs', resolveOrganization, requireAuth, requirePaidOrg, jobsRoutes);
-app.use('/api/settings', resolveOrganization, requireAuth, requirePaidOrg, settingsRoutes);
-app.use('/api/invoices', resolveOrganization, requireAuth, requirePaidOrg, invoicesRoutes);
-app.use('/api/quotes', resolveOrganization, requireAuth, requirePaidOrg, quotesRoutes);
-app.use('/api/reports', resolveOrganization, requireAuth, reportsRoutes);
+app.use('/api/customers', resolveOrganization, requireAuth, blockPastDue, enforceLimit('customers'), customersRoutes);
+app.use('/api/jobs', resolveOrganization, requireAuth, blockPastDue, enforceLimit('jobs'), jobsRoutes);
+app.use('/api/settings', resolveOrganization, requireAuth, blockPastDue, settingsRoutes);
+app.use('/api/invoices', resolveOrganization, requireAuth, blockPastDue, requirePro('invoices'), invoicesRoutes);
+app.use('/api/quotes', resolveOrganization, requireAuth, blockPastDue, quotesRoutes);
+app.use('/api/reports', resolveOrganization, requireAuth, requirePro('reports'), reportsRoutes);
 app.use('/api/billing', resolveOrganization, requireAuth, billingRoutes);
 app.use('/api/onboarding', resolveOrganization, requireAuth, onboardingRoutes);
 app.use('/api/booking-requests', resolveOrganization, requireAuth, bookingRequestsRoutes);

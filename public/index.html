@@ -766,11 +766,14 @@
     .narrative-cinematic .beat-text { max-width: 460px; }
     .narrative-cinematic .beat-headline { font-size: clamp(32px, 4vw, 48px); }
     .narrative-cinematic .beat-visual {
-      background: var(--card); border: 1px solid var(--border-strong);
-      border-radius: 20px; padding: 36px;
-      box-shadow: 0 24px 60px -20px rgba(40, 30, 20, 0.2);
-      min-height: 280px;
       display: flex; align-items: center; justify-content: center;
+      min-height: 360px;
+    }
+    .narrative-cinematic .beat-visual .visual-price {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 20px; padding: 28px;
+      box-shadow: 0 24px 60px -20px rgba(40, 30, 20, 0.2);
+      max-width: 380px;
     }
     @media (max-width: 860px) {
       .narrative-cinematic .beat {
@@ -813,45 +816,187 @@
       .narrative-stepper .beat-num { width: 48px; height: 48px; font-size: 22px; }
     }
 
-    /* === Beat visuals === */
-    .visual-workflow {
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    /* === Screenshot-style beat visuals === */
+    .scrn-frame {
+      width: 100%; max-width: 480px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 14px; overflow: hidden;
+      box-shadow: 0 30px 70px -22px rgba(40, 30, 20, 0.32),
+                  0 12px 28px -10px rgba(40, 30, 20, 0.18);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .vw-card {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 10px 18px; background: var(--tinted);
-      border: 1px solid var(--border); border-radius: 999px;
-      font-weight: 600; font-size: 14px; color: var(--text);
-      animation: vwSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    .scrn-frame.scrn-tilt   { transform: rotate(1.2deg); }
+    .scrn-frame.scrn-tilt-l { transform: rotate(-1.4deg); }
+    .scrn-frame:hover { transform: rotate(0) translateY(-4px); }
+    .scrn-bar {
+      background: #efeae0; padding: 9px 14px;
+      display: flex; align-items: center; gap: 14px;
+      border-bottom: 1px solid var(--border);
     }
-    .vw-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-    .vw-arrow { color: var(--text-muted); margin-left: 4px; }
-    @keyframes vwSlide {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .scrn-dots { display: flex; gap: 5px; }
+    .scrn-dots span { width: 9px; height: 9px; border-radius: 50%; background: #d8d2c5; }
+    .scrn-dots span:nth-child(1) { background: #f08580; }
+    .scrn-dots span:nth-child(2) { background: #f0c374; }
+    .scrn-dots span:nth-child(3) { background: #80c97e; }
+    .scrn-url {
+      flex: 1; text-align: center; font-size: 11px;
+      color: var(--text-muted); letter-spacing: 0.02em;
+      font-family: ui-monospace, monospace;
+    }
+    .scrn-body { background: var(--bg); }
+
+    .scrn-app { font-family: 'Inter', sans-serif; }
+    .scrn-topbar {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      background: var(--card);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .scrn-brand {
+      font-family: var(--serif); font-size: 14px; font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .scrn-userpill {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--primary); color: white;
+      font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scrn-nav {
+      padding: 0 16px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 16px; background: var(--card);
+      overflow-x: auto;
+    }
+    .scrn-tab {
+      padding: 8px 0; font-size: 11px; color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .scrn-tab.on {
+      color: var(--text); font-weight: 600;
+      border-bottom-color: var(--primary);
+    }
+    .scrn-page { padding: 14px 16px 18px; }
+    .scrn-pageheader {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .scrn-pageheader h4 {
+      font-family: var(--serif); font-size: 16px;
+      margin: 0; letter-spacing: -0.02em;
+    }
+    .scrn-pill {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 8px; border-radius: 999px;
+      background: #f4ddd0; color: #8c4e30;
+    }
+    .scrn-pill-good { background: #e0eedd; color: #2f6b46; }
+    .scrn-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+    }
+    .scrn-card-tight { padding: 8px 12px; }
+    .scrn-card-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .scrn-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; font-size: 12px; color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    .scrn-row:last-child { border-bottom: none; }
+    .scrn-amt {
+      font-family: var(--serif); font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .scrn-tag {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .scrn-tag-paid { background: #e0eedd; color: #2f6b46; }
+
+    /* Signup screenshot */
+    .scrn-signup { padding: 24px 22px; }
+    .scrn-brand-row {
+      font-family: var(--serif); font-size: 14px; font-weight: 600;
+      letter-spacing: -0.02em; margin-bottom: 14px;
+      color: var(--text);
+    }
+    .scrn-signup-h {
+      font-family: var(--serif); font-size: 18px;
+      margin: 0 0 4px; letter-spacing: -0.02em; font-weight: 600;
+    }
+    .scrn-signup-sub {
+      margin: 0 0 16px; font-size: 12px; color: var(--text-muted);
+    }
+    .scrn-field { margin-bottom: 8px; }
+    .scrn-label {
+      display: block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .scrn-input {
+      display: block; padding: 8px 10px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; color: var(--text); font-family: ui-monospace, monospace;
+    }
+    .scrn-cta {
+      margin-top: 12px; padding: 10px;
+      background: var(--primary); color: white; text-align: center;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+    }
+    .scrn-fineprint {
+      margin-top: 8px; font-size: 11px; color: var(--text-muted);
+      text-align: center;
     }
 
-    .visual-signup .vs-frame {
-      max-width: 360px; background: var(--bg);
-      border: 1px solid var(--border-strong); border-radius: 12px;
-      padding: 18px; box-shadow: 0 12px 32px -10px rgba(40, 30, 20, 0.15);
+    /* Modules screenshot */
+    .scrn-subnav {
+      display: flex; gap: 6px; margin-bottom: 10px;
+      font-size: 11px;
     }
-    .vs-bar { display: flex; gap: 5px; margin-bottom: 14px; }
-    .vs-bar span { width: 8px; height: 8px; border-radius: 50%; background: #d8d2c5; }
-    .vs-bar span:first-child { background: #f08580; }
-    .vs-bar span:nth-child(2) { background: #f0c374; }
-    .vs-bar span:nth-child(3) { background: #80c97e; }
-    .vs-field { margin-bottom: 10px; }
-    .vs-label { display: block; font-size: 11px; font-weight: 600;
-      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
-      margin-bottom: 4px; }
-    .vs-input { display: block; padding: 10px 12px; background: var(--card);
-      border: 1px solid var(--border); border-radius: 8px;
-      font-size: 14px; color: var(--text); font-family: ui-monospace, monospace; }
-    .vs-cta { margin-top: 14px; padding: 10px 16px;
-      background: var(--primary); color: white; text-align: center;
-      border-radius: 8px; font-size: 14px; font-weight: 600; }
-    .vs-time { margin-top: 10px; font-size: 12px; color: var(--text-muted); text-align: center; }
+    .scrn-subnav span {
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--text-muted); font-weight: 500;
+    }
+    .scrn-subnav span.on {
+      background: var(--primary); color: white; border-color: var(--primary);
+      font-weight: 600;
+    }
+    .scrn-mod-row {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 10px; margin-bottom: 5px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .scrn-mod-toggle {
+      width: 28px; height: 16px; background: #d8d2c5;
+      border-radius: 999px; position: relative;
+      flex-shrink: 0; margin-top: 2px;
+      transition: background 0.2s;
+    }
+    .scrn-mod-toggle.on { background: var(--primary); }
+    .scrn-mod-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 12px; height: 12px; background: white; border-radius: 50%;
+      transition: left 0.2s;
+    }
+    .scrn-mod-toggle.on .scrn-mod-knob { left: 14px; }
+    .scrn-mod-text { flex: 1; }
+    .scrn-mod-label {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .scrn-mod-off-pill {
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 1px 5px; border-radius: 4px;
+      background: var(--tinted); color: var(--text-muted);
+    }
+    .scrn-mod-sub {
+      font-size: 10px; color: var(--text-muted); margin-top: 1px;
+      line-height: 1.4;
+    }
 
     .visual-price {
       width: 100%; max-width: 360px;
@@ -874,6 +1019,7 @@
       font-family: var(--serif); font-weight: 600;
       color: var(--accent); font-size: 18px; letter-spacing: -0.02em;
     }
+    .vp-free .vp-price { color: var(--primary); }
 
     .visual-modules { display: flex; flex-wrap: wrap; gap: 8px; max-width: 420px; }
     .vm-pill {
@@ -1957,13 +2103,13 @@ const NARRATIVE_BEATS = [
   {
     eyebrow: 'Quick start',
     headline: 'Up and running in 60 seconds.',
-    body: "Email and password. Done. No demo gates, no credit card, no sales calls. Bring your customers (paste a CSV or type them in), schedule your first job, and you're working.",
+    body: "Email and password. Done. No demo gates, no credit card, no sales calls. Start free — you can have up to 5 customers and 20 jobs before you ever pay a cent. Upgrade when you outgrow it.",
     kind: 'signup',
   },
   {
     eyebrow: 'Honest pricing',
-    headline: '$29/mo. Less than the alternatives.',
-    body: 'Jobber starts at $69. ServiceTitan is enterprise pricing only on request. Housecall Pro hides its real price behind sales calls. Field Manager is $29/month, flat. Every feature, every teammate, every customer.',
+    headline: 'Free to start. $29/mo when you scale.',
+    body: 'Run a small operation? Free forever — 5 customers, 20 jobs, no card on file. Outgrew that? Pro is a flat $29/mo. Jobber starts at $69. ServiceTitan is enterprise-only. Housecall Pro hides its price behind sales calls. We do not.',
     kind: 'price',
   },
   {
@@ -1974,44 +2120,96 @@ const NARRATIVE_BEATS = [
   },
 ];
 
+function ScrnFrame({ url, children, className }) {
+  return (
+    <div className={`scrn-frame ${className || ''}`} aria-hidden="true">
+      <div className="scrn-bar">
+        <div className="scrn-dots"><span /><span /><span /></div>
+        <div className="scrn-url">{url || 'app.fieldmgr.com'}</div>
+      </div>
+      <div className="scrn-body">{children}</div>
+    </div>
+  );
+}
+
+function ScrnApp({ activeNav, children }) {
+  return (
+    <div className="scrn-app">
+      <div className="scrn-topbar">
+        <span className="scrn-brand">Bob's Lawn Care</span>
+        <span className="scrn-userpill">B</span>
+      </div>
+      <div className="scrn-nav">
+        {['Dashboard','Schedule','Customers','Invoices','Quotes'].map((n) => (
+          <span key={n} className={`scrn-tab ${n === activeNav ? 'on' : ''}`}>{n}</span>
+        ))}
+      </div>
+      <div className="scrn-page">{children}</div>
+    </div>
+  );
+}
+
 function BeatVisual({ kind }) {
   if (kind === 'workflow') {
     return (
-      <div className="visual visual-workflow" aria-hidden="true">
-        {['Quote', 'Customer', 'Job', 'Invoice'].map((label, i) => (
-          <div key={label} className="vw-card" style={{ animationDelay: `${i * 0.15}s` }}>
-            <span className="vw-dot" />
-            <span>{label}</span>
-            {i < 3 && <span className="vw-arrow">→</span>}
+      <ScrnFrame url="app.fieldmgr.com/customers/heather" className="scrn-tilt">
+        <ScrnApp activeNav="Customers">
+          <div className="scrn-pageheader">
+            <h4>Heather Stahl</h4>
+            <span className="scrn-pill scrn-pill-good">Recurring · weekly</span>
           </div>
-        ))}
-      </div>
+          <div className="scrn-card">
+            <div className="scrn-card-label">Upcoming jobs</div>
+            <div className="scrn-row"><span>Fri Jun 12 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
+            <div className="scrn-row"><span>Fri Jun 19 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
+            <div className="scrn-row"><span>Fri Jun 26 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
+          </div>
+          <div className="scrn-card scrn-card-tight">
+            <div className="scrn-card-label">Invoices</div>
+            <div className="scrn-row"><span>#1024 · May 31</span><span className="scrn-tag scrn-tag-paid">Paid · $130</span></div>
+            <div className="scrn-row"><span>#1019 · May 17</span><span className="scrn-tag scrn-tag-paid">Paid · $130</span></div>
+          </div>
+        </ScrnApp>
+      </ScrnFrame>
     );
   }
   if (kind === 'signup') {
     return (
-      <div className="visual visual-signup" aria-hidden="true">
-        <div className="vs-frame">
-          <div className="vs-bar"><span /><span /><span /></div>
-          <div className="vs-field"><span className="vs-label">Email</span><span className="vs-input">bob@lawncare.com</span></div>
-          <div className="vs-field"><span className="vs-label">Password</span><span className="vs-input">••••••••</span></div>
-          <div className="vs-cta">Start free trial</div>
-          <div className="vs-time">⏱  ~60 seconds</div>
+      <ScrnFrame url="fieldmgr.com/signup" className="scrn-tilt-l">
+        <div className="scrn-signup">
+          <div className="scrn-brand-row">Field Manager</div>
+          <h4 className="scrn-signup-h">Create your account</h4>
+          <p className="scrn-signup-sub">Free forever for small operations.</p>
+          <div className="scrn-field">
+            <span className="scrn-label">Business name</span>
+            <span className="scrn-input">Bob's Lawn Care</span>
+          </div>
+          <div className="scrn-field">
+            <span className="scrn-label">Email</span>
+            <span className="scrn-input">bob@lawncare.com</span>
+          </div>
+          <div className="scrn-field">
+            <span className="scrn-label">Password</span>
+            <span className="scrn-input">••••••••••</span>
+          </div>
+          <div className="scrn-cta">Start free</div>
+          <div className="scrn-fineprint">No credit card · ~60 seconds</div>
         </div>
-      </div>
+      </ScrnFrame>
     );
   }
   if (kind === 'price') {
     const rows = [
-      { name: 'Jobber',         price: '$69+/mo', dim: true },
-      { name: 'ServiceTitan',   price: 'Call sales', dim: true },
-      { name: 'Housecall Pro',  price: 'Call sales', dim: true },
-      { name: 'Field Manager',  price: '$29/mo', highlight: true },
+      { name: 'Field Manager Free', price: '$0',          highlight: 'free' },
+      { name: 'Field Manager Pro',  price: '$29/mo',      highlight: 'pro' },
+      { name: 'Jobber',             price: '$69+/mo',     dim: true },
+      { name: 'ServiceTitan',       price: 'Call sales',  dim: true },
+      { name: 'Housecall Pro',      price: 'Call sales',  dim: true },
     ];
     return (
       <div className="visual visual-price" aria-hidden="true">
         {rows.map((r) => (
-          <div key={r.name} className={`vp-row ${r.highlight ? 'vp-highlight' : ''} ${r.dim ? 'vp-dim' : ''}`}>
+          <div key={r.name} className={`vp-row ${r.highlight ? 'vp-highlight vp-' + r.highlight : ''} ${r.dim ? 'vp-dim' : ''}`}>
             <span className="vp-name">{r.name}</span>
             <span className="vp-price">{r.price}</span>
           </div>
@@ -2020,24 +2218,35 @@ function BeatVisual({ kind }) {
     );
   }
   if (kind === 'modules') {
-    const mods = [
-      { label: 'Customers', on: true, locked: true },
-      { label: 'Jobs', on: true, locked: true },
-      { label: 'Invoices', on: true },
-      { label: 'Quotes', on: false },
-      { label: 'Reports', on: true },
-      { label: 'Team', on: false },
-    ];
     return (
-      <div className="visual visual-modules" aria-hidden="true">
-        {mods.map((m) => (
-          <div key={m.label} className={`vm-pill ${m.on ? 'on' : 'off'} ${m.locked ? 'locked' : ''}`}>
-            <span className="vm-tick">{m.locked ? '●' : m.on ? '✓' : '+'}</span>
-            <span>{m.label}</span>
-            {m.locked && <span className="vm-tag">always on</span>}
+      <ScrnFrame url="app.fieldmgr.com/settings/modules" className="scrn-tilt">
+        <ScrnApp activeNav="Settings">
+          <div className="scrn-subnav">
+            <span>Company</span><span>Terminology</span><span className="on">Modules</span>
           </div>
-        ))}
-      </div>
+          <div className="scrn-mod-row">
+            <span className="scrn-mod-toggle on"><span className="scrn-mod-knob" /></span>
+            <div className="scrn-mod-text">
+              <div className="scrn-mod-label">Invoices</div>
+              <div className="scrn-mod-sub">Bill customers, accept payments via public link.</div>
+            </div>
+          </div>
+          <div className="scrn-mod-row">
+            <span className="scrn-mod-toggle"><span className="scrn-mod-knob" /></span>
+            <div className="scrn-mod-text">
+              <div className="scrn-mod-label">Quotes <span className="scrn-mod-off-pill">off</span></div>
+              <div className="scrn-mod-sub">Prospect estimates that convert to customers.</div>
+            </div>
+          </div>
+          <div className="scrn-mod-row">
+            <span className="scrn-mod-toggle on"><span className="scrn-mod-knob" /></span>
+            <div className="scrn-mod-text">
+              <div className="scrn-mod-label">Reports</div>
+              <div className="scrn-mod-sub">Revenue dashboard, projected income, top customers.</div>
+            </div>
+          </div>
+        </ScrnApp>
+      </ScrnFrame>
     );
   }
   return null;
@@ -2097,10 +2306,10 @@ function NarrativeStepper() {
 
 function LandingPage() {
   const [variant, _setVariant] = useState(() => {
-    if (typeof window === 'undefined') return 'clean';
+    if (typeof window === 'undefined') return 'marquee';
     const u = new URLSearchParams(window.location.search);
     const v = u.get('v');
-    return ['clean','playful','stats','marquee','stickers'].includes(v) ? v : 'clean';
+    return ['clean','playful','stats','marquee','stickers'].includes(v) ? v : 'marquee';
   });
   function setVariant(v) {
     _setVariant(v);
@@ -2112,16 +2321,16 @@ function LandingPage() {
   }
 
   const [bodyVariant, _setBodyVariant] = useState(() => {
-    if (typeof window === 'undefined') return 'editorial';
+    if (typeof window === 'undefined') return 'cinematic';
     const u = new URLSearchParams(window.location.search);
     const v = u.get('body');
-    return ['editorial','cinematic','stepper'].includes(v) ? v : 'editorial';
+    return ['editorial','cinematic','stepper'].includes(v) ? v : 'cinematic';
   });
   function setBodyVariant(v) {
     _setBodyVariant(v);
     try {
       const url = new URL(window.location.href);
-      if (v === 'editorial') url.searchParams.delete('body'); else url.searchParams.set('body', v);
+      if (v === 'cinematic') url.searchParams.delete('body'); else url.searchParams.set('body', v);
       window.history.replaceState({}, '', url.toString());
     } catch (err) {}
   }
@@ -2195,11 +2404,11 @@ function LandingPage() {
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
         </p>
         <div className="cta-row fade-in-delay-3">
-          <button className="primary" onClick={() => navigate('/signup')}>Start free trial<Icon name="arrow" /></button>
+          <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
           <button className="secondary" onClick={() => navigate('/signin')}>Sign in</button>
         </div>
         <p className="fade-in-delay-3" style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
-          <strong style={{ color: 'var(--text)' }}>$29/month</strong> after your trial · No credit card to start · Cancel anytime
+          <strong style={{ color: 'var(--text)' }}>Free forever</strong> for small operations · <strong style={{ color: 'var(--text)' }}>$29/mo</strong> when you scale · No credit card
         </p>
 
         {variant === 'stats' && (
@@ -2239,9 +2448,9 @@ function LandingPage() {
 
       <section className="landing-section">
         <div className="cta-band" data-reveal>
-          <h2>Set up your shop in two minutes.</h2>
-          <p>No credit card required. Bring your existing customers or start fresh.</p>
-          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => navigate('/signup')}>Create your account</button>
+          <h2>Start free. Grow at your pace.</h2>
+          <p>No credit card. Five customers and twenty jobs on the house. Upgrade to Pro when you're ready for more.</p>
+          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => navigate('/signup')}>Create your free account</button>
         </div>
       </section>
 
