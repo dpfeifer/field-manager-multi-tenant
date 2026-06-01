@@ -6340,6 +6340,10 @@ function App() {
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
   if (path.startsWith('/staff')) return <StaffApp />;
+  // /system/* is the URL space used by SystemView's chips and detail pages.
+  // If a staff session is active and there's no regular user session, keep
+  // those clicks inside StaffApp instead of dumping the user to /signin.
+  if (path.startsWith('/system') && !session && loadStaffSession()) return <StaffApp />;
   if (path === '/reset-password') return <ResetPasswordPage />;
   if (path === '/verify-email') return <VerifyEmailPage />;
 
