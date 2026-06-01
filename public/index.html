@@ -661,7 +661,7 @@
     .landing-nav .nav-actions { display: flex; gap: 12px; align-items: center; }
     .landing-section { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
     .landing-hero {
-      padding: 120px 40px 96px; text-align: center; max-width: 1100px; margin: 0 auto;
+      padding: 120px 40px 96px; text-align: center; max-width: 1240px; margin: 0 auto;
       position: relative;
     }
     .landing-hero::before {
@@ -678,10 +678,10 @@
       letter-spacing: 0.06em; text-transform: uppercase;
     }
     .landing-hero h1 {
-      /* Clamp tuned so the longest cycle phrase ('pressure washing business',
-         25 chars) fits on one line at every viewport size — from a 320px
-         phone up through 1100px desktop. */
-      font-size: clamp(22px, 5.8vw, 76px);
+      /* Tuned so the longest cycle phrase ('pool service business',
+         21 chars) fits on one line at every viewport from a 320px
+         phone up through the hero's 1020px content max on desktop. */
+      font-size: clamp(30px, 7.8vw, 96px);
       line-height: 0.98; letter-spacing: -0.045em; margin: 0 0 28px;
       font-weight: 800;
     }
@@ -1444,7 +1444,6 @@ const INDUSTRIES = [
   'pet care business',
   'barber business',
   'pool service business',
-  'pressure washing business',
   'photography business',
   'landscaping business',
   'painting business',
