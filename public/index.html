@@ -148,10 +148,14 @@
       font-style: italic;
       color: var(--accent);
       display: inline-block;
-      animation: wordSwap 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: wordSwap 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .cycle-word.settled {
+      font-style: normal;
+      color: inherit;
     }
     @keyframes wordSwap {
-      0% { opacity: 0; transform: translateY(0.25em); }
+      0%   { opacity: 0; transform: translateY(0.18em); }
       100% { opacity: 1; transform: translateY(0); }
     }
 
@@ -1407,7 +1411,7 @@ function CyclingHeadline() {
     <h1 className="fade-in-delay-1 hero-stacked">
       <span className="hero-line">Run your</span>
       <span className="hero-cycle-line">
-        <span className="cycle-word" key={idx}>{INDUSTRIES[idx]}</span>
+        <span className={`cycle-word${reachedEnd ? ' settled' : ''}`} key={idx}>{INDUSTRIES[idx]}</span>
       </span>
       <span className="hero-line">in one place.</span>
     </h1>
