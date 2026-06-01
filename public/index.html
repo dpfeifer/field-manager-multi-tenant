@@ -670,6 +670,67 @@
       background: radial-gradient(ellipse 60% 40% at 50% 20%, var(--tinted), transparent 70%);
       opacity: 0.6;
     }
+
+    /* Gentle drifting decorative dots in hero — adds energy without clipart */
+    .hero-orb {
+      position: absolute; pointer-events: none; z-index: -1;
+      border-radius: 50%;
+      filter: blur(20px); opacity: 0.5;
+      animation: orbDrift 12s ease-in-out infinite;
+    }
+    .hero-orb.orb-a { top: 18%;  left: 8%;  width: 140px; height: 140px;
+      background: radial-gradient(circle, rgba(201, 133, 88, 0.35), transparent 70%); }
+    .hero-orb.orb-b { top: 12%;  right: 10%; width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(44, 62, 87, 0.18), transparent 70%);
+      animation-delay: -4s; }
+    .hero-orb.orb-c { bottom: 8%; left: 30%; width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(201, 133, 88, 0.22), transparent 70%);
+      animation-delay: -8s; }
+    @keyframes orbDrift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(20px, -18px) scale(1.05); }
+      66%      { transform: translate(-12px, 14px) scale(0.95); }
+    }
+
+    /* Floating sticker badges flanking the hero */
+    .hero-sticker {
+      position: absolute; display: inline-flex; align-items: center; gap: 7px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 14px; padding: 8px 14px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      box-shadow: 0 8px 20px -6px rgba(40, 30, 20, 0.18),
+                  0 2px 6px -2px rgba(40, 30, 20, 0.08);
+      letter-spacing: -0.005em;
+      z-index: 1;
+    }
+    .hero-sticker .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(201, 133, 88, 0.18);
+    }
+    .hero-sticker.left {
+      top: 92px; left: 4%;
+      animation: stickerFloatL 5.5s ease-in-out infinite;
+    }
+    .hero-sticker.right {
+      top: 140px; right: 4%;
+      animation: stickerFloatR 6s ease-in-out infinite;
+      animation-delay: -2.2s;
+    }
+    @keyframes stickerFloatL {
+      0%, 100% { transform: rotate(-7deg) translateY(0); }
+      50%      { transform: rotate(-7deg) translateY(-8px); }
+    }
+    @keyframes stickerFloatR {
+      0%, 100% { transform: rotate(6deg) translateY(0); }
+      50%      { transform: rotate(6deg) translateY(-10px); }
+    }
+    @media (max-width: 860px) {
+      .hero-sticker { display: none; }
+      .hero-orb { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-orb, .hero-sticker { animation: none; }
+    }
     .landing-hero .eyebrow {
       display: inline-block; padding: 5px 14px;
       background: var(--card); border: 1px solid var(--border-strong);
@@ -693,9 +754,22 @@
     .landing-hero .cta-row button.primary {
       padding: 14px 28px; font-size: 15px; gap: 8px;
       display: inline-flex; align-items: center;
+      position: relative; overflow: visible;
+      transition: background 0.25s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .landing-hero .cta-row button.primary .icon { transition: transform 0.2s; }
-    .landing-hero .cta-row button.primary:hover .icon { transform: translateX(2px); }
+    .landing-hero .cta-row button.primary::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: inherit; pointer-events: none;
+      box-shadow: 0 0 0 0 rgba(201, 133, 88, 0); transition: box-shadow 0.4s;
+    }
+    .landing-hero .cta-row button.primary .icon { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .landing-hero .cta-row button.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px -8px rgba(201, 133, 88, 0.42),
+                  0 4px 10px -4px rgba(40, 30, 20, 0.15);
+    }
+    .landing-hero .cta-row button.primary:hover .icon { transform: translateX(4px); }
     .landing-hero .cta-row button.secondary { padding: 14px 28px; font-size: 15px; }
 
     .features-grid {
@@ -706,20 +780,44 @@
       background: var(--card); border: 1px solid var(--border);
       border-radius: 16px; padding: 32px 28px;
       box-shadow: var(--shadow-sm);
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(201, 133, 88, 0.08), transparent 60%);
+      opacity: 0; transition: opacity 0.3s;
     }
     .feature-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
+      transform: translateY(-5px) rotate(-0.4deg);
+      box-shadow: 0 14px 32px -10px rgba(40, 30, 20, 0.18),
+                  0 6px 16px -6px rgba(40, 30, 20, 0.12);
+      border-color: var(--border-strong);
     }
+    .feature-card:nth-child(even):hover { transform: translateY(-5px) rotate(0.4deg); }
+    .feature-card:nth-child(3n):hover  { transform: translateY(-5px) rotate(-0.6deg); }
+    .feature-card:hover::before { opacity: 1; }
     .feature-card .feature-icon {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 40px; height: 40px; border-radius: 10px;
+      width: 44px; height: 44px; border-radius: 12px;
       background: var(--tinted); color: var(--primary);
-      margin-bottom: 18px; font-size: 18px;
+      margin-bottom: 18px; font-size: 20px;
+      transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  color 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .feature-card h3 { margin: 0 0 12px; font-size: 18px; line-height: 1.2; }
-    .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+    .feature-card .feature-icon .icon {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .feature-card:hover .feature-icon {
+      background: var(--primary); color: white;
+      transform: rotate(-5deg) scale(1.05);
+    }
+    .feature-card:hover .feature-icon .icon { transform: scale(1.1); }
+    .feature-card:nth-child(even):hover .feature-icon { transform: rotate(5deg) scale(1.05); }
+    .feature-card h3 { margin: 0 0 12px; font-size: 18px; line-height: 1.2; position: relative; }
+    .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; position: relative; }
 
     .section-label {
       font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
@@ -1494,6 +1592,20 @@ function LandingPage() {
     return () => observer.disconnect();
   }, []);
 
+  // Feature card cursor-follow glow: each card tracks pointer position into
+  // CSS variables --mx/--my so the radial gradient in ::before can chase the
+  // cursor while it's over the card.
+  useEffect(() => {
+    const cards = document.querySelectorAll('.feature-card');
+    function onMove(e) {
+      const r = e.currentTarget.getBoundingClientRect();
+      e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+    }
+    cards.forEach(c => c.addEventListener('pointermove', onMove));
+    return () => cards.forEach(c => c.removeEventListener('pointermove', onMove));
+  }, []);
+
   return (
     <div className="landing">
       <nav className="landing-nav">
@@ -1505,6 +1617,16 @@ function LandingPage() {
       </nav>
 
       <header className="landing-hero">
+        <span className="hero-orb orb-a" aria-hidden="true" />
+        <span className="hero-orb orb-b" aria-hidden="true" />
+        <span className="hero-orb orb-c" aria-hidden="true" />
+        <div className="hero-sticker left fade-in-delay-3" aria-hidden="true">
+          <span className="dot" /> Setup in 60 seconds
+        </div>
+        <div className="hero-sticker right fade-in-delay-3" aria-hidden="true">
+          <span className="dot" /> 14 days free · No card
+        </div>
+
         <span className="eyebrow fade-in">For small service teams</span>
         <CyclingHeadline />
         <p className="lede fade-in-delay-2">
