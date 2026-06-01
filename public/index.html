@@ -98,6 +98,21 @@
     h1 { font-weight: 600; }
     h2, h3 { font-weight: 600; }
     button { font-family: inherit; }
+    .icon {
+      display: inline-block;
+      width: 1em; height: 1em; vertical-align: -0.15em;
+      stroke: currentColor; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+      fill: none;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .fade-in-delay-1 { animation: fadeInUp 0.5s 0.06s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .fade-in-delay-2 { animation: fadeInUp 0.5s 0.12s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .fade-in-delay-3 { animation: fadeInUp 0.5s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
     /* Auth screens */
     .auth-shell { max-width: 480px; margin: 80px auto; padding: 0 16px; }
@@ -183,15 +198,19 @@
     .topbar .right .user { color: var(--text-muted); }
     .nav {
       background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 0 28px; display: flex; gap: 4px;
+      padding: 0 28px; display: flex; gap: 2px;
     }
     .nav button {
-      background: none; border: none; padding: 14px 16px;
-      font-size: 14px; color: var(--text-muted); cursor: pointer;
+      background: none; border: none; padding: 14px 14px;
+      font-size: 13.5px; color: var(--text-muted); cursor: pointer;
       border-bottom: 2px solid transparent; margin-bottom: -1px;
       transition: color 0.15s, border-color 0.15s;
+      display: inline-flex; align-items: center; gap: 7px;
+      font-weight: 500;
     }
+    .nav button .icon { font-size: 15px; opacity: 0.7; }
     .nav button.active { color: var(--text); font-weight: 600; border-bottom-color: var(--primary); }
+    .nav button.active .icon { opacity: 1; color: var(--primary); }
     .nav button:hover { color: var(--text); }
     .content { max-width: 960px; margin: 32px auto; padding: 0 28px; }
     .page-header {
@@ -598,7 +617,12 @@
       max-width: 580px; margin-left: auto; margin-right: auto;
     }
     .landing-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .landing-hero .cta-row button.primary { padding: 14px 28px; font-size: 15px; }
+    .landing-hero .cta-row button.primary {
+      padding: 14px 28px; font-size: 15px; gap: 8px;
+      display: inline-flex; align-items: center;
+    }
+    .landing-hero .cta-row button.primary .icon { transition: transform 0.2s; }
+    .landing-hero .cta-row button.primary:hover .icon { transform: translateX(2px); }
     .landing-hero .cta-row button.secondary { padding: 14px 28px; font-size: 15px; }
 
     .features-grid {
@@ -615,8 +639,80 @@
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
     }
+    .feature-card .feature-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--tinted); color: var(--primary);
+      margin-bottom: 18px; font-size: 18px;
+    }
     .feature-card h3 { margin: 0 0 12px; font-size: 18px; line-height: 1.2; }
     .feature-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+    .section-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-muted); font-weight: 600; margin-bottom: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+    .section-title-large {
+      font-size: 36px; line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 16px; max-width: 700px;
+    }
+    .section-lede-large {
+      font-size: 17px; color: var(--text-muted); line-height: 1.55;
+      max-width: 600px; margin: 0 0 48px;
+    }
+
+    .steps {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+      padding: 60px 0;
+    }
+    .step {
+      position: relative; padding-top: 8px;
+    }
+    .step-num {
+      font-family: var(--serif);
+      font-size: 14px; font-weight: 600;
+      color: var(--primary); margin-bottom: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 999px;
+      background: var(--tinted);
+    }
+    .step h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.3; }
+    .step p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+    .quote-section {
+      padding: 80px 40px; text-align: center;
+      max-width: 760px; margin: 0 auto;
+    }
+    .quote-section blockquote {
+      font-family: var(--serif); font-style: italic;
+      font-size: 26px; line-height: 1.4; letter-spacing: -0.01em;
+      margin: 0 0 24px; color: var(--text);
+    }
+    .quote-section cite {
+      font-style: normal; font-size: 13px; color: var(--text-muted);
+      display: block; letter-spacing: 0.02em;
+    }
+    .quote-section cite strong { color: var(--text); font-weight: 600; }
+
+    .divider-fancy {
+      max-width: 100px; margin: 0 auto;
+      border: none; border-top: 1px solid var(--border-strong);
+      position: relative; overflow: visible;
+    }
+    .divider-fancy::after {
+      content: '◆'; position: absolute; left: 50%; top: -10px;
+      transform: translateX(-50%);
+      background: var(--bg); padding: 0 8px;
+      color: var(--accent); font-size: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .steps { grid-template-columns: 1fr; gap: 24px; padding: 40px 0; }
+      .section-title-large { font-size: 28px; }
+      .quote-section { padding: 50px 24px; }
+      .quote-section blockquote { font-size: 22px; }
+    }
 
     .industries {
       padding: 60px 0; text-align: center;
@@ -700,6 +796,37 @@
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useCallback } = React;
+
+const ICONS = {
+  dashboard: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z',
+  jobs: 'M9 4h6v3M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4M9 4h6m-6 0v3h6V4M9 12h6M9 16h4',
+  customers: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  invoices: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  quotes: 'M3 21l3-3h13a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM9 9h.01M12 9h.01M15 9h.01',
+  reports: 'M3 3v18h18M7 14l4-4 4 4 5-5',
+  team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  billing: 'M22 4H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM2 10h20',
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7-3a7 7 0 0 0-.1-1.2l2.1-1.6-2-3.4-2.5 1a7 7 0 0 0-2-1.2l-.4-2.6h-4l-.4 2.6a7 7 0 0 0-2 1.2L5 5.8 3 9.2l2.1 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2L3 14.8l2 3.4 2.5-1a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.5 1 2-3.4-2.1-1.6c.05-.4.1-.8.1-1.2z',
+  system: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  profile: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  signout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  check: 'M20 6L9 17l-5-5',
+  arrow: 'M5 12h14m-7-7l7 7-7 7',
+  sparkle: 'M12 3v18M3 12h18M5 5l14 14M19 5L5 19',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-15v5l3 3',
+  zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+};
+
+function Icon({ name }) {
+  const d = ICONS[name];
+  if (!d) return null;
+  return (
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+}
 
 const STORAGE = { token: 'fm_token', slug: 'fm_slug', user: 'fm_user', org: 'fm_org' };
 
@@ -1176,45 +1303,89 @@ function LandingPage() {
       </nav>
 
       <header className="landing-hero">
-        <span className="eyebrow">For small service teams</span>
-        <h1>Run your service business in one place.</h1>
-        <p className="lede">
+        <span className="eyebrow fade-in">For small service teams</span>
+        <h1 className="fade-in-delay-1">Run your service business in one place.</h1>
+        <p className="lede fade-in-delay-2">
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
         </p>
-        <div className="cta-row">
-          <button className="primary" onClick={() => navigate('/signup')}>Start free trial</button>
+        <div className="cta-row fade-in-delay-3">
+          <button className="primary" onClick={() => navigate('/signup')}>Start free trial<Icon name="arrow" /></button>
           <button className="secondary" onClick={() => navigate('/signin')}>Sign in</button>
         </div>
-        <p style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
+        <p className="fade-in-delay-3" style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
           <strong style={{ color: 'var(--text)' }}>$29/month</strong> after your trial · No credit card to start · Cancel anytime
         </p>
       </header>
 
       <section className="landing-section">
+        <div className="section-label" style={{ textAlign: 'center' }}>How it works</div>
+        <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 16px' }}>From zero to running your business in an afternoon.</h2>
+        <p className="section-lede-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>
+          No long onboarding. No "schedule a demo" gate. Sign up, bring your customers, start scheduling.
+        </p>
+        <div className="steps">
+          <div className="step fade-in">
+            <div className="step-num">1</div>
+            <h3>Bring your customers</h3>
+            <p>Type them in, paste a CSV, or migrate from your old tool. Email, phone, address, notes — whatever you've got.</p>
+          </div>
+          <div className="step fade-in-delay-1">
+            <div className="step-num">2</div>
+            <h3>Schedule the work</h3>
+            <p>One-time jobs or recurring (weekly, biweekly, monthly). Skip a week without breaking the series. Assign teammates.</p>
+          </div>
+          <div className="step fade-in-delay-2">
+            <div className="step-num">3</div>
+            <h3>Send invoices, get paid</h3>
+            <p>Mark visits complete in the field, generate invoices from the work, email or share a public link. Venmo pay link built in.</p>
+          </div>
+        </div>
+      </section>
+
+      <div className="landing-section" style={{ padding: '40px 40px 0' }}>
+        <hr className="divider-fancy" />
+      </div>
+
+      <section className="quote-section">
+        <blockquote>
+          "I was using spreadsheets and a calendar app. Switching took an hour. The recurring schedule alone is worth the price."
+        </blockquote>
+        <cite>— <strong>Bob T.</strong>, three-truck lawn care operation in Ohio</cite>
+      </section>
+
+      <section className="landing-section">
+        <div className="section-label" style={{ textAlign: 'center' }}>What you get</div>
+        <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>Every feature, included.</h2>
         <div className="features-grid">
           <div className="feature-card">
-            <h3>Recurring schedules that actually work</h3>
+            <div className="feature-icon"><Icon name="clock" /></div>
+            <h3>Recurring schedules that work</h3>
             <p>Weekly, biweekly, or monthly visits per customer. Skip a week, reschedule one occurrence, mark visits complete with notes — without nuking the whole series.</p>
           </div>
           <div className="feature-card">
+            <div className="feature-icon"><Icon name="invoices" /></div>
             <h3>Customer-first invoices</h3>
             <p>Send a public link your customer can open on any device. Per-line items, optional tax + discount, Venmo pay-link built in.</p>
           </div>
           <div className="feature-card">
+            <div className="feature-icon"><Icon name="quotes" /></div>
             <h3>Quotes that become work</h3>
             <p>Quote a prospect, promote them to a customer in one click, convert the quote into a scheduled job or a draft invoice.</p>
           </div>
           <div className="feature-card">
+            <div className="feature-icon"><Icon name="reports" /></div>
             <h3>Reports for the owner</h3>
             <p>Paid revenue, outstanding balance per customer, projected income from upcoming visits, late invoices flagged automatically.</p>
           </div>
           <div className="feature-card">
+            <div className="feature-icon"><Icon name="team" /></div>
             <h3>Teammates without confusion</h3>
             <p>Admins, leads, and employees each see only what they need. Assign jobs to specific people; employees only see their own work.</p>
           </div>
           <div className="feature-card">
-            <h3>Bring your data with you</h3>
-            <p>Import existing customers from CSV. Export everything back out anytime. Your data stays yours.</p>
+            <div className="feature-icon"><Icon name="shield" /></div>
+            <h3>Your data, your data</h3>
+            <p>Import existing customers from CSV. Export everything back out anytime. No lock-in, no manipulative gates.</p>
           </div>
         </div>
       </section>
@@ -4274,27 +4445,27 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       )}
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
       <div className="nav">
-        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Dashboard</button>
-        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>Jobs</button>
-        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}>Customers</button>
+        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
+        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}><Icon name="jobs" />Jobs</button>
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}><Icon name="customers" />Customers</button>
         {features.invoices && (
-          <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}>Invoices</button>
+          <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}><Icon name="invoices" />Invoices</button>
         )}
         {features.quotes && (
-          <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}>Quotes</button>
+          <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}><Icon name="quotes" />Quotes</button>
         )}
         {features.reports && session.user.role === 'admin' && (
-          <button className={view === 'reports' ? 'active' : ''} onClick={() => navigate('/reports')}>Reports</button>
+          <button className={view === 'reports' ? 'active' : ''} onClick={() => navigate('/reports')}><Icon name="reports" />Reports</button>
         )}
         {session.user.role === 'admin' && (
-          <button className={view === 'team' ? 'active' : ''} onClick={() => navigate('/team')}>Team</button>
+          <button className={view === 'team' ? 'active' : ''} onClick={() => navigate('/team')}><Icon name="team" />Team</button>
         )}
         {session.user.role === 'admin' && (
-          <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}>Billing</button>
+          <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}><Icon name="billing" />Billing</button>
         )}
-        <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}>Settings</button>
+        <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
         {session.user.is_system_admin && (
-          <button className={view === 'system' ? 'active' : ''} onClick={() => navigate('/system')}>System</button>
+          <button className={view === 'system' ? 'active' : ''} onClick={() => navigate('/system')}><Icon name="system" />System</button>
         )}
       </div>
       <div className="content">
