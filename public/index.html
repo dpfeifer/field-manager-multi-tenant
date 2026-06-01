@@ -745,16 +745,18 @@
       font-size: 13px; color: var(--text-muted); margin-top: 2px;
     }
     .day-untimed-sms {
-      margin-top: 8px; padding: 5px 10px;
+      padding: 6px 10px;
       background: var(--card); border: 1px solid var(--border-strong);
       border-radius: 6px;
       font-size: 12px; font-family: inherit; cursor: pointer;
-      color: var(--text); font-weight: 500;
-      max-width: 240px;
+      color: var(--text); font-weight: 600;
     }
     .day-untimed-meta {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
       flex-shrink: 0;
+    }
+    .day-untimed-actions {
+      display: flex; align-items: center; gap: 6px;
     }
     .day-untimed-price {
       font-family: var(--serif); font-weight: 600;
@@ -865,6 +867,7 @@
       border-radius: 10px;
     }
     .sms-template-fields { flex: 1; display: grid; grid-template-columns: 200px 1fr; gap: 10px; }
+    .sms-template-fields label { margin-top: 0; }
     .sms-template-row button.danger { flex-shrink: 0; }
     .sms-template-row code {
       background: var(--card); padding: 1px 5px; border-radius: 3px;
@@ -4052,37 +4055,39 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                   <div className="day-untimed-main">
                     <div className="day-untimed-title">{o.job.title}</div>
                     <div className="day-untimed-customer">{jobCustomerName(o.job)}</div>
-                    {showSms && (
-                      <select
-                        className="day-untimed-sms"
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          const tpl = smsTemplates.find((t) => t.id === e.target.value);
-                          if (tpl) sendSmsTemplate(phone, tpl, o.job);
-                          e.target.value = '';
-                        }}
-                        defaultValue=""
-                      >
-                        <option value="" disabled>💬 Text customer…</option>
-                        {smsTemplates.map((t) => (
-                          <option key={t.id} value={t.id}>{t.label}</option>
-                        ))}
-                      </select>
-                    )}
                   </div>
                   <div className="day-untimed-meta">
                     {o.job.default_price != null && (
                       <div className="day-untimed-price">{formatPrice(o.job.default_price)}</div>
                     )}
-                    {!o.completed && (
-                      <button
-                        className="day-untimed-complete"
-                        onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
-                      >Mark complete</button>
-                    )}
-                    {o.completed && (
-                      <span className="day-untimed-done-pill">Completed</span>
-                    )}
+                    <div className="day-untimed-actions">
+                      {showSms && (
+                        <select
+                          className="day-untimed-sms"
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                            if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                            e.target.value = '';
+                          }}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💬 Text…</option>
+                          {smsTemplates.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                          ))}
+                        </select>
+                      )}
+                      {!o.completed && (
+                        <button
+                          className="day-untimed-complete"
+                          onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                        >Mark complete</button>
+                      )}
+                      {o.completed && (
+                        <span className="day-untimed-done-pill">Completed</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
