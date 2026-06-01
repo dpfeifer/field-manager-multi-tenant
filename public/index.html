@@ -4163,7 +4163,9 @@ function QuotesView({ session, features = { invoices: true } }) {
 
 function SettingsView({ session, features = { invoices: true, quotes: true, reports: true }, onFeaturesChange }) {
   const path = useLocation();
-  const subView = path === '/settings/modules' ? 'modules' : 'company';
+  const subView = path === '/settings/modules' ? 'modules'
+    : path === '/settings/terminology' ? 'terminology'
+    : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -4246,7 +4248,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     finally { setBusy(false); }
   }
 
-  if (loading && subView === 'company') {
+  if (loading && (subView === 'company' || subView === 'terminology')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -4267,6 +4269,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'company' ? 'active' : ''}`}
             onClick={() => navigate('/settings')}
           >Company</button>
+          <button
+            className={`chip ${subView === 'terminology' ? 'active' : ''}`}
+            onClick={() => navigate('/settings/terminology')}
+          >Terminology</button>
           {isAdmin && (
             <button
               className={`chip ${subView === 'modules' ? 'active' : ''}`}
@@ -4310,6 +4316,61 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         </>
       )}
 
+      {subView === 'terminology' && (
+        <>
+          {error && <div className="error">{error}</div>}
+          {saved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+          )}
+          <form onSubmit={submit} className="form-card">
+            <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+              What you call jobs and customers throughout the app. "Job" might be an appointment, visit, event, or booking. "Customer" might be a client. Pick a preset or type your own.
+            </p>
+            {isAdmin && (
+              <>
+                <label style={{ marginTop: 4 }}>Industry presets</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+                  {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
+                    <button
+                      key={key} type="button" className="chip"
+                      onClick={() => applyPreset(key)}
+                      title={`${preset.customer_label} / ${preset.job_label}`}
+                    >
+                      {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="form-grid">
+              <div>
+                <label>Singular word for a customer</label>
+                <input value={form.customer_label || ''} onChange={(e) => setField('customer_label', e.target.value)} placeholder="Customer" disabled={!isAdmin} />
+              </div>
+              <div>
+                <label>Plural <span className="hint">(if more than one)</span></label>
+                <input value={form.customer_label_plural || ''} onChange={(e) => setField('customer_label_plural', e.target.value)} placeholder="Customers" disabled={!isAdmin} />
+              </div>
+              <div>
+                <label>Singular word for a job</label>
+                <input value={form.job_label || ''} onChange={(e) => setField('job_label', e.target.value)} placeholder="Job" disabled={!isAdmin} />
+              </div>
+              <div>
+                <label>Plural</label>
+                <input value={form.job_label_plural || ''} onChange={(e) => setField('job_label_plural', e.target.value)} placeholder="Jobs" disabled={!isAdmin} />
+              </div>
+            </div>
+            {isAdmin && (
+              <div className="form-actions">
+                <button type="submit" className="primary" disabled={busy}>
+                  {busy ? 'Saving...' : 'Save terminology'}
+                </button>
+              </div>
+            )}
+          </form>
+        </>
+      )}
+
       {subView === 'company' && (
         <>
       {error && <div className="error">{error}</div>}
@@ -4346,42 +4407,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           <div className="full">
             <label>Venmo handle <span className="hint">(without the @)</span></label>
             <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
-          </div>
-        </div>
-
-        <div className="section-heading">Terminology</div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-          What you call jobs and customers. "Job" might be an appointment, visit, event, or booking. "Customer" might be a client. Pick a preset or type your own.
-        </p>
-        {isAdmin && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-            {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
-              <button
-                key={key} type="button" className="chip"
-                onClick={() => applyPreset(key)}
-                title={`${preset.customer_label} / ${preset.job_label}`}
-              >
-                {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="form-grid">
-          <div>
-            <label>Singular word for a customer</label>
-            <input value={form.customer_label} onChange={(e) => setField('customer_label', e.target.value)} placeholder="Customer" disabled={!isAdmin} />
-          </div>
-          <div>
-            <label>Plural <span className="hint">(if more than one)</span></label>
-            <input value={form.customer_label_plural} onChange={(e) => setField('customer_label_plural', e.target.value)} placeholder="Customers" disabled={!isAdmin} />
-          </div>
-          <div>
-            <label>Singular word for a job</label>
-            <input value={form.job_label} onChange={(e) => setField('job_label', e.target.value)} placeholder="Job" disabled={!isAdmin} />
-          </div>
-          <div>
-            <label>Plural</label>
-            <input value={form.job_label_plural} onChange={(e) => setField('job_label_plural', e.target.value)} placeholder="Jobs" disabled={!isAdmin} />
           </div>
         </div>
 
