@@ -931,22 +931,26 @@
     }
     .day-block-title { font-weight: 600; line-height: 1.2; }
     .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
+    .day-block-actions {
+      display: flex; gap: 6px; align-items: center;
+      margin-top: auto;
+    }
     .day-block-complete {
-      position: absolute; right: 8px; bottom: 8px;
       background: rgba(255,255,255,0.18); color: white;
       border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
       padding: 4px 9px; font-size: 11px; font-weight: 600;
       cursor: pointer; font-family: inherit;
+      white-space: nowrap;
       transition: background 0.15s;
     }
     .day-block-complete:hover { background: rgba(255,255,255,0.32); }
     .day-block-sms {
-      margin-top: 4px; padding: 3px 6px;
+      padding: 3px 6px;
       background: rgba(255,255,255,0.18); color: white;
       border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
       font-size: 11px; font-weight: 600;
       font-family: inherit; cursor: pointer;
-      max-width: 100%;
+      min-width: 0;
     }
     .day-block-sms option { color: var(--text); background: var(--card); }
     .day-block.completed .day-block-sms { display: none; }
