@@ -24,6 +24,7 @@ const systemRoutes = require('./routes/system');
 const systemAuthRoutes = require('./routes/systemAuth');
 const billingRoutes = require('./routes/billing');
 const stripeWebhookRoutes = require('./routes/stripeWebhook');
+const onboardingRoutes = require('./routes/onboarding');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -55,6 +56,7 @@ app.use('/api/invoices', resolveOrganization, requireAuth, requirePaidOrg, invoi
 app.use('/api/quotes', resolveOrganization, requireAuth, requirePaidOrg, quotesRoutes);
 app.use('/api/reports', resolveOrganization, requireAuth, reportsRoutes);
 app.use('/api/billing', resolveOrganization, requireAuth, billingRoutes);
+app.use('/api/onboarding', resolveOrganization, requireAuth, onboardingRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });

@@ -19,7 +19,8 @@ router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT u.id, u.email, u.name, u.role, u.created_at, u.email_verified_at,
-              o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name
+              o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name,
+              o.features, o.onboarding_completed_at
        FROM users u JOIN organizations o ON o.id = u.organization_id
        WHERE u.id = $1 AND u.deleted_at IS NULL LIMIT 1`,
       [req.user.sub]

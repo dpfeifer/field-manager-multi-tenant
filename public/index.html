@@ -2073,7 +2073,7 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
   );
 }
 
-function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
+function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, features = { invoices: true } }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
@@ -2165,7 +2165,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
       </div>
       <div className="schedule-summary">
         <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
-        {canMutate && (
+        {canMutate && features.invoices && (
           <div style={{ marginTop: 10 }}>
             <button className="secondary" onClick={() => { setShowInvoiceForm((v) => !v); setGenerateResult(null); }}>
               {showInvoiceForm ? 'Hide invoice generator' : 'Generate invoice from completions'}
@@ -2305,7 +2305,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange }) {
   );
 }
 
-function JobsView({ session }) {
+function JobsView({ session, features = { invoices: true } }) {
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -2499,6 +2499,7 @@ function JobsView({ session }) {
       <JobScheduleView
         session={session}
         job={editing}
+        features={features}
         onBack={() => { setEditing(null); setMode('list'); }}
         onMarkComplete={handleScheduleMarkComplete}
         onChange={handleScheduleChange}
@@ -3434,7 +3435,7 @@ function quoteRecipientName(q) {
   return q.prospect_name || '(unnamed prospect)';
 }
 
-function QuotesView({ session }) {
+function QuotesView({ session, features = { invoices: true } }) {
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -3710,7 +3711,9 @@ function QuotesView({ session }) {
                     )}
                     {q.customer_id && (
                       <>
-                        <button className="secondary" onClick={() => createInvoiceFromQuote(q.id)}>Create invoice</button>
+                        {features.invoices && (
+                          <button className="secondary" onClick={() => createInvoiceFromQuote(q.id)}>Create invoice</button>
+                        )}
                         <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create job</button>
                       </>
                     )}
@@ -3727,15 +3730,37 @@ function QuotesView({ session }) {
   );
 }
 
-function SettingsView({ session }) {
+function SettingsView({ session, features = { invoices: true, quotes: true, reports: true }, onFeaturesChange }) {
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [localFeatures, setLocalFeatures] = useState(features);
+  const [featuresBusy, setFeaturesBusy] = useState(false);
+  const [featuresSaved, setFeaturesSaved] = useState(false);
 
   const isAdmin = session.user.role === 'admin';
+
+  useEffect(() => { setLocalFeatures(features); }, [features.invoices, features.quotes, features.reports]);
+
+  function toggleFeature(key) {
+    setLocalFeatures((f) => ({ ...f, [key]: !f[key] }));
+    setFeaturesSaved(false);
+  }
+
+  async function saveFeatures() {
+    setFeaturesBusy(true); setError(null);
+    try {
+      await apiRequest('/api/onboarding/features', {
+        method: 'PUT', slug: session.slug, token: session.token, body: { features: localFeatures },
+      });
+      setFeaturesSaved(true);
+      if (onFeaturesChange) await onFeaturesChange();
+    } catch (err) { setError(err.message); }
+    finally { setFeaturesBusy(false); }
+  }
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -4064,6 +4089,13 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   const [resentVerify, setResentVerify] = useState(false);
   const isAdmin = session.user.role === 'admin';
 
+  const reloadMe = useCallback(async () => {
+    try {
+      const m = await apiRequest('/api/auth/me', { slug: session.slug, token: session.token });
+      setMe(m);
+    } catch (err) { console.error('me reload failed', err); }
+  }, [session.slug, session.token]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -4079,6 +4111,13 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
     })();
     return () => { cancelled = true; };
   }, [session.slug, session.token, path]);
+
+  const features = (me && me.features) || { invoices: true, quotes: true, reports: true };
+  const needsOnboarding = me && !me.onboarding_completed_at && isAdmin;
+
+  if (needsOnboarding) {
+    return <OnboardingPage session={session} onDone={reloadMe} />;
+  }
 
   async function resendVerification() {
     try {
@@ -4124,9 +4163,13 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>Jobs</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}>Customers</button>
-        <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}>Invoices</button>
-        <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}>Quotes</button>
-        {session.user.role === 'admin' && (
+        {features.invoices && (
+          <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}>Invoices</button>
+        )}
+        {features.quotes && (
+          <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}>Quotes</button>
+        )}
+        {features.reports && session.user.role === 'admin' && (
           <button className={view === 'reports' ? 'active' : ''} onClick={() => navigate('/reports')}>Reports</button>
         )}
         {session.user.role === 'admin' && (
@@ -4141,15 +4184,15 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         )}
       </div>
       <div className="content">
-        {view === 'dashboard' && <DashboardView session={session} />}
-        {view === 'jobs' && <JobsView session={session} />}
-        {view === 'customers' && <CustomersView session={session} />}
-        {view === 'invoices' && <InvoicesView session={session} />}
-        {view === 'quotes' && <QuotesView session={session} />}
-        {view === 'reports' && session.user.role === 'admin' && <ReportsView session={session} />}
+        {view === 'dashboard' && <DashboardView session={session} features={features} />}
+        {view === 'jobs' && <JobsView session={session} features={features} />}
+        {view === 'customers' && <CustomersView session={session} features={features} />}
+        {view === 'invoices' && features.invoices && <InvoicesView session={session} />}
+        {view === 'quotes' && features.quotes && <QuotesView session={session} features={features} />}
+        {view === 'reports' && features.reports && session.user.role === 'admin' && <ReportsView session={session} />}
         {view === 'team' && session.user.role === 'admin' && <TeamView session={session} />}
         {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} />}
-        {view === 'settings' && <SettingsView session={session} />}
+        {view === 'settings' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
       </div>
@@ -4536,6 +4579,91 @@ function ReportsView({ session }) {
   );
 }
 
+function OnboardingPage({ session, onDone }) {
+  const [features, setFeatures] = useState({ invoices: true, quotes: true, reports: true });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  function toggle(key) {
+    setFeatures((f) => ({ ...f, [key]: !f[key] }));
+  }
+
+  async function submit() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/onboarding/complete', {
+        method: 'POST', slug: session.slug, token: session.token, body: { features },
+      });
+      await onDone();
+    } catch (err) { setError(err.message); setBusy(false); }
+  }
+
+  return (
+    <div className="auth-shell" style={{ maxWidth: 600 }}>
+      <div className="card">
+        <h1>Welcome to {session.organization.name}!</h1>
+        <p className="subtitle">
+          Tell us what you need. We'll hide the rest so the app stays focused on the work you actually do.
+          You can flip anything on or off later in Settings.
+        </p>
+
+        <div className="section-heading" style={{ marginTop: 0 }}>What do you want?</div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ padding: 14, background: 'var(--row-hover)', borderRadius: 8, opacity: 0.7 }}>
+            <strong>Customers · Jobs · Dashboard · Team</strong>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Always on. These are the core of Field Manager.</div>
+          </div>
+        </div>
+
+        <FeatureRow
+          enabled={features.invoices} onToggle={() => toggle('invoices')}
+          label="Invoices"
+          description="Track billable work, send invoices to customers (email or shareable link), record payments, tax + discounts, recurring-job auto-billing."
+        />
+        <FeatureRow
+          enabled={features.quotes} onToggle={() => toggle('quotes')}
+          label="Quotes / Estimates"
+          description="Send estimates to prospects, convert accepted quotes into customers, jobs, or invoices in one click."
+        />
+        <FeatureRow
+          enabled={features.reports} onToggle={() => toggle('reports')}
+          label="Reports"
+          description="Revenue dashboard, projected income, top customers, monthly trends. Admin-only when on."
+        />
+
+        {error && <div className="error">{error}</div>}
+
+        <div className="form-actions" style={{ marginTop: 24 }}>
+          <button className="primary" disabled={busy} onClick={submit}>
+            {busy ? 'Saving...' : 'Continue to dashboard'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeatureRow({ enabled, onToggle, label, description }) {
+  return (
+    <label style={{
+      display: 'flex', gap: 14, alignItems: 'flex-start',
+      padding: 14, marginBottom: 10,
+      border: '1px solid var(--border-strong)', borderRadius: 8,
+      cursor: 'pointer', background: enabled ? 'var(--tinted)' : 'var(--card)',
+    }}>
+      <input
+        type="checkbox" checked={enabled} onChange={onToggle}
+        style={{ marginTop: 4, width: 18, height: 18 }}
+      />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{label}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{description}</div>
+      </div>
+    </label>
+  );
+}
+
 function ProfileView({ session, onSessionUpdate }) {
   const [name, setName] = useState(session.user.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -4637,6 +4765,38 @@ function ProfileView({ session, onSessionUpdate }) {
           <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')}>Dark</button>
         </div>
       </div>
+
+      {isAdmin && (
+        <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
+          <div className="section-heading" style={{ marginTop: 0 }}>Modules</div>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
+          </p>
+          <FeatureRow
+            enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
+            label="Invoices"
+            description="Bill customers, track payments, send via email or public link."
+          />
+          <FeatureRow
+            enabled={localFeatures.quotes} onToggle={() => toggleFeature('quotes')}
+            label="Quotes / Estimates"
+            description="Prospect quoting, convert to customer/job/invoice."
+          />
+          <FeatureRow
+            enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
+            label="Reports"
+            description="Revenue dashboard, projected income, top customers."
+          />
+          {featuresSaved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
+          )}
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={featuresBusy}>
+              {featuresBusy ? 'Saving...' : 'Save modules'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
