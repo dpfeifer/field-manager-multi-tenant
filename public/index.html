@@ -3561,6 +3561,20 @@ function RequestsView({ session }) {
       <p className="subtitle" style={{ marginTop: -8, marginBottom: 16 }}>
         Booking requests submitted by visitors to your public link. Accept to create a {terms.customerLower} and {terms.jobLower}.
       </p>
+      <div className="form-card" style={{ marginBottom: 16 }}>
+        <label style={{ marginTop: 0 }}>Your public booking link</label>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
+          Share this URL on your website, social media, or business card so customers can submit booking requests.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            readOnly
+            value={`${window.location.origin}/book/${session.slug}`}
+            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+          />
+          <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+        </div>
+      </div>
       <div className="filter-bar">
         <div className="chip-group">
           {['pending', 'accepted', 'declined', 'all'].map((f) => (
