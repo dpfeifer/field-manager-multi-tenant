@@ -5265,6 +5265,8 @@ function OrgDetailView({ session, orgId }) {
   const [extendDays, setExtendDays] = useState(14);
   const [resetUserId, setResetUserId] = useState(null);
   const [resetPassword, setResetPassword] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteSlugInput, setDeleteSlugInput] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -5310,6 +5312,17 @@ function OrgDetailView({ session, orgId }) {
       });
       setResetUserId(null); setResetPassword('');
       alert('Password reset. Share the new password with the user.');
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteOrg() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}`, {
+        method: 'DELETE', token: session.token, body: { confirm_slug: deleteSlugInput },
+      });
+      navigate('/system');
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -5387,6 +5400,46 @@ function OrgDetailView({ session, orgId }) {
         <p className="hint" style={{ marginTop: 12 }}>
           Extending adds days on top of the current trial end (or starts a trial from today if none).
         </p>
+      </div>
+
+      <div className="form-card" style={{ borderColor: 'var(--danger)' }}>
+        <div className="section-heading" style={{ marginTop: 0, color: 'var(--danger)' }}>Danger zone</div>
+        {!confirmDelete ? (
+          <>
+            <p className="hint" style={{ marginBottom: 14 }}>
+              Permanently delete this organization and everything in it (users, customers, jobs, invoices, quotes, settings). Any active Stripe subscription will be canceled. <strong>This cannot be undone.</strong>
+            </p>
+            <button className="danger" onClick={() => setConfirmDelete(true)}>Delete organization</button>
+          </>
+        ) : (
+          <>
+            <p style={{ marginBottom: 12, fontSize: 14 }}>
+              Type <code style={{ background: 'var(--tinted)', padding: '2px 6px', borderRadius: 4 }}>{o.slug}</code> below to confirm. Cascades through all data and cancels Stripe.
+            </p>
+            <input
+              value={deleteSlugInput}
+              onChange={(e) => setDeleteSlugInput(e.target.value)}
+              placeholder={`Type ${o.slug}`}
+              style={{ marginBottom: 12 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="danger"
+                disabled={busy || deleteSlugInput !== o.slug}
+                onClick={deleteOrg}
+              >
+                {busy ? 'Deleting...' : 'Permanently delete'}
+              </button>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => { setConfirmDelete(false); setDeleteSlugInput(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="section-heading">Users ({data.users.length})</div>

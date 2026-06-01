@@ -107,6 +107,39 @@ router.post('/organizations/:id/users/:userId/reset-password', async (req, res, 
   } catch (err) { next(err); }
 });
 
+router.delete('/organizations/:id', async (req, res, next) => {
+  const { confirm_slug } = req.body || {};
+  try {
+    const { rows } = await query(
+      'SELECT slug, name, stripe_subscription_id FROM organizations WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const org = rows[0];
+    if (confirm_slug !== org.slug) {
+      return res.status(400).json({ error: `Confirmation slug does not match. Type "${org.slug}" exactly to confirm.` });
+    }
+
+    // Best-effort: cancel Stripe subscription so the customer stops getting billed.
+    // Don't block deletion if Stripe is unreachable or the sub is already gone.
+    if (org.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const Stripe = require('stripe');
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        await stripe.subscriptions.cancel(org.stripe_subscription_id);
+      } catch (err) {
+        console.warn(`stripe cancel failed during org delete (${org.slug}):`, err.message);
+      }
+    }
+
+    // FK cascades take care of users, customers, jobs, invoices, quotes,
+    // organization_settings, push_subscriptions.
+    await query('DELETE FROM organizations WHERE id = $1', [req.params.id]);
+
+    res.json({ ok: true, deleted_slug: org.slug });
+  } catch (err) { next(err); }
+});
+
 router.put('/organizations/:id/billing', async (req, res, next) => {
   const { status } = req.body || {};
   if (!['free', 'trialing'].includes(status)) {
