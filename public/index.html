@@ -1351,6 +1351,33 @@
       }
     }
 
+    /* Auto-invoice schedule options */
+    .auto-invoice-options {
+      display: grid; grid-template-columns: 1fr; gap: 8px;
+    }
+    .auto-invoice-option {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px; cursor: pointer;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .auto-invoice-option:hover { border-color: var(--border-strong); }
+    .auto-invoice-option.active {
+      border-color: var(--primary);
+      background: var(--tinted);
+    }
+    .auto-invoice-option input[type="radio"] {
+      margin-top: 3px; width: 16px; height: 16px; cursor: pointer;
+    }
+    .auto-invoice-option-name {
+      font-weight: 600; font-size: 14px; color: var(--text);
+    }
+    .auto-invoice-option-help {
+      font-size: 12.5px; color: var(--text-muted); margin-top: 2px;
+      line-height: 1.4;
+    }
+
     /* Customer notes timeline */
     .note-add {
       background: var(--card); border: 1px solid var(--border);
@@ -3708,10 +3735,11 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
   const [email, setEmail] = useState(initial?.email || '');
   const [address, setAddress] = useState(initial?.address || '');
   const [notes, setNotes] = useState(initial?.notes || '');
+  const [autoInvoiceExcluded, setAutoInvoiceExcluded] = useState(!!initial?.auto_invoice_excluded);
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ first_name, last_name, business_name, phone, email, address, notes });
+    onSubmit({ first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded: autoInvoiceExcluded });
   }
 
   return (
@@ -3744,6 +3772,19 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
         <div className="full">
           <label>Notes</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <div className="full">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={autoInvoiceExcluded}
+              onChange={(e) => setAutoInvoiceExcluded(e.target.checked)}
+            />
+            <span>Exclude from auto-invoicing</span>
+          </label>
+          <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+            When checked, this {terms.customerLower} won't be included in the scheduled auto-invoice rollup. Use for {terms.customersLower} who prefer manual or per-visit billing.
+          </span>
         </div>
       </div>
       <div className="form-actions">
@@ -6617,6 +6658,160 @@ function QuotesView({ session, features = { invoices: true } }) {
   );
 }
 
+function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error, submit, terms }) {
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState(null);
+  const [runError, setRunError] = useState(null);
+
+  async function runNow() {
+    setRunning(true); setRunError(null); setRunResult(null);
+    try {
+      const r = await apiRequest('/api/billing/auto-invoice/run', {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setRunResult(r);
+    } catch (err) { setRunError(err.message); }
+    finally { setRunning(false); }
+  }
+
+  const schedule = form.auto_invoice_schedule || 'off';
+  const lastRun = form.auto_invoice_last_run_at
+    ? new Date(form.auto_invoice_last_run_at).toLocaleString()
+    : null;
+
+  return (
+    <>
+      {error && <div className="error">{error}</div>}
+      {saved && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+      )}
+      <form onSubmit={submit} className="form-card">
+        <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+          Roll up unbilled completions into draft invoices on a schedule. We never auto-send — drafts land in your Invoices tab for review. Per-{terms.customerLower} opt-out lives on the {terms.customerLower} record.
+        </p>
+
+        <div className="auto-invoice-options">
+          <label className={`auto-invoice-option${schedule === 'off' ? ' active' : ''}`}>
+            <input
+              type="radio" name="ai-schedule" value="off"
+              checked={schedule === 'off'} disabled={!isAdmin}
+              onChange={() => setField('auto_invoice_schedule', 'off')}
+            />
+            <div>
+              <div className="auto-invoice-option-name">Off</div>
+              <div className="auto-invoice-option-help">Manual invoicing only.</div>
+            </div>
+          </label>
+          <label className={`auto-invoice-option${schedule === 'monthly' ? ' active' : ''}`}>
+            <input
+              type="radio" name="ai-schedule" value="monthly"
+              checked={schedule === 'monthly'} disabled={!isAdmin}
+              onChange={() => setField('auto_invoice_schedule', 'monthly')}
+            />
+            <div>
+              <div className="auto-invoice-option-name">Monthly</div>
+              <div className="auto-invoice-option-help">Bills the previous calendar month on the chosen day.</div>
+            </div>
+          </label>
+          <label className={`auto-invoice-option${schedule === 'weekly' ? ' active' : ''}`}>
+            <input
+              type="radio" name="ai-schedule" value="weekly"
+              checked={schedule === 'weekly'} disabled={!isAdmin}
+              onChange={() => setField('auto_invoice_schedule', 'weekly')}
+            />
+            <div>
+              <div className="auto-invoice-option-name">Weekly</div>
+              <div className="auto-invoice-option-help">Bills the previous 7 days on the chosen weekday.</div>
+            </div>
+          </label>
+        </div>
+
+        {schedule === 'monthly' && (
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <div>
+              <label>Day of month to run</label>
+              <select
+                value={form.auto_invoice_day_of_month || 1}
+                onChange={(e) => setField('auto_invoice_day_of_month', parseInt(e.target.value, 10))}
+                disabled={!isAdmin}
+              >
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <span className="hint" style={{ display: 'block', marginTop: 6 }}>
+                Capped at 28 so short months still work.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {schedule === 'weekly' && (
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <div>
+              <label>Day of week to run</label>
+              <select
+                value={form.auto_invoice_day_of_week != null ? form.auto_invoice_day_of_week : 1}
+                onChange={(e) => setField('auto_invoice_day_of_week', parseInt(e.target.value, 10))}
+                disabled={!isAdmin}
+              >
+                <option value={0}>Sunday</option>
+                <option value={1}>Monday</option>
+                <option value={2}>Tuesday</option>
+                <option value={3}>Wednesday</option>
+                <option value={4}>Thursday</option>
+                <option value={5}>Friday</option>
+                <option value={6}>Saturday</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {lastRun && (
+          <div className="hint" style={{ marginTop: 16 }}>
+            Last run: <strong style={{ color: 'var(--text)' }}>{lastRun}</strong>
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={busy}>
+              {busy ? 'Saving...' : 'Save schedule'}
+            </button>
+            {schedule !== 'off' && (
+              <button type="button" className="secondary" onClick={runNow} disabled={running}>
+                {running ? 'Running…' : 'Run now'}
+              </button>
+            )}
+          </div>
+        )}
+      </form>
+
+      {(runResult || runError) && (
+        <div className="form-card" style={{ marginTop: 14 }}>
+          {runError && <div className="error">{runError}</div>}
+          {runResult && (
+            <>
+              <div className="section-heading" style={{ marginTop: 0 }}>Run summary</div>
+              <p className="hint" style={{ marginTop: 0 }}>
+                Period: <strong style={{ color: 'var(--text)' }}>{runResult.period.start} → {runResult.period.end}</strong>
+              </p>
+              {runResult.drafted.length === 0 ? (
+                <p>No new completions to bill. Nothing was drafted.</p>
+              ) : (
+                <>
+                  <p>{runResult.drafted.length} {runResult.drafted.length === 1 ? 'invoice' : 'invoices'} drafted, totaling {formatPrice(runResult.drafted.reduce((s, d) => s + (d.total || 0), 0))}.</p>
+                  <button className="primary" onClick={() => navigate('/invoices')}>Review invoices</button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 function CopyButton({ text, label = 'Copy' }) {
   const [copied, setCopied] = useState(false);
   async function doCopy() {
@@ -6641,6 +6836,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/terminology' ? 'terminology'
     : path === '/settings/quick-text' ? 'quick-text'
     : path === '/settings/dashboard' ? 'dashboard'
+    : path === '/settings/auto-invoice' ? 'auto-invoice'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -6696,6 +6892,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         dashboard_widgets: Array.isArray(data.dashboard_widgets) && data.dashboard_widgets.length > 0
           ? data.dashboard_widgets
           : DEFAULT_DASHBOARD_WIDGETS,
+        auto_invoice_schedule: data.auto_invoice_schedule || 'off',
+        auto_invoice_day_of_month: data.auto_invoice_day_of_month || 1,
+        auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
+        auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -6770,7 +6970,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard')) {
+  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -6803,6 +7003,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'dashboard' ? 'active' : ''}`}
             onClick={() => navigate('/settings/dashboard')}
           >Dashboard</button>
+          {isAdmin && (
+            <button
+              className={`chip ${subView === 'auto-invoice' ? 'active' : ''}`}
+              onClick={() => navigate('/settings/auto-invoice')}
+            >Auto-invoice</button>
+          )}
           {isAdmin && (
             <button
               className={`chip ${subView === 'modules' ? 'active' : ''}`}
@@ -6893,6 +7099,20 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             )}
           </form>
         </>
+      )}
+
+      {subView === 'auto-invoice' && (
+        <AutoInvoicePanel
+          session={session}
+          form={form}
+          setField={setField}
+          isAdmin={isAdmin}
+          busy={busy}
+          saved={saved}
+          error={error}
+          submit={submit}
+          terms={terms}
+        />
       )}
 
       {subView === 'dashboard' && (
@@ -7128,6 +7348,7 @@ const APP_ROUTES = {
   '/settings/terminology': 'settings',
   '/settings/quick-text': 'settings',
   '/settings/dashboard': 'settings',
+  '/settings/auto-invoice': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',

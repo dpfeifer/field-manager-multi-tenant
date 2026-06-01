@@ -4,7 +4,7 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const FIELDS = ['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes'];
+const FIELDS = ['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes', 'auto_invoice_excluded'];
 
 function pickFields(body) {
   const out = {};

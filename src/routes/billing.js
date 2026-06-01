@@ -100,6 +100,26 @@ router.post('/portal', requireRole('admin'), async (req, res, next) => {
   }
 });
 
+// Manual trigger for the auto-invoice rollup. Admin-initiated, useful for
+// testing the schedule before relying on the cron.
+const { runAutoInvoiceForOrg } = require('../utils/autoInvoice');
+router.post('/auto-invoice/run', requireRole('admin'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT auto_invoice_schedule FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
+      [req.organization.id]
+    );
+    const schedule = (rows[0] && rows[0].auto_invoice_schedule) || 'monthly';
+    if (schedule === 'off') {
+      return res.status(400).json({ error: "Auto-invoice schedule is 'off'. Pick a schedule in Settings first." });
+    }
+    const result = await runAutoInvoiceForOrg(req.organization.id, {
+      schedule: schedule === 'off' ? 'monthly' : schedule,
+    });
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
 // Admin-initiated self-destruct: deletes the org permanently. Mirrors the
 // staff version in routes/system.js but requires the admin to type their
 // own slug into confirm_slug.
