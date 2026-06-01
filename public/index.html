@@ -692,15 +692,21 @@
       66%      { transform: translate(-12px, 14px) scale(0.95); }
     }
 
-    /* Variant picker (preview comparison UI — remove once a winner is chosen) */
-    .variant-picker {
+    /* Variant picker (preview comparison UI — remove once winners chosen) */
+    .variant-picker-wrap {
       position: sticky; top: 14px; z-index: 50;
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 6px; padding: 14px 14px 0;
+      pointer-events: none;
+    }
+    .variant-picker-wrap > * { pointer-events: auto; }
+    .variant-picker {
       display: inline-flex; align-items: center; gap: 4px;
-      margin: 14px 14px 0 auto; padding: 4px 6px 4px 10px;
+      padding: 4px 6px 4px 10px;
       background: var(--card); border: 1px solid var(--border-strong);
       border-radius: 999px; font-size: 12px;
       box-shadow: 0 6px 18px -8px rgba(40, 30, 20, 0.18);
-      width: fit-content; float: right; clear: both;
+      width: fit-content;
     }
     .variant-picker-label {
       color: var(--text-muted); font-weight: 600;
@@ -716,6 +722,186 @@
     .variant-picker button.on {
       background: var(--primary); color: white; font-weight: 600;
     }
+
+    /* === Narrative shared === */
+    .narrative .beat-eyebrow {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--accent); font-weight: 700; margin-bottom: 14px;
+    }
+    .narrative .beat-headline {
+      font-family: var(--serif); font-weight: 600;
+      letter-spacing: -0.025em; line-height: 1.05;
+      margin: 0 0 18px;
+    }
+    .narrative .beat-body {
+      color: var(--text-muted); font-size: 17px; line-height: 1.6;
+      margin: 0;
+    }
+
+    /* === Narrative: Editorial — long-form centered === */
+    .narrative-editorial { max-width: 720px; margin: 0 auto; padding: 80px 24px; }
+    .narrative-editorial .beat {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .narrative-editorial .beat:last-child { border-bottom: none; }
+    .narrative-editorial .beat-num {
+      font-family: var(--serif); font-style: italic;
+      color: var(--text-muted); font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .narrative-editorial .beat-headline { font-size: clamp(34px, 4.5vw, 52px); }
+    .narrative-editorial .visual { margin-top: 32px; }
+
+    /* === Narrative: Cinematic — alternating panels === */
+    .narrative-cinematic { padding: 80px 0; }
+    .narrative-cinematic .beat {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+      max-width: 1180px; margin: 0 auto;
+      padding: 80px 40px;
+    }
+    .narrative-cinematic .beat.flip .beat-text { order: 2; }
+    .narrative-cinematic .beat.flip .beat-visual { order: 1; }
+    .narrative-cinematic .beat-text { max-width: 460px; }
+    .narrative-cinematic .beat-headline { font-size: clamp(32px, 4vw, 48px); }
+    .narrative-cinematic .beat-visual {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 20px; padding: 36px;
+      box-shadow: 0 24px 60px -20px rgba(40, 30, 20, 0.2);
+      min-height: 280px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    @media (max-width: 860px) {
+      .narrative-cinematic .beat {
+        grid-template-columns: 1fr; gap: 32px;
+        padding: 56px 24px;
+      }
+      .narrative-cinematic .beat.flip .beat-text { order: 1; }
+      .narrative-cinematic .beat.flip .beat-visual { order: 2; }
+    }
+
+    /* === Narrative: Stepper — vertical numbered timeline === */
+    .narrative-stepper {
+      max-width: 880px; margin: 0 auto;
+      padding: 80px 24px; position: relative;
+    }
+    .narrative-stepper .stepper-rail {
+      position: absolute; left: 56px; top: 110px; bottom: 110px;
+      width: 2px; background: linear-gradient(to bottom, transparent, var(--border-strong) 8%, var(--border-strong) 92%, transparent);
+    }
+    .narrative-stepper .beat {
+      display: grid; grid-template-columns: 110px 1fr;
+      gap: 28px; padding: 48px 0;
+      align-items: start; position: relative;
+    }
+    .narrative-stepper .beat-num {
+      font-family: var(--serif); font-size: 32px; font-weight: 500;
+      color: var(--primary); width: 64px; height: 64px;
+      border-radius: 50%; background: var(--card);
+      border: 2px solid var(--border-strong);
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: -0.02em;
+      box-shadow: 0 4px 12px -4px rgba(40, 30, 20, 0.1);
+    }
+    .narrative-stepper .beat-content { padding-top: 8px; }
+    .narrative-stepper .beat-headline { font-size: clamp(26px, 3.5vw, 36px); }
+    .narrative-stepper .visual { margin-top: 24px; }
+    @media (max-width: 720px) {
+      .narrative-stepper .stepper-rail { display: none; }
+      .narrative-stepper .beat { grid-template-columns: 56px 1fr; gap: 16px; padding: 36px 0; }
+      .narrative-stepper .beat-num { width: 48px; height: 48px; font-size: 22px; }
+    }
+
+    /* === Beat visuals === */
+    .visual-workflow {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .vw-card {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 18px; background: var(--tinted);
+      border: 1px solid var(--border); border-radius: 999px;
+      font-weight: 600; font-size: 14px; color: var(--text);
+      animation: vwSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .vw-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .vw-arrow { color: var(--text-muted); margin-left: 4px; }
+    @keyframes vwSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .visual-signup .vs-frame {
+      max-width: 360px; background: var(--bg);
+      border: 1px solid var(--border-strong); border-radius: 12px;
+      padding: 18px; box-shadow: 0 12px 32px -10px rgba(40, 30, 20, 0.15);
+    }
+    .vs-bar { display: flex; gap: 5px; margin-bottom: 14px; }
+    .vs-bar span { width: 8px; height: 8px; border-radius: 50%; background: #d8d2c5; }
+    .vs-bar span:first-child { background: #f08580; }
+    .vs-bar span:nth-child(2) { background: #f0c374; }
+    .vs-bar span:nth-child(3) { background: #80c97e; }
+    .vs-field { margin-bottom: 10px; }
+    .vs-label { display: block; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 4px; }
+    .vs-input { display: block; padding: 10px 12px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; color: var(--text); font-family: ui-monospace, monospace; }
+    .vs-cta { margin-top: 14px; padding: 10px 16px;
+      background: var(--primary); color: white; text-align: center;
+      border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .vs-time { margin-top: 10px; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+    .visual-price {
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .vp-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 14px; font-weight: 500;
+    }
+    .vp-row.vp-dim { color: var(--text-muted); }
+    .vp-row.vp-dim .vp-price { font-family: var(--serif); }
+    .vp-highlight {
+      background: linear-gradient(to right, var(--tinted), var(--card));
+      border: 1.5px solid var(--accent); position: relative;
+    }
+    .vp-highlight .vp-name { font-weight: 700; color: var(--text); }
+    .vp-highlight .vp-price {
+      font-family: var(--serif); font-weight: 600;
+      color: var(--accent); font-size: 18px; letter-spacing: -0.02em;
+    }
+
+    .visual-modules { display: flex; flex-wrap: wrap; gap: 8px; max-width: 420px; }
+    .vm-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 12px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--card); color: var(--text-muted);
+      transition: all 0.25s;
+    }
+    .vm-pill.on {
+      background: var(--tinted); color: var(--text);
+      border-color: var(--accent);
+    }
+    .vm-pill.on .vm-tick { color: var(--accent); }
+    .vm-pill.off { opacity: 0.55; }
+    .vm-pill.off .vm-tick { color: var(--text-muted); }
+    .vm-pill.locked {
+      background: var(--text); color: var(--bg);
+      border-color: var(--text);
+    }
+    .vm-pill.locked .vm-tick { color: var(--accent); }
+    .vm-tag {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted); font-weight: 600;
+      margin-left: 2px;
+    }
+    .vm-pill.locked .vm-tag { color: var(--bg); opacity: 0.6; }
 
     /* Playful variant — sparkles + hand-drawn arrow */
     .hero-doodle.doodle-arrow {
@@ -1727,7 +1913,7 @@ function VariantPicker({ variant, onChange }) {
   ];
   return (
     <div className="variant-picker" aria-label="Hero variant picker (preview only)">
-      <span className="variant-picker-label">Hero preview:</span>
+      <span className="variant-picker-label">Hero:</span>
       {VARIANTS.map(([k, l]) => (
         <button
           key={k}
@@ -1735,6 +1921,175 @@ function VariantPicker({ variant, onChange }) {
           className={variant === k ? 'on' : ''}
           onClick={() => onChange(k)}
         >{l}</button>
+      ))}
+    </div>
+  );
+}
+
+function BodyPicker({ variant, onChange }) {
+  const VARIANTS = [
+    ['editorial', 'Editorial'],
+    ['cinematic', 'Cinematic'],
+    ['stepper', 'Stepper'],
+  ];
+  return (
+    <div className="variant-picker body-variant-picker" aria-label="Body layout picker (preview only)">
+      <span className="variant-picker-label">Body:</span>
+      {VARIANTS.map(([k, l]) => (
+        <button
+          key={k}
+          type="button"
+          className={variant === k ? 'on' : ''}
+          onClick={() => onChange(k)}
+        >{l}</button>
+      ))}
+    </div>
+  );
+}
+
+const NARRATIVE_BEATS = [
+  {
+    eyebrow: 'In one place',
+    headline: 'Customers, jobs, invoices — all together.',
+    body: "Stop juggling spreadsheets, calendar apps, and text threads. Field Manager keeps the entire workflow connected — quote becomes customer, customer becomes job, job becomes invoice — without you copy-pasting between five tools.",
+    kind: 'workflow',
+  },
+  {
+    eyebrow: 'Quick start',
+    headline: 'Up and running in 60 seconds.',
+    body: "Email and password. Done. No demo gates, no credit card, no sales calls. Bring your customers (paste a CSV or type them in), schedule your first job, and you're working.",
+    kind: 'signup',
+  },
+  {
+    eyebrow: 'Honest pricing',
+    headline: '$29/mo. Less than the alternatives.',
+    body: 'Jobber starts at $69. ServiceTitan is enterprise pricing only on request. Housecall Pro hides its real price behind sales calls. Field Manager is $29/month, flat. Every feature, every teammate, every customer.',
+    kind: 'price',
+  },
+  {
+    eyebrow: 'Your kit, your choice',
+    headline: "Only the features you actually use.",
+    body: "Don't need invoices? Turn them off. Don't quote? Drop quotes from the nav. We won't bloat your dashboard with features you'll never touch. Opt-in modules — nothing forced.",
+    kind: 'modules',
+  },
+];
+
+function BeatVisual({ kind }) {
+  if (kind === 'workflow') {
+    return (
+      <div className="visual visual-workflow" aria-hidden="true">
+        {['Quote', 'Customer', 'Job', 'Invoice'].map((label, i) => (
+          <div key={label} className="vw-card" style={{ animationDelay: `${i * 0.15}s` }}>
+            <span className="vw-dot" />
+            <span>{label}</span>
+            {i < 3 && <span className="vw-arrow">→</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === 'signup') {
+    return (
+      <div className="visual visual-signup" aria-hidden="true">
+        <div className="vs-frame">
+          <div className="vs-bar"><span /><span /><span /></div>
+          <div className="vs-field"><span className="vs-label">Email</span><span className="vs-input">bob@lawncare.com</span></div>
+          <div className="vs-field"><span className="vs-label">Password</span><span className="vs-input">••••••••</span></div>
+          <div className="vs-cta">Start free trial</div>
+          <div className="vs-time">⏱  ~60 seconds</div>
+        </div>
+      </div>
+    );
+  }
+  if (kind === 'price') {
+    const rows = [
+      { name: 'Jobber',         price: '$69+/mo', dim: true },
+      { name: 'ServiceTitan',   price: 'Call sales', dim: true },
+      { name: 'Housecall Pro',  price: 'Call sales', dim: true },
+      { name: 'Field Manager',  price: '$29/mo', highlight: true },
+    ];
+    return (
+      <div className="visual visual-price" aria-hidden="true">
+        {rows.map((r) => (
+          <div key={r.name} className={`vp-row ${r.highlight ? 'vp-highlight' : ''} ${r.dim ? 'vp-dim' : ''}`}>
+            <span className="vp-name">{r.name}</span>
+            <span className="vp-price">{r.price}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === 'modules') {
+    const mods = [
+      { label: 'Customers', on: true, locked: true },
+      { label: 'Jobs', on: true, locked: true },
+      { label: 'Invoices', on: true },
+      { label: 'Quotes', on: false },
+      { label: 'Reports', on: true },
+      { label: 'Team', on: false },
+    ];
+    return (
+      <div className="visual visual-modules" aria-hidden="true">
+        {mods.map((m) => (
+          <div key={m.label} className={`vm-pill ${m.on ? 'on' : 'off'} ${m.locked ? 'locked' : ''}`}>
+            <span className="vm-tick">{m.locked ? '●' : m.on ? '✓' : '+'}</span>
+            <span>{m.label}</span>
+            {m.locked && <span className="vm-tag">always on</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+function NarrativeEditorial() {
+  return (
+    <div className="narrative narrative-editorial">
+      {NARRATIVE_BEATS.map((beat, i) => (
+        <section key={i} className="beat" data-reveal>
+          <div className="beat-num">Chapter {i + 1}</div>
+          <div className="beat-eyebrow">{beat.eyebrow}</div>
+          <h2 className="beat-headline">{beat.headline}</h2>
+          <p className="beat-body">{beat.body}</p>
+          <BeatVisual kind={beat.kind} />
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function NarrativeCinematic() {
+  return (
+    <div className="narrative narrative-cinematic">
+      {NARRATIVE_BEATS.map((beat, i) => (
+        <section key={i} className={`beat ${i % 2 === 1 ? 'flip' : ''}`} data-reveal>
+          <div className="beat-text">
+            <div className="beat-eyebrow">{beat.eyebrow}</div>
+            <h2 className="beat-headline">{beat.headline}</h2>
+            <p className="beat-body">{beat.body}</p>
+          </div>
+          <div className="beat-visual"><BeatVisual kind={beat.kind} /></div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function NarrativeStepper() {
+  return (
+    <div className="narrative narrative-stepper">
+      <div className="stepper-rail" aria-hidden="true" />
+      {NARRATIVE_BEATS.map((beat, i) => (
+        <section key={i} className="beat" data-reveal data-reveal-delay={(i % 3) + 1}>
+          <div className="beat-num">{String(i + 1).padStart(2, '0')}</div>
+          <div className="beat-content">
+            <div className="beat-eyebrow">{beat.eyebrow}</div>
+            <h2 className="beat-headline">{beat.headline}</h2>
+            <p className="beat-body">{beat.body}</p>
+            <div className="beat-visual"><BeatVisual kind={beat.kind} /></div>
+          </div>
+        </section>
       ))}
     </div>
   );
@@ -1752,6 +2107,21 @@ function LandingPage() {
     try {
       const url = new URL(window.location.href);
       if (v === 'clean') url.searchParams.delete('v'); else url.searchParams.set('v', v);
+      window.history.replaceState({}, '', url.toString());
+    } catch (err) {}
+  }
+
+  const [bodyVariant, _setBodyVariant] = useState(() => {
+    if (typeof window === 'undefined') return 'editorial';
+    const u = new URLSearchParams(window.location.search);
+    const v = u.get('body');
+    return ['editorial','cinematic','stepper'].includes(v) ? v : 'editorial';
+  });
+  function setBodyVariant(v) {
+    _setBodyVariant(v);
+    try {
+      const url = new URL(window.location.href);
+      if (v === 'editorial') url.searchParams.delete('body'); else url.searchParams.set('body', v);
       window.history.replaceState({}, '', url.toString());
     } catch (err) {}
   }
@@ -1797,7 +2167,10 @@ function LandingPage() {
         </div>
       </nav>
 
-      <VariantPicker variant={variant} onChange={setVariant} />
+      <div className="variant-picker-wrap">
+        <VariantPicker variant={variant} onChange={setVariant} />
+        <BodyPicker variant={bodyVariant} onChange={setBodyVariant} />
+      </div>
       <header className={`landing-hero variant-${variant}`}>
         <span className="hero-orb orb-a" aria-hidden="true" />
         <span className="hero-orb orb-b" aria-hidden="true" />
@@ -1860,131 +2233,9 @@ function LandingPage() {
         )}
       </header>
 
-      <section className="how-band">
-        <div className="how-inner">
-          <div className="how-left" data-reveal>
-            <div className="section-label">How it works</div>
-            <h2>Up and running in an afternoon.</h2>
-            <p>No long onboarding. No "schedule a demo" gate. Three steps from sign-up to your first paid invoice.</p>
-          </div>
-          <div className="steps">
-            <div className="step" data-reveal data-reveal-delay="1">
-              <div className="step-num">01</div>
-              <div>
-                <h3>Bring your customers</h3>
-                <p>Type them in, paste a CSV, or migrate from your old tool. Email, phone, address, notes — whatever you've got.</p>
-              </div>
-            </div>
-            <div className="step" data-reveal data-reveal-delay="2">
-              <div className="step-num">02</div>
-              <div>
-                <h3>Schedule the work</h3>
-                <p>One-time jobs or recurring (weekly, biweekly, monthly). Skip a week without breaking the series. Assign teammates.</p>
-              </div>
-            </div>
-            <div className="step" data-reveal data-reveal-delay="3">
-              <div className="step-num">03</div>
-              <div>
-                <h3>Send invoices, get paid</h3>
-                <p>Mark visits complete in the field, generate invoices from the work, email or share a public link. Venmo pay link built in.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="landing-section" style={{ padding: '40px 40px 0' }}>
-        <hr className="divider-fancy" />
-      </div>
-
-      <section className="quote-section" data-reveal>
-        <blockquote>
-          "I was using spreadsheets and a calendar app. Switching took an hour. The recurring schedule alone is worth the price."
-        </blockquote>
-        <cite>— <strong>Bob T.</strong>, three-truck lawn care operation in Ohio</cite>
-      </section>
-
-      <section className="landing-section">
-        <div data-reveal style={{ textAlign: 'center' }}>
-          <div className="section-label">What you get</div>
-          <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>Every feature, included.</h2>
-        </div>
-        <div className="features-grid">
-          <div className="feature-card" data-reveal data-reveal-delay="1">
-            <div className="feature-icon"><Icon name="clock" /></div>
-            <h3>Recurring schedules that work</h3>
-            <p>Weekly, biweekly, or monthly visits per customer. Skip a week, reschedule one occurrence, mark visits complete with notes — without nuking the whole series.</p>
-          </div>
-          <div className="feature-card" data-reveal data-reveal-delay="2">
-            <div className="feature-icon"><Icon name="invoices" /></div>
-            <h3>Customer-first invoices</h3>
-            <p>Send a public link your customer can open on any device. Per-line items, optional tax + discount, Venmo pay-link built in.</p>
-          </div>
-          <div className="feature-card" data-reveal data-reveal-delay="3">
-            <div className="feature-icon"><Icon name="quotes" /></div>
-            <h3>Quotes that become work</h3>
-            <p>Quote a prospect, promote them to a customer in one click, convert the quote into a scheduled job or a draft invoice.</p>
-          </div>
-          <div className="feature-card" data-reveal data-reveal-delay="1">
-            <div className="feature-icon"><Icon name="reports" /></div>
-            <h3>Reports for the owner</h3>
-            <p>Paid revenue, outstanding balance per customer, projected income from upcoming visits, late invoices flagged automatically.</p>
-          </div>
-          <div className="feature-card" data-reveal data-reveal-delay="2">
-            <div className="feature-icon"><Icon name="team" /></div>
-            <h3>Teammates without confusion</h3>
-            <p>Admins, leads, and employees each see only what they need. Assign jobs to specific people; employees only see their own work.</p>
-          </div>
-          <div className="feature-card" data-reveal data-reveal-delay="3">
-            <div className="feature-icon"><Icon name="shield" /></div>
-            <h3>Your data, your data</h3>
-            <p>Import existing customers from CSV. Export everything back out anytime. No lock-in, no manipulative gates.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA-band, pricing, footer continue below */}
-
-      <section className="industries">
-        <div data-reveal>
-          <h2>Built for the businesses that go where the work is.</h2>
-          <p className="lede">Whatever you call yourself, if you serve customers in the field, Field Manager fits.</p>
-        </div>
-        <div className="industries-row" data-reveal data-reveal-delay="1">
-          <div className="industry-chip">Lawn care</div>
-          <div className="industry-chip">House cleaning</div>
-          <div className="industry-chip">Handyman</div>
-          <div className="industry-chip">Pet care</div>
-          <div className="industry-chip">Mobile hair &amp; barber</div>
-          <div className="industry-chip">Pool service</div>
-          <div className="industry-chip">Pressure washing</div>
-        </div>
-      </section>
-
-      <section className="landing-section pricing">
-        <div data-reveal>
-          <h2>Simple pricing. One plan.</h2>
-          <p className="lede">No tiers to puzzle over. Every feature, every teammate, every customer — one price.</p>
-        </div>
-        <div className="price-card" data-reveal data-reveal-delay="1">
-          <div>
-            <span className="amount">$29</span>
-            <span className="amount-suffix"> / month</span>
-          </div>
-          <div className="trial-hint">14-day free trial · No credit card to start</div>
-          <ul>
-            <li>Unlimited customers, jobs, and invoices</li>
-            <li>Recurring schedules with skip / reschedule</li>
-            <li>Public invoice links with Venmo pay</li>
-            <li>Quotes that convert to customers, jobs, and invoices</li>
-            <li>Reports, projected income, late-invoice flagging</li>
-            <li>Unlimited teammates with role-based access</li>
-            <li>CSV import and export</li>
-          </ul>
-          <button className="primary" onClick={() => navigate('/signup')}>Start your free trial</button>
-          <div className="fineprint">Cancel anytime. No long-term contract.</div>
-        </div>
-      </section>
+      {bodyVariant === 'editorial' && <NarrativeEditorial />}
+      {bodyVariant === 'cinematic' && <NarrativeCinematic />}
+      {bodyVariant === 'stepper' && <NarrativeStepper />}
 
       <section className="landing-section">
         <div className="cta-band" data-reveal>
