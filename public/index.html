@@ -12,6 +12,9 @@
       } catch (e) {}
     })();
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -69,12 +72,23 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-feature-settings: 'cv11', 'ss01', 'ss03';
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
+    h1, h2, h3, .brand {
+      font-family: var(--serif);
+      font-feature-settings: 'liga', 'kern';
+      letter-spacing: -0.02em;
+    }
+    h1 { font-weight: 600; }
+    h2, h3 { font-weight: 600; }
+    button { font-family: inherit; }
 
     /* Auth screens */
     .auth-shell { max-width: 460px; margin: 80px auto; padding: 0 16px; }
@@ -3799,6 +3813,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
       });
       setSettings(updated);
       setSaved(true);
+      if (onFeaturesChange) await onFeaturesChange();
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -4193,7 +4208,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   return (
     <div>
       <div className="topbar">
-        <div className="brand">{session.organization.name}</div>
+        <div className="brand">{(me && me.display_name) || session.organization.name}</div>
         <div className="right">
           <button className="link-button" onClick={() => navigate('/profile')}>
             {session.user.name || session.user.email}

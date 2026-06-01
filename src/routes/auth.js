@@ -20,13 +20,18 @@ router.get('/me', requireAuth, async (req, res, next) => {
     const { rows } = await query(
       `SELECT u.id, u.email, u.name, u.role, u.created_at, u.email_verified_at,
               o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name,
-              o.features, o.onboarding_completed_at
-       FROM users u JOIN organizations o ON o.id = u.organization_id
+              o.features, o.onboarding_completed_at,
+              s.company_name AS settings_company_name
+       FROM users u
+       JOIN organizations o ON o.id = u.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
        WHERE u.id = $1 AND u.deleted_at IS NULL LIMIT 1`,
       [req.user.sub]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    res.json(rows[0]);
+    const row = rows[0];
+    row.display_name = row.settings_company_name || row.organization_name;
+    res.json(row);
   } catch (err) { next(err); }
 });
 
