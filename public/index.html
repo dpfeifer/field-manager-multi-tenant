@@ -812,37 +812,6 @@
       66%      { transform: translate(-12px, 14px) scale(0.95); }
     }
 
-    /* Variant picker (preview comparison UI — remove once winners chosen) */
-    .variant-picker-wrap {
-      position: sticky; top: 14px; z-index: 50;
-      display: flex; flex-direction: column; align-items: flex-end;
-      gap: 6px; padding: 14px 14px 0;
-      pointer-events: none;
-    }
-    .variant-picker-wrap > * { pointer-events: auto; }
-    .variant-picker {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 6px 4px 10px;
-      background: var(--card); border: 1px solid var(--border-strong);
-      border-radius: 999px; font-size: 12px;
-      box-shadow: 0 6px 18px -8px rgba(40, 30, 20, 0.18);
-      width: fit-content;
-    }
-    .variant-picker-label {
-      color: var(--text-muted); font-weight: 600;
-      letter-spacing: 0.02em; padding-right: 4px;
-    }
-    .variant-picker button {
-      background: none; border: none; cursor: pointer;
-      padding: 5px 10px; border-radius: 999px;
-      font-family: inherit; font-size: 12px; font-weight: 500;
-      color: var(--text-muted); transition: background 0.15s, color 0.15s;
-    }
-    .variant-picker button:hover { color: var(--text); background: var(--tinted); }
-    .variant-picker button.on {
-      background: var(--primary); color: white; font-weight: 600;
-    }
-
     /* === Narrative shared === */
     .narrative .beat-eyebrow {
       font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
@@ -857,21 +826,6 @@
       color: var(--text-muted); font-size: 17px; line-height: 1.6;
       margin: 0;
     }
-
-    /* === Narrative: Editorial — long-form centered === */
-    .narrative-editorial { max-width: 720px; margin: 0 auto; padding: 80px 24px; }
-    .narrative-editorial .beat {
-      padding: 64px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .narrative-editorial .beat:last-child { border-bottom: none; }
-    .narrative-editorial .beat-num {
-      font-family: var(--serif); font-style: italic;
-      color: var(--text-muted); font-size: 14px;
-      margin-bottom: 8px;
-    }
-    .narrative-editorial .beat-headline { font-size: clamp(34px, 4.5vw, 52px); }
-    .narrative-editorial .visual { margin-top: 32px; }
 
     /* === Narrative: Cinematic — alternating panels === */
     .narrative-cinematic { padding: 80px 0; }
@@ -904,36 +858,108 @@
       .narrative-cinematic .beat.flip .beat-visual { order: 2; }
     }
 
-    /* === Narrative: Stepper — vertical numbered timeline === */
-    .narrative-stepper {
+    /* === Landing pricing block === */
+    .landing-pricing {
+      padding: 80px 24px 40px;
+    }
+    .landing-pricing-inner { max-width: 1080px; margin: 0 auto; }
+    .landing-pricing-head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
+    .landing-pricing-head h2 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(32px, 4vw, 48px);
+      letter-spacing: -0.025em; margin: 0 0 12px;
+    }
+    .landing-pricing-head p {
+      color: var(--text-muted); font-size: 17px;
+      line-height: 1.55; margin: 0;
+    }
+    .plan-card-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
       max-width: 880px; margin: 0 auto;
-      padding: 80px 24px; position: relative;
     }
-    .narrative-stepper .stepper-rail {
-      position: absolute; left: 56px; top: 110px; bottom: 110px;
-      width: 2px; background: linear-gradient(to bottom, transparent, var(--border-strong) 8%, var(--border-strong) 92%, transparent);
+    .plan-card {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 18px; padding: 32px;
+      box-shadow: 0 12px 32px -16px rgba(40, 30, 20, 0.15);
+      display: flex; flex-direction: column;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
     }
-    .narrative-stepper .beat {
-      display: grid; grid-template-columns: 110px 1fr;
-      gap: 28px; padding: 48px 0;
-      align-items: start; position: relative;
+    .plan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 24px 56px -22px rgba(40, 30, 20, 0.25);
     }
-    .narrative-stepper .beat-num {
-      font-family: var(--serif); font-size: 32px; font-weight: 500;
-      color: var(--primary); width: 64px; height: 64px;
-      border-radius: 50%; background: var(--card);
-      border: 2px solid var(--border-strong);
-      display: flex; align-items: center; justify-content: center;
-      letter-spacing: -0.02em;
-      box-shadow: 0 4px 12px -4px rgba(40, 30, 20, 0.1);
+    .plan-card-pro {
+      background: linear-gradient(180deg, var(--card), var(--tinted));
+      border-color: var(--accent);
+      border-width: 1.5px;
     }
-    .narrative-stepper .beat-content { padding-top: 8px; }
-    .narrative-stepper .beat-headline { font-size: clamp(26px, 3.5vw, 36px); }
-    .narrative-stepper .visual { margin-top: 24px; }
+    .plan-card-badge {
+      position: absolute; top: -12px; right: 24px;
+      background: var(--accent); color: white;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 4px 12px; border-radius: 999px;
+      box-shadow: 0 4px 12px -3px rgba(201, 133, 88, 0.4);
+    }
+    .plan-card-name {
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .plan-card-pro .plan-card-name { color: var(--accent); }
+    .plan-card-price { margin-bottom: 12px; }
+    .plan-card-price .amt {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 48px; letter-spacing: -0.03em; line-height: 1;
+      color: var(--text);
+    }
+    .plan-card-price .suf {
+      font-size: 16px; color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .plan-card-blurb {
+      color: var(--text-muted); font-size: 14px; line-height: 1.5;
+      margin: 0 0 24px;
+    }
+    .plan-card-cta {
+      width: 100%; padding: 12px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 14px;
+    }
+    .plan-card-cta .icon { transition: transform 0.2s; }
+    .plan-card-cta:hover .icon { transform: translateX(3px); }
+    .plan-card-list {
+      list-style: none; padding: 0; margin: 28px 0 0;
+      font-size: 14px;
+    }
+    .plan-card-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; color: var(--text);
+    }
+    .plan-card-list li.excluded {
+      color: var(--text-muted); text-decoration: line-through;
+      text-decoration-color: rgba(0,0,0,0.15);
+    }
+    .plan-tick {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--tinted); color: var(--primary);
+      flex-shrink: 0; font-size: 12px;
+    }
+    .plan-card-pro .plan-tick { background: var(--accent); color: white; }
+    li.excluded .plan-tick {
+      background: var(--card); color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .plan-fineprint {
+      max-width: 640px; margin: 36px auto 0;
+      text-align: center; font-size: 13px; color: var(--text-muted);
+      line-height: 1.6;
+    }
     @media (max-width: 720px) {
-      .narrative-stepper .stepper-rail { display: none; }
-      .narrative-stepper .beat { grid-template-columns: 56px 1fr; gap: 16px; padding: 36px 0; }
-      .narrative-stepper .beat-num { width: 48px; height: 48px; font-size: 22px; }
+      .plan-card-row { grid-template-columns: 1fr; }
+      .landing-pricing { padding: 56px 20px 24px; }
     }
 
     /* === Screenshot-style beat visuals === */
@@ -945,9 +971,7 @@
                   0 12px 28px -10px rgba(40, 30, 20, 0.18);
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .scrn-frame.scrn-tilt   { transform: rotate(1.2deg); }
-    .scrn-frame.scrn-tilt-l { transform: rotate(-1.4deg); }
-    .scrn-frame:hover { transform: rotate(0) translateY(-4px); }
+    .scrn-frame:hover { transform: translateY(-4px); }
     .scrn-bar {
       background: #efeae0; padding: 9px 14px;
       display: flex; align-items: center; gap: 14px;
@@ -1169,93 +1193,7 @@
     }
     .vm-pill.locked .vm-tag { color: var(--bg); opacity: 0.6; }
 
-    /* Playful variant — sparkles + hand-drawn arrow */
-    .hero-doodle.doodle-arrow {
-      position: absolute; pointer-events: none;
-      bottom: 100px; right: 14%;
-      width: 120px; height: 90px;
-      transform: scaleX(-1);
-      animation: doodleDraw 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
-    }
-    .hero-doodle.doodle-arrow path:first-child {
-      animation: doodleStroke 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
-    }
-    @keyframes doodleStroke {
-      to { stroke-dashoffset: 0; }
-    }
-    @keyframes doodleDraw {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .hero-doodle.doodle-note {
-      position: absolute; bottom: 200px; right: 12%;
-      font-family: var(--serif); font-style: italic;
-      color: var(--accent); font-size: 18px;
-      transform: rotate(-8deg);
-      opacity: 0; animation: doodleDraw 0.6s ease-out 1.4s forwards;
-    }
-
-    .hero-sparkles { position: absolute; inset: 0; pointer-events: none; }
-    .hero-sparkles .sparkle {
-      position: absolute; width: 8px; height: 8px;
-      background: var(--accent); border-radius: 50%;
-      animation: sparkleTwinkle 3s ease-in-out infinite;
-    }
-    .hero-sparkles .sparkle::before,
-    .hero-sparkles .sparkle::after {
-      content: ''; position: absolute; background: var(--accent);
-    }
-    .hero-sparkles .sparkle::before {
-      left: 50%; top: -6px; width: 2px; height: 20px;
-      transform: translateX(-50%); border-radius: 2px;
-    }
-    .hero-sparkles .sparkle::after {
-      top: 50%; left: -6px; width: 20px; height: 2px;
-      transform: translateY(-50%); border-radius: 2px;
-    }
-    .hero-sparkles .s0 { top: 14%; left: 10%; animation-delay: 0s;    transform: scale(0.6); }
-    .hero-sparkles .s1 { top: 22%; right: 12%; animation-delay: 0.4s; transform: scale(0.8); }
-    .hero-sparkles .s2 { top: 48%; left: 6%; animation-delay: 1.0s;   transform: scale(0.5); }
-    .hero-sparkles .s3 { top: 64%; right: 8%; animation-delay: 1.4s;  transform: scale(0.7); }
-    .hero-sparkles .s4 { top: 28%; left: 22%; animation-delay: 0.8s;  transform: scale(0.45); }
-    .hero-sparkles .s5 { top: 8%;  right: 28%; animation-delay: 0.2s; transform: scale(0.55); }
-    .hero-sparkles .s6 { bottom: 16%; left: 18%; animation-delay: 1.6s; transform: scale(0.6); }
-    .hero-sparkles .s7 { bottom: 30%; right: 22%; animation-delay: 0.6s; transform: scale(0.5); }
-    @keyframes sparkleTwinkle {
-      0%, 100% { opacity: 0; transform: scale(var(--s, 0.6)) rotate(0deg); }
-      50%      { opacity: 0.9; transform: scale(var(--s, 0.6)) rotate(45deg); }
-    }
-
-    /* Stats variant — 4 tile band below the price line */
-    .hero-stats {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-      max-width: 760px; margin: 40px auto 0;
-    }
-    .stat-tile {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 18px 14px; text-align: center;
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .stat-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-    .stat-tile .stat-num {
-      font-family: var(--serif); font-weight: 600;
-      font-size: 32px; letter-spacing: -0.03em; line-height: 1; color: var(--text);
-      margin-bottom: 8px;
-    }
-    .stat-tile .stat-num span {
-      font-size: 14px; font-weight: 500; color: var(--text-muted);
-      margin-left: 4px; letter-spacing: 0;
-    }
-    .stat-tile .stat-label {
-      font-size: 12px; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
-    }
-    @media (max-width: 720px) {
-      .hero-stats { grid-template-columns: repeat(2, 1fr); }
-      .stat-tile .stat-num { font-size: 26px; }
-    }
-
-    /* Marquee variant — scrolling industry strip at the bottom of hero */
+    /* Marquee — scrolling industry strip at the bottom of hero */
     .hero-marquee {
       margin: 48px -40px 0;
       padding: 18px 0;
@@ -1287,44 +1225,11 @@
       .hero-marquee { margin-left: -20px; margin-right: -20px; }
     }
 
-    /* Floating sticker badges flanking the hero */
-    .hero-sticker {
-      position: absolute; display: inline-flex; align-items: center; gap: 7px;
-      background: var(--card); border: 1px solid var(--border-strong);
-      border-radius: 14px; padding: 8px 14px;
-      font-size: 13px; font-weight: 600; color: var(--text);
-      box-shadow: 0 8px 20px -6px rgba(40, 30, 20, 0.18),
-                  0 2px 6px -2px rgba(40, 30, 20, 0.08);
-      letter-spacing: -0.005em;
-      z-index: 1;
-    }
-    .hero-sticker .dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
-      box-shadow: 0 0 0 3px rgba(201, 133, 88, 0.18);
-    }
-    .hero-sticker.left {
-      top: 92px; left: 4%;
-      animation: stickerFloatL 5.5s ease-in-out infinite;
-    }
-    .hero-sticker.right {
-      top: 140px; right: 4%;
-      animation: stickerFloatR 6s ease-in-out infinite;
-      animation-delay: -2.2s;
-    }
-    @keyframes stickerFloatL {
-      0%, 100% { transform: rotate(-7deg) translateY(0); }
-      50%      { transform: rotate(-7deg) translateY(-8px); }
-    }
-    @keyframes stickerFloatR {
-      0%, 100% { transform: rotate(6deg) translateY(0); }
-      50%      { transform: rotate(6deg) translateY(-10px); }
-    }
     @media (max-width: 860px) {
-      .hero-sticker { display: none; }
       .hero-orb { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero-orb, .hero-sticker { animation: none; }
+      .hero-orb { animation: none; }
     }
     .landing-hero .eyebrow {
       display: inline-block; padding: 5px 14px;
@@ -1705,7 +1610,9 @@ async function startUpgrade(session) {
 }
 
 function isPlanLimitError(err) {
-  return err && err.message && (
+  if (!err) return false;
+  if (err.data && (err.data.billing_status === 'plan_limit' || err.data.billing_status === 'free_tier')) return true;
+  return err.message && (
     err.message.includes('Free plan limit') ||
     err.message.includes('Pro feature')
   );
@@ -1755,7 +1662,12 @@ async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   if (res.status === 204) return null;
   const isJson = (res.headers.get('content-type') || '').includes('application/json');
   const data = isJson ? await res.json() : await res.text();
-  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const err = new Error((data && data.error) || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
   return data;
 }
 
@@ -2188,50 +2100,6 @@ function CyclingHeadline() {
   );
 }
 
-function VariantPicker({ variant, onChange }) {
-  const VARIANTS = [
-    ['clean', 'Clean'],
-    ['playful', 'Playful'],
-    ['stats', 'Stats'],
-    ['marquee', 'Marquee'],
-    ['stickers', 'Stickers'],
-  ];
-  return (
-    <div className="variant-picker" aria-label="Hero variant picker (preview only)">
-      <span className="variant-picker-label">Hero:</span>
-      {VARIANTS.map(([k, l]) => (
-        <button
-          key={k}
-          type="button"
-          className={variant === k ? 'on' : ''}
-          onClick={() => onChange(k)}
-        >{l}</button>
-      ))}
-    </div>
-  );
-}
-
-function BodyPicker({ variant, onChange }) {
-  const VARIANTS = [
-    ['editorial', 'Editorial'],
-    ['cinematic', 'Cinematic'],
-    ['stepper', 'Stepper'],
-  ];
-  return (
-    <div className="variant-picker body-variant-picker" aria-label="Body layout picker (preview only)">
-      <span className="variant-picker-label">Body:</span>
-      {VARIANTS.map(([k, l]) => (
-        <button
-          key={k}
-          type="button"
-          className={variant === k ? 'on' : ''}
-          onClick={() => onChange(k)}
-        >{l}</button>
-      ))}
-    </div>
-  );
-}
-
 const NARRATIVE_BEATS = [
   {
     eyebrow: 'In one place',
@@ -2291,7 +2159,7 @@ function ScrnApp({ activeNav, children }) {
 function BeatVisual({ kind }) {
   if (kind === 'workflow') {
     return (
-      <ScrnFrame url="app.fieldmgr.com/customers/heather" className="scrn-tilt">
+      <ScrnFrame url="app.fieldmgr.com/customers/heather" className="">
         <ScrnApp activeNav="Customers">
           <div className="scrn-pageheader">
             <h4>Heather Stahl</h4>
@@ -2314,7 +2182,7 @@ function BeatVisual({ kind }) {
   }
   if (kind === 'signup') {
     return (
-      <ScrnFrame url="fieldmgr.com/signup" className="scrn-tilt-l">
+      <ScrnFrame url="fieldmgr.com/signup" className="">
         <div className="scrn-signup">
           <div className="scrn-brand-row">Field Manager</div>
           <h4 className="scrn-signup-h">Create your account</h4>
@@ -2358,7 +2226,7 @@ function BeatVisual({ kind }) {
   }
   if (kind === 'modules') {
     return (
-      <ScrnFrame url="app.fieldmgr.com/settings/modules" className="scrn-tilt">
+      <ScrnFrame url="app.fieldmgr.com/settings/modules" className="">
         <ScrnApp activeNav="Settings">
           <div className="scrn-subnav">
             <span>Company</span><span>Terminology</span><span className="on">Modules</span>
@@ -2391,23 +2259,7 @@ function BeatVisual({ kind }) {
   return null;
 }
 
-function NarrativeEditorial() {
-  return (
-    <div className="narrative narrative-editorial">
-      {NARRATIVE_BEATS.map((beat, i) => (
-        <section key={i} className="beat" data-reveal>
-          <div className="beat-num">Chapter {i + 1}</div>
-          <div className="beat-eyebrow">{beat.eyebrow}</div>
-          <h2 className="beat-headline">{beat.headline}</h2>
-          <p className="beat-body">{beat.body}</p>
-          <BeatVisual kind={beat.kind} />
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function NarrativeCinematic() {
+function Narrative() {
   return (
     <div className="narrative narrative-cinematic">
       {NARRATIVE_BEATS.map((beat, i) => (
@@ -2424,56 +2276,83 @@ function NarrativeCinematic() {
   );
 }
 
-function NarrativeStepper() {
+function LandingPricing() {
+  const FREE = {
+    name: 'Free',
+    price: '$0',
+    suffix: 'forever',
+    blurb: 'Run a small operation, no card required.',
+    cta: 'Start free',
+    included: [
+      'Up to 5 customers',
+      'Up to 20 jobs (lifetime)',
+      'Recurring schedules',
+      'Quotes for prospects',
+      'Public booking link',
+      'CSV import + export',
+    ],
+    excluded: ['Invoicing', 'Reports', 'Team members'],
+  };
+  const PRO = {
+    name: 'Pro',
+    price: '$29',
+    suffix: '/mo',
+    blurb: 'For growing operations. Everything, unlimited.',
+    cta: 'Try Pro free for 14 days',
+    included: [
+      'Everything in Free',
+      'Unlimited customers + jobs',
+      'Invoicing with public links',
+      'Reports + projections',
+      'Unlimited teammates',
+      'Priority email support',
+    ],
+  };
   return (
-    <div className="narrative narrative-stepper">
-      <div className="stepper-rail" aria-hidden="true" />
-      {NARRATIVE_BEATS.map((beat, i) => (
-        <section key={i} className="beat" data-reveal data-reveal-delay={(i % 3) + 1}>
-          <div className="beat-num">{String(i + 1).padStart(2, '0')}</div>
-          <div className="beat-content">
-            <div className="beat-eyebrow">{beat.eyebrow}</div>
-            <h2 className="beat-headline">{beat.headline}</h2>
-            <p className="beat-body">{beat.body}</p>
-            <div className="beat-visual"><BeatVisual kind={beat.kind} /></div>
+    <section className="landing-pricing" data-reveal>
+      <div className="landing-pricing-inner">
+        <div className="landing-pricing-head">
+          <div className="beat-eyebrow">Pricing</div>
+          <h2>Free to start. Pro when you grow.</h2>
+          <p>Two plans. No hidden tiers, no per-seat fees, no surprise charges.</p>
+        </div>
+        <div className="plan-card-row">
+          <div className="plan-card">
+            <div className="plan-card-name">{FREE.name}</div>
+            <div className="plan-card-price"><span className="amt">{FREE.price}</span><span className="suf"> {FREE.suffix}</span></div>
+            <p className="plan-card-blurb">{FREE.blurb}</p>
+            <button className="secondary plan-card-cta" onClick={() => navigate('/signup')}>{FREE.cta} <Icon name="arrow" /></button>
+            <ul className="plan-card-list">
+              {FREE.included.map((f) => (
+                <li key={f}><span className="plan-tick"><Icon name="check" /></span>{f}</li>
+              ))}
+              {FREE.excluded.map((f) => (
+                <li key={f} className="excluded"><span className="plan-tick"><Icon name="lock" /></span>{f}</li>
+              ))}
+            </ul>
           </div>
-        </section>
-      ))}
-    </div>
+          <div className="plan-card plan-card-pro">
+            <div className="plan-card-badge">Most popular</div>
+            <div className="plan-card-name">{PRO.name}</div>
+            <div className="plan-card-price"><span className="amt">{PRO.price}</span><span className="suf">{PRO.suffix}</span></div>
+            <p className="plan-card-blurb">{PRO.blurb}</p>
+            <button className="primary plan-card-cta" onClick={() => navigate('/signup')}>{PRO.cta} <Icon name="arrow" /></button>
+            <ul className="plan-card-list">
+              {PRO.included.map((f) => (
+                <li key={f}><span className="plan-tick"><Icon name="check" /></span>{f}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="plan-fineprint">
+          New accounts start with a 14-day Pro trial. When the trial ends you can subscribe to keep Pro or drop to Free — your data stays put either way.
+        </p>
+      </div>
+    </section>
   );
 }
 
 function LandingPage() {
-  const [variant, _setVariant] = useState(() => {
-    if (typeof window === 'undefined') return 'marquee';
-    const u = new URLSearchParams(window.location.search);
-    const v = u.get('v');
-    return ['clean','playful','stats','marquee','stickers'].includes(v) ? v : 'marquee';
-  });
-  function setVariant(v) {
-    _setVariant(v);
-    try {
-      const url = new URL(window.location.href);
-      if (v === 'clean') url.searchParams.delete('v'); else url.searchParams.set('v', v);
-      window.history.replaceState({}, '', url.toString());
-    } catch (err) {}
-  }
-
-  const [bodyVariant, _setBodyVariant] = useState(() => {
-    if (typeof window === 'undefined') return 'cinematic';
-    const u = new URLSearchParams(window.location.search);
-    const v = u.get('body');
-    return ['editorial','cinematic','stepper'].includes(v) ? v : 'cinematic';
-  });
-  function setBodyVariant(v) {
-    _setBodyVariant(v);
-    try {
-      const url = new URL(window.location.href);
-      if (v === 'cinematic') url.searchParams.delete('body'); else url.searchParams.set('body', v);
-      window.history.replaceState({}, '', url.toString());
-    } catch (err) {}
-  }
-
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
       document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-revealed'));
@@ -2515,27 +2394,10 @@ function LandingPage() {
         </div>
       </nav>
 
-      <div className="variant-picker-wrap">
-        <VariantPicker variant={variant} onChange={setVariant} />
-        <BodyPicker variant={bodyVariant} onChange={setBodyVariant} />
-      </div>
-      <header className={`landing-hero variant-${variant}`}>
+      <header className="landing-hero">
         <span className="hero-orb orb-a" aria-hidden="true" />
         <span className="hero-orb orb-b" aria-hidden="true" />
         <span className="hero-orb orb-c" aria-hidden="true" />
-
-        {variant === 'playful' && (
-          <>
-            <svg className="hero-doodle doodle-arrow" viewBox="0 0 120 90" aria-hidden="true">
-              <path d="M 10 10 Q 60 0 80 35 T 95 78" stroke="var(--accent)" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeDasharray="180" strokeDashoffset="180" />
-              <path d="M 88 70 L 95 78 L 86 80" stroke="var(--accent)" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div className="hero-doodle doodle-note">setup in 60 sec ↘</div>
-            <div className="hero-sparkles" aria-hidden="true">
-              {[0,1,2,3,4,5,6,7].map((i) => <span key={i} className={`sparkle s${i}`} />)}
-            </div>
-          </>
-        )}
 
         <span className="eyebrow fade-in">For small service teams</span>
         <CyclingHeadline />
@@ -2550,40 +2412,17 @@ function LandingPage() {
           <strong style={{ color: 'var(--text)' }}>Free forever</strong> for small operations · <strong style={{ color: 'var(--text)' }}>$29/mo</strong> when you scale · No credit card
         </p>
 
-        {variant === 'stats' && (
-          <div className="hero-stats fade-in-delay-3">
-            <div className="stat-tile"><div className="stat-num">60<span>sec</span></div><div className="stat-label">Setup</div></div>
-            <div className="stat-tile"><div className="stat-num">14<span>days</span></div><div className="stat-label">Free trial</div></div>
-            <div className="stat-tile"><div className="stat-num">∞</div><div className="stat-label">Customers + jobs</div></div>
-            <div className="stat-tile"><div className="stat-num">$29<span>/mo</span></div><div className="stat-label">One simple plan</div></div>
+        <div className="hero-marquee" aria-hidden="true">
+          <div className="marquee-track">
+            {['Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service','Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service'].map((s, i) => (
+              <span key={i} className="marquee-item">{s}<span className="marquee-dot">●</span></span>
+            ))}
           </div>
-        )}
-
-        {variant === 'marquee' && (
-          <div className="hero-marquee" aria-hidden="true">
-            <div className="marquee-track">
-              {['Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service','Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service'].map((s, i) => (
-                <span key={i} className="marquee-item">{s}<span className="marquee-dot">●</span></span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {variant === 'stickers' && (
-          <>
-            <div className="hero-sticker left fade-in-delay-3" aria-hidden="true">
-              <span className="dot" /> Setup in 60 seconds
-            </div>
-            <div className="hero-sticker right fade-in-delay-3" aria-hidden="true">
-              <span className="dot" /> 14 days free · No card
-            </div>
-          </>
-        )}
+        </div>
       </header>
 
-      {bodyVariant === 'editorial' && <NarrativeEditorial />}
-      {bodyVariant === 'cinematic' && <NarrativeCinematic />}
-      {bodyVariant === 'stepper' && <NarrativeStepper />}
+      <Narrative />
+      <LandingPricing />
 
       <section className="landing-section">
         <div className="cta-band" data-reveal>
@@ -5882,6 +5721,29 @@ function UpgradePrompt({ session, used, limit, resource }) {
       <button className="primary" onClick={upgrade} disabled={busy}>
         {busy ? '…' : 'Upgrade · $29/mo'}
       </button>
+    </div>
+  );
+}
+
+// PlanError wraps the usual `<div className="error">` so any caller that
+// throws a plan-limit / pro-feature error gets the styled upgrade prompt
+// (with a direct Stripe-checkout button) instead of a plain red message.
+function PlanError({ error, session }) {
+  if (!error) return null;
+  if (!isPlanLimitError(error)) {
+    return <div className="error">{error.message || String(error)}</div>;
+  }
+  const data = error.data || {};
+  return (
+    <div className="upgrade-prompt">
+      <div className="upgrade-prompt-icon"><Icon name="lock" /></div>
+      <div className="upgrade-prompt-text">
+        <strong>{data.billing_status === 'plan_limit' ? "You've hit the Free plan limit" : "That's a Pro feature"}</strong>
+        <span>
+          {error.message} Upgrade to Pro to unlock — $29/mo, cancel anytime.
+        </span>
+      </div>
+      <button className="primary" onClick={() => startUpgrade(session)}>Upgrade · $29/mo</button>
     </div>
   );
 }
