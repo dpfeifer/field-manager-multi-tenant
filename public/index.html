@@ -381,6 +381,89 @@
       margin-top: 16px; font-size: 12px; color: var(--text-muted);
     }
 
+    /* Billing page hero */
+    .billing-hero {
+      padding: 32px 32px 28px;
+      border-radius: 18px;
+      margin-bottom: 24px;
+      background: var(--card); border: 1px solid var(--border);
+    }
+    .billing-hero.billing-pro {
+      background: linear-gradient(135deg, var(--card), var(--tinted));
+      border-color: var(--border-strong);
+    }
+    .billing-hero.billing-free {
+      background: linear-gradient(135deg, var(--tinted), var(--card));
+      border-color: var(--accent);
+    }
+    .billing-hero-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .billing-trial-chip {
+      background: #f4ddd0; color: #8c4e30;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    .billing-hero-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 28px; letter-spacing: -0.02em;
+      margin: 0 0 10px;
+    }
+    .billing-hero-sub {
+      color: var(--text-muted); font-size: 14.5px; line-height: 1.55;
+      margin: 0; max-width: 600px;
+    }
+    .billing-cta-row {
+      display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap;
+    }
+    .billing-cta-row button.primary {
+      padding: 12px 22px; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .billing-cta-row button.primary .icon { transition: transform 0.2s; }
+    .billing-cta-row button.primary:hover .icon { transform: translateX(2px); }
+
+    .billing-usage-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 600px) {
+      .billing-usage-row { grid-template-columns: 1fr; }
+    }
+    .usage-bar { }
+    .usage-bar-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .usage-bar-label {
+      font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .usage-bar-count {
+      font-family: ui-monospace, monospace; font-size: 12px;
+      color: var(--text-muted);
+    }
+    .usage-bar-count.over { color: var(--accent); font-weight: 600; }
+    .usage-bar-track {
+      height: 6px; background: var(--tinted);
+      border-radius: 999px; overflow: hidden;
+    }
+    .usage-bar-fill {
+      height: 100%; background: var(--primary);
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .usage-bar-fill.over { background: var(--accent); }
+
+    .billing-locked-list, .billing-included-list {
+      list-style: none; padding: 0; margin: 0;
+      font-size: 14px; color: var(--text);
+    }
+    .billing-locked-list li, .billing-included-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 7px 0; line-height: 1.5;
+    }
+    .billing-locked-list li .icon { color: var(--text-muted); margin-top: 2px; flex-shrink: 0; }
+    .billing-included-list li .icon { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+
     /* Inline upgrade prompt (limit hit) */
     .upgrade-prompt {
       display: flex; align-items: center; gap: 16px;
@@ -2313,7 +2396,7 @@ function LandingPricing() {
       <div className="landing-pricing-inner">
         <div className="landing-pricing-head">
           <div className="beat-eyebrow">Pricing</div>
-          <h2>Free to start. Pro when you grow.</h2>
+          <h2>Free to start.<br />Pro when you grow.</h2>
           <p>Two plans. No hidden tiers, no per-seat fees, no surprise charges.</p>
         </div>
         <div className="plan-card-row">
@@ -2779,7 +2862,7 @@ function CustomersView({ session, planContext }) {
       });
       setMode('list');
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
     finally { setBusy(false); }
   }
 
@@ -2792,7 +2875,7 @@ function CustomersView({ session, planContext }) {
       setEditing(null);
       setMode('list');
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
     finally { setBusy(false); }
   }
 
@@ -2804,14 +2887,14 @@ function CustomersView({ session, planContext }) {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
   }
 
   if (mode === 'create') {
     return (
       <div>
         <div className="page-header"><h2>New {terms.customerLower}</h2></div>
-        {error && <div className="error">{error}</div>}
+        <PlanError error={error} session={session} />
         <div className="form-card">
           <CustomerForm onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
         </div>
@@ -2823,7 +2906,7 @@ function CustomersView({ session, planContext }) {
     return (
       <div>
         <div className="page-header"><h2>Edit {terms.customerLower}</h2></div>
-        {error && <div className="error">{error}</div>}
+        <PlanError error={error} session={session} />
         <div className="form-card">
           <CustomerForm
             initial={editing}
@@ -2898,7 +2981,7 @@ function CustomersView({ session, planContext }) {
           <option value="oldest">Sort: Oldest</option>
         </select>
       </div>
-      {error && <div className="error">{error}</div>}
+      <PlanError error={error} session={session} />
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -3117,7 +3200,7 @@ function RequestsView({ session }) {
         method: 'POST', slug: session.slug, token: session.token,
       });
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
     finally { setBusy(false); }
   }
 
@@ -3163,7 +3246,7 @@ function RequestsView({ session }) {
           ))}
         </div>
       </div>
-      {error && <div className="error">{error}</div>}
+      <PlanError error={error} session={session} />
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -3745,7 +3828,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
       });
       setMode('list');
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
     finally { setBusy(false); }
   }
 
@@ -3757,7 +3840,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
       });
       setEditing(null); setMode('list');
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
     finally { setBusy(false); }
   }
 
@@ -3769,7 +3852,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       await refresh();
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err); }
   }
 
   async function completeJob(values) {
@@ -3815,7 +3898,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
     return (
       <div>
         <div className="page-header"><h2>New {terms.jobLower}</h2></div>
-        {error && <div className="error">{error}</div>}
+        <PlanError error={error} session={session} />
         {customers.length === 0 ? (
           <div className="form-card">
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>
@@ -3842,7 +3925,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
     return (
       <div>
         <div className="page-header"><h2>Edit {terms.jobLower}</h2></div>
-        {error && <div className="error">{error}</div>}
+        <PlanError error={error} session={session} />
         <div className="form-card">
           <JobForm
             initial={editing}
@@ -3963,7 +4046,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
           <button className={layout === 'calendar' ? 'active' : ''} onClick={() => setLayout('calendar')}>Calendar</button>
         </div>
       </div>
-      {error && <div className="error">{error}</div>}
+      <PlanError error={error} session={session} />
       {layout === 'calendar' ? (
         loading ? (
           <div className="list-empty">Loading...</div>
@@ -5503,7 +5586,24 @@ function BillingBanner({ status, trialDaysLeft, isAdmin }) {
   );
 }
 
-function BillingView({ session }) {
+function BillingUsageBar({ label, used, limit }) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const atCap = used >= limit;
+  return (
+    <div className="usage-bar">
+      <div className="usage-bar-head">
+        <span className="usage-bar-label">{label}</span>
+        <span className={`usage-bar-count${atCap ? ' over' : ''}`}>{used} / {limit}</span>
+      </div>
+      <div className="usage-bar-track">
+        <div className={`usage-bar-fill${atCap ? ' over' : ''}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function BillingView({ session, me }) {
+  const terms = useTerms();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -5514,6 +5614,13 @@ function BillingView({ session }) {
   const justCanceled = params.get('canceled') === 'true';
 
   const isAdmin = session.user.role === 'admin';
+  const plan = (me && me.plan) || 'pro';
+  const isFree = plan === 'free';
+  const limits = (me && me.limits) || { customers: 5, jobs: 20 };
+  const counts = {
+    customers: (me && me.customer_count) || 0,
+    jobs: (me && me.job_count) || 0,
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -5546,58 +5653,65 @@ function BillingView({ session }) {
     } catch (err) { setError(err.message); setBusy(false); }
   }
 
+  const trialDays = status && status.status === 'trialing' && status.trial_ends_at
+    ? daysUntil(status.trial_ends_at) : null;
+
   return (
     <div>
       <div className="page-header"><h2>Billing</h2></div>
 
       {justSucceeded && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
-          Payment succeeded. Your subscription is active.
+          🎉 Payment succeeded. Welcome to Pro.
         </div>
       )}
       {justCanceled && (
         <div className="error" style={{ background: 'var(--tinted)', color: 'var(--text)' }}>
-          Checkout canceled. You can subscribe anytime.
+          Checkout canceled. You can upgrade anytime.
         </div>
       )}
       {error && <div className="error">{error}</div>}
 
-      {loading ? (
+      {loading || !status ? (
         <div className="list-empty">Loading...</div>
-      ) : !status ? null : (
+      ) : (
         <>
-          <div className="form-card">
-            <div className="section-heading" style={{ marginTop: 0 }}>Current plan</div>
-            <div style={{ fontSize: 14 }}>
-              <div style={{ marginBottom: 10 }}>
-                Status: <span className={`badge ${badgeForStatus(status.status)}`}>{statusLabel(status.status, status.trial_ends_at)}</span>
-              </div>
-              {status.status === 'trialing' && status.trial_ends_at && (
-                <div style={{ color: 'var(--text-muted)' }}>
-                  Free trial ends {formatDateString(status.trial_ends_at.split('T')[0])} — {daysUntil(status.trial_ends_at)} {daysUntil(status.trial_ends_at) === 1 ? 'day' : 'days'} left.
-                </div>
-              )}
-              {status.status === 'free' && (
-                <div style={{ color: 'var(--text-muted)' }}>
-                  Comp'd account — no billing. (Set by platform staff.)
-                </div>
-              )}
-              {status.status === 'active' && (
-                <div style={{ color: 'var(--text-muted)' }}>Subscription is active — $29/month.</div>
-              )}
-              {status.status === 'past_due' && (
-                <div style={{ color: 'var(--danger)' }}>Payment failed. Update your payment method to avoid losing access.</div>
-              )}
-              {status.status === 'canceled' && (
-                <div style={{ color: 'var(--danger)' }}>Subscription canceled. Resubscribe to restore editing.</div>
+          <div className={`billing-hero billing-${plan}`}>
+            <div className="billing-hero-head">
+              <span className={`plan-pill plan-${plan}`}>{isFree ? 'Free' : 'Pro'}</span>
+              {status.status === 'trialing' && trialDays !== null && trialDays > 0 && (
+                <span className="billing-trial-chip">Free trial · {trialDays} {trialDays === 1 ? 'day' : 'days'} left</span>
               )}
             </div>
+            <h3 className="billing-hero-title">
+              {isFree && status.status !== 'trialing' && status.status !== 'free' && 'You\'re on the Free plan.'}
+              {status.status === 'free' && 'Your account is comp\'d.'}
+              {status.status === 'trialing' && trialDays > 0 && 'You\'re trying Pro for free.'}
+              {status.status === 'trialing' && trialDays <= 0 && 'Your trial has ended.'}
+              {status.status === 'active' && 'You\'re on Pro.'}
+              {status.status === 'past_due' && 'Your payment is past due.'}
+              {status.status === 'canceled' && 'Your subscription is canceled.'}
+            </h3>
+            <p className="billing-hero-sub">
+              {isFree && status.status === 'canceled' && 'Your data\'s still here. Upgrade anytime to unlock Pro features again.'}
+              {isFree && status.status !== 'canceled' && status.status !== 'trialing' && status.status !== 'free' && 'Five ' + terms.customersLower + ' and twenty ' + terms.jobsLower + ' on the house. Upgrade to Pro for unlimited everything plus invoicing, reports, and team members.'}
+              {status.status === 'free' && 'Set by platform staff — no billing on this account.'}
+              {status.status === 'trialing' && trialDays > 0 && 'Trial ends ' + formatDateString(status.trial_ends_at.split('T')[0]) + '. Subscribe before then to keep Pro, or do nothing and drop to Free — your data stays put.'}
+              {status.status === 'trialing' && trialDays <= 0 && 'You\'re now on the Free plan with its limits. Upgrade anytime.'}
+              {status.status === 'active' && '$29/month, unlimited everything. Manage your card or cancel anytime via the billing portal.'}
+              {status.status === 'past_due' && 'Update your payment method to keep editing — your account is currently restricted.'}
+            </p>
 
             {isAdmin && (
-              <div className="form-actions">
-                {(status.status === 'trialing' || status.status === 'canceled') && (
+              <div className="billing-cta-row">
+                {isFree && (
                   <button className="primary" disabled={busy} onClick={startCheckout}>
-                    {busy ? 'Loading...' : 'Subscribe — $29/month'}
+                    {busy ? 'Loading...' : 'Upgrade to Pro · $29/mo'}<Icon name="arrow" />
+                  </button>
+                )}
+                {status.status === 'trialing' && (
+                  <button className="primary" disabled={busy} onClick={startCheckout}>
+                    {busy ? 'Loading...' : 'Subscribe now · $29/mo'}<Icon name="arrow" />
                   </button>
                 )}
                 {(status.status === 'active' || status.status === 'past_due') && status.has_subscription && (
@@ -5614,6 +5728,39 @@ function BillingView({ session }) {
               </p>
             )}
           </div>
+
+          {isFree && (
+            <div className="form-card">
+              <div className="section-heading" style={{ marginTop: 0 }}>Your Free plan usage</div>
+              <div className="billing-usage-row">
+                <BillingUsageBar label={terms.customers} used={counts.customers} limit={limits.customers} />
+                <BillingUsageBar label={terms.jobs} used={counts.jobs} limit={limits.jobs} />
+              </div>
+              <div className="section-heading">Locked on Free</div>
+              <ul className="billing-locked-list">
+                <li><Icon name="lock" /> <strong>Invoicing</strong> — send branded invoices with public links and Venmo pay</li>
+                <li><Icon name="lock" /> <strong>Reports</strong> — revenue dashboard, projected income, top {terms.customersLower}</li>
+                <li><Icon name="lock" /> <strong>Team members</strong> — invite admins, leads, employees with role-based access</li>
+              </ul>
+              <p className="hint" style={{ marginTop: 14 }}>
+                Upgrade to Pro to unlock all three plus unlimited {terms.customersLower} and {terms.jobsLower}.
+              </p>
+            </div>
+          )}
+
+          {!isFree && status.status !== 'free' && (
+            <div className="form-card">
+              <div className="section-heading" style={{ marginTop: 0 }}>What's included</div>
+              <ul className="billing-included-list">
+                <li><Icon name="check" /> Unlimited {terms.customersLower} and {terms.jobsLower}</li>
+                <li><Icon name="check" /> Invoicing with public links and Venmo pay</li>
+                <li><Icon name="check" /> Reports, projections, top-{terms.customersLower} dashboard</li>
+                <li><Icon name="check" /> Unlimited teammates with role-based access</li>
+                <li><Icon name="check" /> Recurring schedules, quotes, CSV import/export</li>
+                <li><Icon name="check" /> Public booking link for customer requests</li>
+              </ul>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -5915,7 +6062,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'team' && (isFree
           ? <LockedFeature feature="team" session={session} />
           : (session.user.role === 'admin' && <TeamView session={session} />))}
-        {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} />}
+        {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} me={me} />}
         {view === 'settings' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
