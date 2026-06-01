@@ -866,6 +866,60 @@
     .day-block-sms option { color: var(--text); background: var(--card); }
     .day-block.completed .day-block-sms { display: none; }
 
+    /* Dashboard widgets */
+    .dash-greeting { margin-bottom: 16px; }
+    .dash-greeting h2 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(24px, 3.5vw, 32px);
+      letter-spacing: -0.02em; margin: 0 0 4px;
+    }
+    .dash-greeting p {
+      margin: 0; color: var(--text-muted);
+      font-size: 14px; line-height: 1.5;
+    }
+
+    .dash-pending-requests {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 14px 18px;
+      background: linear-gradient(to right, var(--tinted), var(--card));
+      border: 1px solid var(--accent);
+      border-radius: 12px; margin: 16px 0;
+      font-size: 14px;
+    }
+    .dash-pending-requests strong { font-family: var(--serif); font-size: 22px; font-weight: 600; margin-right: 6px; }
+
+    .dash-quick-actions {
+      display: flex; gap: 8px; margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    .dash-quick-actions button { font-size: 13px; }
+
+    /* Dashboard widget editor in Settings */
+    .dash-widget-list {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .dash-widget-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; cursor: grab;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .dash-widget-row:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 2px 8px -2px rgba(40, 30, 20, 0.08);
+    }
+    .dash-widget-row:active { cursor: grabbing; }
+    .dash-widget-drag {
+      color: var(--text-muted); font-size: 16px; line-height: 1;
+      letter-spacing: -3px; flex-shrink: 0; user-select: none;
+    }
+    .dash-widget-toggle { margin: 0; padding: 0; flex-shrink: 0; }
+    .dash-widget-toggle input { width: 18px; height: 18px; cursor: pointer; }
+    .dash-widget-text { flex: 1; min-width: 0; }
+    .dash-widget-name { font-weight: 600; font-size: 14px; color: var(--text); }
+    .dash-widget-help { font-size: 12px; color: var(--text-muted); margin-top: 1px; line-height: 1.4; }
+
     /* Quick-text editor rows in Settings */
     .sms-template-row {
       display: flex; gap: 12px; align-items: flex-start;
@@ -6023,6 +6077,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
   const subView = path === '/settings/modules' ? 'modules'
     : path === '/settings/terminology' ? 'terminology'
     : path === '/settings/quick-text' ? 'quick-text'
+    : path === '/settings/dashboard' ? 'dashboard'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -6075,6 +6130,9 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         job_label_plural: data.job_label_plural || 'Jobs',
         about: data.about || '',
         sms_templates: Array.isArray(data.sms_templates) ? data.sms_templates : [],
+        dashboard_widgets: Array.isArray(data.dashboard_widgets) && data.dashboard_widgets.length > 0
+          ? data.dashboard_widgets
+          : DEFAULT_DASHBOARD_WIDGETS,
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -6127,7 +6185,29 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text')) {
+  function toggleDashboardWidget(id) {
+    setForm((f) => ({
+      ...f,
+      dashboard_widgets: (f.dashboard_widgets || []).map((w) =>
+        w.id === id ? { ...w, enabled: !w.enabled } : w
+      ),
+    }));
+    setSaved(false);
+  }
+  function moveDashboardWidget(fromId, toId) {
+    setForm((f) => {
+      const list = (f.dashboard_widgets || []).slice();
+      const fromIdx = list.findIndex((w) => w.id === fromId);
+      const toIdx = list.findIndex((w) => w.id === toId);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return f;
+      const [moved] = list.splice(fromIdx, 1);
+      list.splice(toIdx, 0, moved);
+      return { ...f, dashboard_widgets: list };
+    });
+    setSaved(false);
+  }
+
+  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -6156,6 +6236,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'quick-text' ? 'active' : ''}`}
             onClick={() => navigate('/settings/quick-text')}
           >Quick text</button>
+          <button
+            className={`chip ${subView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => navigate('/settings/dashboard')}
+          >Dashboard</button>
           {isAdmin && (
             <button
               className={`chip ${subView === 'modules' ? 'active' : ''}`}
@@ -6236,6 +6320,64 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               <div className="form-actions">
                 <button type="submit" className="primary" disabled={busy}>
                   {busy ? 'Saving...' : 'Save terminology'}
+                </button>
+              </div>
+            )}
+          </form>
+        </>
+      )}
+
+      {subView === 'dashboard' && (
+        <>
+          {error && <div className="error">{error}</div>}
+          {saved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+          )}
+          <form onSubmit={submit} className="form-card">
+            <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+              Pick the widgets that appear on the Dashboard and drag the handles to reorder them. Some widgets auto-hide when they're empty (overdue, outstanding, pending requests, tomorrow).
+            </p>
+            <div className="dash-widget-list">
+              {(form.dashboard_widgets || []).map((w, i) => {
+                const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
+                if (!meta) return null;
+                return (
+                  <div
+                    key={w.id}
+                    className="dash-widget-row"
+                    draggable={isAdmin}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', w.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const fromId = e.dataTransfer.getData('text/plain');
+                      if (fromId && fromId !== w.id) moveDashboardWidget(fromId, w.id);
+                    }}
+                  >
+                    <span className="dash-widget-drag" aria-hidden="true">⋮⋮</span>
+                    <label className="dash-widget-toggle">
+                      <input
+                        type="checkbox"
+                        checked={!!w.enabled}
+                        onChange={() => toggleDashboardWidget(w.id)}
+                        disabled={!isAdmin}
+                      />
+                    </label>
+                    <div className="dash-widget-text">
+                      <div className="dash-widget-name">{meta.label}</div>
+                      <div className="dash-widget-help">{meta.help}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {isAdmin && (
+              <div className="form-actions">
+                <button type="submit" className="primary" disabled={busy}>
+                  {busy ? 'Saving...' : 'Save dashboard'}
                 </button>
               </div>
             )}
@@ -6411,6 +6553,7 @@ const APP_ROUTES = {
   '/settings/modules': 'settings',
   '/settings/terminology': 'settings',
   '/settings/quick-text': 'settings',
+  '/settings/dashboard': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
@@ -7028,7 +7171,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
       </div>
       <div className="content">
-        {view === 'dashboard' && <DashboardView session={session} features={features} />}
+        {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && <RequestsView session={session} />}
@@ -7052,7 +7195,249 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   );
 }
 
-function DashboardView({ session }) {
+const DEFAULT_DASHBOARD_WIDGETS = [
+  { id: 'greeting', enabled: true },
+  { id: 'stats', enabled: true },
+  { id: 'today', enabled: true },
+  { id: 'tomorrow', enabled: true },
+  { id: 'overdue', enabled: true },
+  { id: 'outstanding', enabled: true },
+  { id: 'pending_requests', enabled: true },
+  { id: 'quick_actions', enabled: true },
+  { id: 'top_customers', enabled: false },
+];
+
+function timeOfDayGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function DashboardWidgetGreeting({ ctx }) {
+  const { session, terms } = ctx;
+  const firstName = (session.user.name || session.user.email || '').split(' ')[0].split('@')[0];
+  return (
+    <div className="dash-greeting">
+      <h2>{timeOfDayGreeting()}{firstName ? `, ${firstName}` : ''}.</h2>
+      <p>{ctx.today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {ctx.todayOccurrences.length} {ctx.todayOccurrences.length === 1 ? terms.jobLower : terms.jobsLower} on the schedule.</p>
+    </div>
+  );
+}
+
+function DashboardWidgetStats({ ctx }) {
+  const { terms, todayOccurrences, overdueOccurrences, outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected } = ctx;
+  return (
+    <div className="stats-grid">
+      <div className="stat-card accent">
+        <div className="label">Today's {terms.jobsLower}</div>
+        <div className="value">{todayOccurrences.length}</div>
+        <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
+      </div>
+      <div className="stat-card">
+        <div className="label">Overdue</div>
+        <div className="value">{overdueOccurrences.length}</div>
+        <div className="subvalue">last 90 days</div>
+      </div>
+      <div className="stat-card">
+        <div className="label">Outstanding</div>
+        <div className="value">{formatPrice(outstandingTotal)}</div>
+        <div className="subvalue">{outstandingInvoices.length} {outstandingInvoices.length === 1 ? 'invoice' : 'invoices'}</div>
+      </div>
+      <div className="stat-card">
+        <div className="label">Last 7 days revenue</div>
+        <div className="value">{formatPrice(weekRevenue)}</div>
+        <div className="subvalue">paid invoices</div>
+      </div>
+      <div className="stat-card">
+        <div className="label">Next 7 days projected</div>
+        <div className="value">{formatPrice(next7DaysProjected)}</div>
+        <div className="subvalue">from upcoming work</div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardWidgetToday({ ctx }) {
+  const { terms, todayOccurrences, onMarkComplete } = ctx;
+  return (
+    <>
+      <div className="section-heading">Today</div>
+      <div className="list">
+        {todayOccurrences.length === 0 ? (
+          <div className="list-empty">No {terms.jobsLower} scheduled today.</div>
+        ) : (
+          todayOccurrences.map((o, i) => (
+            <OccurrenceRow
+              key={`today-${o.job.id}-${o.date}-${i}`}
+              occurrence={o}
+              onMarkComplete={onMarkComplete}
+              onEdit={() => {}}
+            />
+          ))
+        )}
+      </div>
+    </>
+  );
+}
+
+function DashboardWidgetTomorrow({ ctx }) {
+  const { terms, tomorrowOccurrences, onMarkComplete } = ctx;
+  if (tomorrowOccurrences.length === 0) return null;
+  return (
+    <>
+      <div className="section-heading">Tomorrow <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>· {tomorrowOccurrences.length}</span></div>
+      <div className="list">
+        {tomorrowOccurrences.slice(0, 6).map((o, i) => (
+          <OccurrenceRow
+            key={`tomorrow-${o.job.id}-${o.date}-${i}`}
+            occurrence={o}
+            onMarkComplete={onMarkComplete}
+            onEdit={() => {}}
+          />
+        ))}
+        {tomorrowOccurrences.length > 6 && (
+          <div className="list-empty" style={{ padding: 14 }}>+ {tomorrowOccurrences.length - 6} more {terms.jobsLower} tomorrow.</div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function DashboardWidgetOverdue({ ctx }) {
+  const { overdueOccurrences, onMarkComplete } = ctx;
+  if (overdueOccurrences.length === 0) return null;
+  return (
+    <>
+      <div className="section-heading">Overdue</div>
+      <div className="list">
+        {overdueOccurrences.slice(0, 10).map((o, i) => (
+          <OccurrenceRow
+            key={`overdue-${o.job.id}-${o.date}-${i}`}
+            occurrence={o}
+            onMarkComplete={onMarkComplete}
+            onEdit={() => {}}
+          />
+        ))}
+        {overdueOccurrences.length > 10 && (
+          <div className="list-empty" style={{ padding: 14 }}>+ {overdueOccurrences.length - 10} more overdue.</div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function DashboardWidgetOutstanding({ ctx }) {
+  const { outstandingInvoices, onMarkPaid } = ctx;
+  if (outstandingInvoices.length === 0) return null;
+  return (
+    <>
+      <div className="section-heading">Outstanding invoices</div>
+      <div className="list">
+        {outstandingInvoices.map((inv) => {
+          const math = invoiceMath(inv);
+          const late = isInvoiceLate(inv);
+          const days = daysOutstanding(inv);
+          return (
+            <div key={inv.id} className="row">
+              <div className="info">
+                <div className="name">
+                  Invoice #{inv.invoice_number}
+                  <span className="price">{formatPrice(math.total)}</span>
+                </div>
+                <div className="meta">
+                  {customerDisplayName({
+                    first_name: inv.customer_first_name,
+                    last_name: inv.customer_last_name,
+                    business_name: inv.customer_business_name,
+                  })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'} · {days}d outstanding
+                  {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late</span></>}
+                </div>
+              </div>
+              <div className="actions">
+                <button className="primary" onClick={() => onMarkPaid(inv.id)}>Mark paid</button>
+                <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function DashboardWidgetPendingRequests({ ctx }) {
+  const { pendingRequestsCount } = ctx;
+  if (!pendingRequestsCount) return null;
+  return (
+    <div className="dash-pending-requests">
+      <div>
+        <strong>{pendingRequestsCount}</strong> pending booking {pendingRequestsCount === 1 ? 'request' : 'requests'}
+      </div>
+      <button className="primary" onClick={() => navigate('/requests')}>Review</button>
+    </div>
+  );
+}
+
+function DashboardWidgetQuickActions({ ctx }) {
+  const { terms } = ctx;
+  return (
+    <div className="dash-quick-actions">
+      <button className="secondary" onClick={() => navigate('/jobs')}>+ New {terms.jobLower}</button>
+      <button className="secondary" onClick={() => navigate('/customers')}>+ New {terms.customerLower}</button>
+      <button className="secondary" onClick={() => navigate('/invoices')}>+ New invoice</button>
+      <button className="secondary" onClick={() => navigate('/quotes')}>+ New quote</button>
+    </div>
+  );
+}
+
+function DashboardWidgetTopCustomers({ ctx }) {
+  const { invoices, terms } = ctx;
+  // Group paid invoices by customer, sum totals.
+  const byCustomer = {};
+  invoices.filter((i) => i.status === 'paid').forEach((inv) => {
+    const name = customerDisplayName({
+      first_name: inv.customer_first_name,
+      last_name: inv.customer_last_name,
+      business_name: inv.customer_business_name,
+    }) || 'Unknown';
+    const cid = inv.customer_id || name;
+    if (!byCustomer[cid]) byCustomer[cid] = { name, total: 0, count: 0 };
+    byCustomer[cid].total += invoiceMath(inv).total;
+    byCustomer[cid].count++;
+  });
+  const sorted = Object.values(byCustomer).sort((a, b) => b.total - a.total).slice(0, 5);
+  if (sorted.length === 0) return null;
+  return (
+    <>
+      <div className="section-heading">Top {terms.customersLower}</div>
+      <div className="list">
+        {sorted.map((c, i) => (
+          <div key={i} className="compact-row">
+            <div className="info">
+              <div className="name">{i + 1}. {c.name}<span className="price">{formatPrice(c.total)}</span></div>
+              <div className="meta">{c.count} paid {c.count === 1 ? 'invoice' : 'invoices'}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const DASHBOARD_WIDGET_REGISTRY = {
+  greeting: { label: 'Greeting', help: 'Time-of-day welcome message and date.', render: DashboardWidgetGreeting },
+  stats: { label: 'Stat cards', help: 'Today, overdue, outstanding, weekly revenue, projected income.', render: DashboardWidgetStats },
+  today: { label: "Today's schedule", help: "Today's occurrences with mark-complete buttons.", render: DashboardWidgetToday },
+  tomorrow: { label: "Tomorrow preview", help: "What's on tomorrow. Hidden when there's nothing scheduled.", render: DashboardWidgetTomorrow },
+  overdue: { label: 'Overdue', help: 'Past-due occurrences from the last 90 days. Hidden when empty.', render: DashboardWidgetOverdue },
+  outstanding: { label: 'Outstanding invoices', help: 'Unpaid sent invoices. Hidden when none.', render: DashboardWidgetOutstanding },
+  pending_requests: { label: 'Pending booking requests', help: 'Banner with count + Review button. Hidden when none.', render: DashboardWidgetPendingRequests },
+  quick_actions: { label: 'Quick actions', help: 'Buttons to start a new job, customer, invoice, or quote.', render: DashboardWidgetQuickActions },
+  top_customers: { label: 'Top customers', help: 'Highest lifetime paid totals.', render: DashboardWidgetTopCustomers },
+};
+
+function DashboardView({ session, me, pendingRequestsCount }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -7100,11 +7485,15 @@ function DashboardView({ session }) {
 
   const today = todayStart();
   const todayStr = formatYMD(today);
+  const tomorrowStr = formatYMD(addDays(today, 1));
   const weekAgoStr = formatYMD(addDays(today, -6));
   const overdueStart = formatYMD(addDays(today, -90));
   const yesterdayStr = formatYMD(addDays(today, -1));
 
   const todayOccurrences = jobs.flatMap((j) => jobOccurrencesInRange(j, todayStr, todayStr));
+  const tomorrowOccurrences = jobs
+    .flatMap((j) => jobOccurrencesInRange(j, tomorrowStr, tomorrowStr))
+    .sort((a, b) => (a.job.start_time || '99:99').localeCompare(b.job.start_time || '99:99'));
   const overdueOccurrences = jobs
     .flatMap((j) => jobOccurrencesInRange(j, overdueStart, yesterdayStr))
     .filter((o) => !o.completed)
@@ -7135,6 +7524,20 @@ function DashboardView({ session }) {
     );
   }
 
+  const ctx = {
+    session, terms, today,
+    jobs, invoices,
+    todayOccurrences, tomorrowOccurrences, overdueOccurrences,
+    outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected,
+    pendingRequestsCount: pendingRequestsCount || 0,
+    onMarkComplete: (job, date) => setCompleting({ job, date }),
+    onMarkPaid: markInvoicePaid,
+  };
+
+  const widgets = (me && Array.isArray(me.dashboard_widgets) && me.dashboard_widgets.length > 0)
+    ? me.dashboard_widgets
+    : DEFAULT_DASHBOARD_WIDGETS;
+
   return (
     <div>
       <div className="page-header">
@@ -7148,103 +7551,10 @@ function DashboardView({ session }) {
         <div className="list-empty">Loading...</div>
       ) : (
         <>
-          <div className="stats-grid">
-            <div className="stat-card accent">
-              <div className="label">Today's {terms.jobsLower}</div>
-              <div className="value">{todayOccurrences.length}</div>
-              <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
-            </div>
-            <div className="stat-card">
-              <div className="label">Overdue</div>
-              <div className="value">{overdueOccurrences.length}</div>
-              <div className="subvalue">last 90 days</div>
-            </div>
-            <div className="stat-card">
-              <div className="label">Outstanding</div>
-              <div className="value">{formatPrice(outstandingTotal)}</div>
-              <div className="subvalue">{outstandingInvoices.length} {outstandingInvoices.length === 1 ? 'invoice' : 'invoices'}</div>
-            </div>
-            <div className="stat-card">
-              <div className="label">Last 7 days revenue</div>
-              <div className="value">{formatPrice(weekRevenue)}</div>
-              <div className="subvalue">paid invoices</div>
-            </div>
-            <div className="stat-card">
-              <div className="label">Next 7 days projected</div>
-              <div className="value">{formatPrice(next7DaysProjected)}</div>
-              <div className="subvalue">from upcoming work</div>
-            </div>
-          </div>
-
-          <div className="section-heading">Today</div>
-          <div className="list">
-            {todayOccurrences.length === 0 ? (
-              <div className="list-empty">No {terms.jobsLower} scheduled today.</div>
-            ) : (
-              todayOccurrences.map((o, i) => (
-                <OccurrenceRow
-                  key={`today-${o.job.id}-${o.date}-${i}`}
-                  occurrence={o}
-                  onMarkComplete={(job, date) => setCompleting({ job, date })}
-                  onEdit={() => {}}
-                />
-              ))
-            )}
-          </div>
-
-          {overdueOccurrences.length > 0 && (
-            <>
-              <div className="section-heading">Overdue</div>
-              <div className="list">
-                {overdueOccurrences.slice(0, 10).map((o, i) => (
-                  <OccurrenceRow
-                    key={`overdue-${o.job.id}-${o.date}-${i}`}
-                    occurrence={o}
-                    onMarkComplete={(job, date) => setCompleting({ job, date })}
-                    onEdit={() => {}}
-                  />
-                ))}
-                {overdueOccurrences.length > 10 && (
-                  <div className="list-empty" style={{ padding: 14 }}>+ {overdueOccurrences.length - 10} more overdue. Use the Jobs tab's Past due filter to see all.</div>
-                )}
-              </div>
-            </>
-          )}
-
-          {outstandingInvoices.length > 0 && (
-            <>
-              <div className="section-heading">Outstanding invoices</div>
-              <div className="list">
-                {outstandingInvoices.map((inv) => {
-                  const math = invoiceMath(inv);
-                  const late = isInvoiceLate(inv);
-                  const days = daysOutstanding(inv);
-                  return (
-                    <div key={inv.id} className="row">
-                      <div className="info">
-                        <div className="name">
-                          Invoice #{inv.invoice_number}
-                          <span className="price">{formatPrice(math.total)}</span>
-                        </div>
-                        <div className="meta">
-                          {customerDisplayName({
-                            first_name: inv.customer_first_name,
-                            last_name: inv.customer_last_name,
-                            business_name: inv.customer_business_name,
-                          })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'} · {days}d outstanding
-                          {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late</span></>}
-                        </div>
-                      </div>
-                      <div className="actions">
-                        <button className="primary" onClick={() => markInvoicePaid(inv.id)}>Mark paid</button>
-                        <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          {widgets.filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id]).map((w) => {
+            const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
+            return <W key={w.id} ctx={ctx} />;
+          })}
         </>
       )}
     </div>

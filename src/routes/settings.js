@@ -8,14 +8,14 @@ const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',
   'venmo_handle', 'resend_from_email', 'cloudinary_folder',
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
-  'about', 'sms_templates',
+  'about', 'sms_templates', 'dashboard_widgets',
 ];
 
 const SELECT = `
   SELECT company_name, logo_url, address, phone, email,
          venmo_handle, resend_from_email, cloudinary_folder,
          customer_label, customer_label_plural, job_label, job_label_plural,
-         about, sms_templates,
+         about, sms_templates, dashboard_widgets,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -41,6 +41,27 @@ const TERMINOLOGY_FIELDS = new Set([
 // entirely uppercase letters (e.g. 'CLIENTS') down-case all but the first
 // letter so the nav doesn't read as shouting. Otherwise leave the user's
 // casing alone so 'eBook' or 'pet-sitter' survive unchanged.
+const VALID_WIDGET_IDS = new Set([
+  'greeting', 'stats', 'today', 'tomorrow', 'overdue', 'outstanding',
+  'pending_requests', 'quick_actions', 'top_customers',
+]);
+function normalizeDashboardWidgets(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const w of value) {
+    if (!w || typeof w !== 'object' || !VALID_WIDGET_IDS.has(w.id) || seen.has(w.id)) continue;
+    seen.add(w.id);
+    out.push({ id: w.id, enabled: !!w.enabled });
+  }
+  // Append any valid IDs the client omitted (disabled by default) so saving a
+  // subset doesn't strand widgets out of reach.
+  for (const id of VALID_WIDGET_IDS) {
+    if (!seen.has(id)) out.push({ id, enabled: false });
+  }
+  return out;
+}
+
 function normalizeSmsTemplates(value) {
   if (!Array.isArray(value)) return [];
   return value
@@ -74,6 +95,7 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
       let v = body[f] === '' ? null : body[f];
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
       if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
+      if (f === 'dashboard_widgets') v = JSON.stringify(normalizeDashboardWidgets(v));
       values.push(v);
       setClauses.push(`${f} = $${values.length}`);
     }
