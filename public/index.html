@@ -4283,7 +4283,6 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
   const [busy, setBusy] = useState(false);
   const [completionInitialDate, setCompletionInitialDate] = useState(null);
   const [returnMode, setReturnMode] = useState('list');
-  const [filter, setFilter] = useState('all');
   const [layout, setLayout] = useState('calendar');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
@@ -4494,7 +4493,6 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
     : sort === 'price' ? (j) => parseFloat(j.default_price) || 0
     : 'created_at';
   const searchedJobs = sortBy(jobs.filter(jobMatchesSearch), jobSortKey, sort === 'oldest' ? 'asc' : sort === 'title' ? 'asc' : 'desc');
-  const occurrences = expandJobsToOccurrences(searchedJobs, filter);
 
   return (
     <div>
@@ -4526,17 +4524,6 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
         </select>
       </div>
       <div className="filter-bar">
-        <div className="chip-group">
-          {['all', 'today', 'week', 'past'].map((f) => (
-            <button
-              key={f}
-              className={`chip ${filter === f ? 'active' : ''}`}
-              onClick={() => setFilter(f)}
-            >
-              {f === 'all' ? 'All' : f === 'today' ? 'Today' : f === 'week' ? 'Next 7 days' : 'Past due'}
-            </button>
-          ))}
-        </div>
         <div className="toggle-group">
           <button className={layout === 'list' ? 'active' : ''} onClick={() => setLayout('list')}>List</button>
           <button className={layout === 'calendar' ? 'active' : ''} onClick={() => setLayout('calendar')}>Calendar</button>
@@ -4549,23 +4536,6 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
         ) : (
           <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} />
         )
-      ) : occurrences !== null ? (
-        <div className="list">
-          {loading ? (
-            <div className="list-empty">Loading...</div>
-          ) : occurrences.length === 0 ? (
-            <div className="list-empty">No {terms.jobsLower} match this filter.</div>
-          ) : (
-            occurrences.map((o, i) => (
-              <OccurrenceRow
-                key={`${o.job.id}-${o.date}-${i}`}
-                occurrence={o}
-                onMarkComplete={openMarkComplete}
-                onEdit={openEdit}
-              />
-            ))
-          )}
-        </div>
       ) : (
       <div className="list">
         {loading ? (
