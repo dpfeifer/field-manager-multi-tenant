@@ -3866,6 +3866,7 @@ const APP_ROUTES = {
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
+  // /system/orgs/:id handled specially in AppShell (see startsWith check)
   '/profile': 'profile',
 };
 
@@ -4051,7 +4052,7 @@ function statusLabel(s, trialEnds) {
 
 function AppShell({ session, onLogout, onSessionUpdate }) {
   const path = useLocation();
-  const view = APP_ROUTES[path] || 'dashboard';
+  const view = APP_ROUTES[path] || (path.startsWith('/system/') ? 'system' : 'dashboard');
   const [billing, setBilling] = useState(null);
   const [me, setMe] = useState(null);
   const [resentVerify, setResentVerify] = useState(false);
@@ -4948,10 +4949,16 @@ function StaffManagementSection({ token, currentUserId }) {
 
 function SystemView({ session }) {
   const path = useLocation();
-  const subView = path === '/system/staff' ? 'staff'
+  const orgDetailMatch = path.match(/^\/system\/orgs\/([^/]+)/);
+  const subView = orgDetailMatch ? 'org-detail'
+    : path === '/system/staff' ? 'staff'
     : path === '/system/templates' ? 'templates'
     : 'organizations';
   const isStaff = session.user && session.user.is_staff;
+
+  if (subView === 'org-detail') {
+    return <OrgDetailView session={session} orgId={orgDetailMatch[1]} />;
+  }
 
   return (
     <div>
@@ -4986,6 +4993,8 @@ function OrganizationsSection({ session }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('newest');
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -4998,30 +5007,36 @@ function OrganizationsSection({ session }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  async function setOrgBilling(orgId, status) {
-    const label = status === 'free'
-      ? 'Mark this org as comped/free?'
-      : 'Reset this org to a fresh 14-day trial?';
-    if (!confirm(label)) return;
-    setError(null);
-    try {
-      await apiRequest(`/api/system/organizations/${orgId}/billing`, {
-        method: 'PUT', token: session.token, body: { status },
-      });
-      await refresh();
-    } catch (err) { setError(err.message); }
-  }
+  const filtered = orgs.filter((o) => searchMatches(search, o.name, o.slug, o.subscription_status));
+  const sortKey = sort === 'name' ? (o) => (o.name || '').toLowerCase()
+    : sort === 'status' ? 'subscription_status'
+    : sort === 'users' ? (o) => -o.user_count
+    : 'created_at';
+  const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' || sort === 'status' ? 'asc' : 'desc');
 
   return (
     <>
       {error && <div className="error">{error}</div>}
+      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <input
+          type="search" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, slug, status..." style={{ flex: 1 }}
+        />
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="name">Sort: Name</option>
+          <option value="status">Sort: Status</option>
+          <option value="users">Sort: Most users</option>
+        </select>
+      </div>
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
-        ) : orgs.length === 0 ? (
-          <div className="list-empty">No organizations.</div>
+        ) : sorted.length === 0 ? (
+          <div className="list-empty">{orgs.length === 0 ? 'No organizations.' : 'No orgs match this search.'}</div>
         ) : (
-          orgs.map((o) => (
+          sorted.map((o) => (
             <div key={o.id} className="row">
               <div className="info">
                 <div className="name">
@@ -5042,17 +5057,188 @@ function OrganizationsSection({ session }) {
                 </div>
               </div>
               <div className="actions">
-                {o.subscription_status === 'free' ? (
-                  <button className="secondary" onClick={() => setOrgBilling(o.id, 'trialing')}>Remove free</button>
-                ) : (
-                  <button className="secondary" onClick={() => setOrgBilling(o.id, 'free')}>Set free</button>
-                )}
+                <button className="secondary" onClick={() => navigate(`/system/orgs/${o.id}`)}>Open</button>
               </div>
             </div>
           ))
         )}
       </div>
     </>
+  );
+}
+
+function OrgDetailView({ session, orgId }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [extendDays, setExtendDays] = useState(14);
+  const [resetUserId, setResetUserId] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const d = await apiRequest(`/api/system/organizations/${orgId}`, { token: session.token });
+      setData(d);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [orgId, session.token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function setBilling(status) {
+    const label = status === 'free' ? 'Mark this org as comped/free?' : 'Reset to a fresh 14-day trial?';
+    if (!confirm(label)) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/billing`, {
+        method: 'PUT', token: session.token, body: { status },
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function extendTrial() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/extend-trial`, {
+        method: 'POST', token: session.token, body: { days: parseInt(extendDays, 10) || 14 },
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function submitResetPassword(userId) {
+    if (!resetPassword) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/users/${userId}/reset-password`, {
+        method: 'POST', token: session.token, body: { new_password: resetPassword },
+      });
+      setResetUserId(null); setResetPassword('');
+      alert('Password reset. Share the new password with the user.');
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header">
+          <h2>Organization</h2>
+          <button className="secondary" onClick={() => navigate('/system')}>← Back</button>
+        </div>
+        <div className="list-empty">Loading...</div>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div>
+        <div className="page-header"><h2>Not found</h2></div>
+        <button className="secondary" onClick={() => navigate('/system')}>← Back</button>
+      </div>
+    );
+  }
+
+  const o = data.organization;
+  const stripeUrl = o.stripe_customer_id ? `https://dashboard.stripe.com/customers/${o.stripe_customer_id}` : null;
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>
+          {o.name}
+          <span className={`badge ${badgeForStatus(o.subscription_status)}`} style={{ marginLeft: 12 }}>
+            {statusLabel(o.subscription_status, o.trial_ends_at)}
+          </span>
+        </h2>
+        <button className="secondary" onClick={() => navigate('/system')}>← Back to orgs</button>
+      </div>
+      {error && <div className="error">{error}</div>}
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Details</div>
+        <dl className="detail-info">
+          <dt>Slug</dt><dd>{o.slug}</dd>
+          <dt>Created</dt><dd>{formatDateString(o.created_at.split('T')[0])}</dd>
+          {o.trial_ends_at && (<><dt>Trial ends</dt><dd>{formatDateString(o.trial_ends_at.split('T')[0])}</dd></>)}
+          <dt>Next invoice #</dt><dd>{o.next_invoice_number}</dd>
+          {o.stripe_customer_id && (
+            <><dt>Stripe customer</dt><dd><a href={stripeUrl} target="_blank" rel="noopener noreferrer">{o.stripe_customer_id} ↗</a></dd></>
+          )}
+          {o.stripe_subscription_id && (
+            <><dt>Stripe subscription</dt><dd>{o.stripe_subscription_id}</dd></>
+          )}
+          <dt>Counts</dt><dd>{o.customer_count} customers · {o.job_count} jobs · {o.invoice_count} invoices · {o.quote_count} quotes</dd>
+        </dl>
+      </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Billing actions</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {o.subscription_status === 'free' ? (
+            <button className="secondary" disabled={busy} onClick={() => setBilling('trialing')}>Remove free (start trial)</button>
+          ) : (
+            <button className="secondary" disabled={busy} onClick={() => setBilling('free')}>Set free (comp account)</button>
+          )}
+          <span style={{ color: 'var(--text-muted)', fontSize: 13, marginLeft: 12 }}>Extend trial by</span>
+          <input
+            type="number" min="1" max="365" value={extendDays}
+            onChange={(e) => setExtendDays(e.target.value)}
+            style={{ width: 70 }}
+          />
+          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>days</span>
+          <button className="primary" disabled={busy} onClick={extendTrial}>Apply</button>
+        </div>
+        <p className="hint" style={{ marginTop: 12 }}>
+          Extending adds days on top of the current trial end (or starts a trial from today if none).
+        </p>
+      </div>
+
+      <div className="section-heading">Users ({data.users.length})</div>
+      <div className="list">
+        {data.users.length === 0 ? (
+          <div className="list-empty">No users in this org.</div>
+        ) : (
+          data.users.map((u) => {
+            const isResetting = resetUserId === u.id;
+            return (
+              <div key={u.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {u.name || u.email}
+                    <span className="badge" style={{ marginLeft: 8 }}>{u.role}</span>
+                    {!u.email_verified_at && <span className="hint" style={{ marginLeft: 8, color: 'var(--danger)' }}>unverified</span>}
+                  </div>
+                  <div className="meta">{u.email} · joined {formatDateString(u.created_at.split('T')[0])}</div>
+                  {isResetting && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="password" placeholder="New password"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                        style={{ width: 260 }}
+                      />
+                      <button className="primary" disabled={busy || !resetPassword} onClick={() => submitResetPassword(u.id)}>Set</button>
+                      <button className="secondary" disabled={busy} onClick={() => { setResetUserId(null); setResetPassword(''); }}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+                {!isResetting && (
+                  <div className="actions">
+                    <button className="secondary" onClick={() => { setResetUserId(u.id); setResetPassword(''); }}>Reset password</button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 

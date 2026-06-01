@@ -29,6 +29,84 @@ router.get('/organizations', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/organizations/:id', async (req, res, next) => {
+  try {
+    const orgRow = await query(
+      `SELECT o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
+              o.subscription_status, o.trial_ends_at,
+              o.stripe_customer_id, o.stripe_subscription_id,
+              (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
+              (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
+              (SELECT COUNT(*)::int FROM invoices WHERE organization_id = o.id AND deleted_at IS NULL) AS invoice_count,
+              (SELECT COUNT(*)::int FROM quotes WHERE organization_id = o.id AND deleted_at IS NULL) AS quote_count
+       FROM organizations o
+       WHERE o.id = $1 AND o.deleted_at IS NULL LIMIT 1`,
+      [req.params.id]
+    );
+    if (orgRow.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+
+    const users = await query(
+      `SELECT id, email, name, role, email_verified_at, created_at
+       FROM users WHERE organization_id = $1 AND deleted_at IS NULL
+       ORDER BY role, email`,
+      [req.params.id]
+    );
+
+    const settings = await query(
+      `SELECT company_name, address, phone, email, venmo_handle, updated_at
+       FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
+      [req.params.id]
+    );
+
+    res.json({
+      organization: orgRow.rows[0],
+      users: users.rows,
+      settings: settings.rows[0] || null,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/organizations/:id/extend-trial', async (req, res, next) => {
+  const days = parseInt(req.body && req.body.days, 10);
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    return res.status(400).json({ error: 'days must be an integer between 1 and 365' });
+  }
+  try {
+    const { rows } = await query(
+      `UPDATE organizations
+       SET subscription_status = 'trialing',
+           trial_ends_at = GREATEST(COALESCE(trial_ends_at, NOW()), NOW()) + ($2 || ' days')::interval,
+           updated_at = NOW()
+       WHERE id = $1 AND deleted_at IS NULL
+       RETURNING id, slug, subscription_status, trial_ends_at`,
+      [req.params.id, days]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+router.post('/organizations/:id/users/:userId/reset-password', async (req, res, next) => {
+  const { new_password } = req.body || {};
+  if (!new_password) return res.status(400).json({ error: 'new_password is required' });
+  const passwordError = validatePassword(new_password);
+  if (passwordError) return res.status(400).json({ error: passwordError });
+  try {
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+    const hash = await bcrypt.hash(new_password, rounds);
+    const { rowCount } = await query(
+      `UPDATE users SET password_hash = $3,
+             password_reset_token = NULL,
+             password_reset_expires_at = NULL,
+             updated_at = NOW()
+       WHERE id = $2 AND organization_id = $1 AND deleted_at IS NULL`,
+      [req.params.id, req.params.userId, hash]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'User not found in that org' });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 router.put('/organizations/:id/billing', async (req, res, next) => {
   const { status } = req.body || {};
   if (!['free', 'trialing'].includes(status)) {
