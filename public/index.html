@@ -2321,28 +2321,41 @@ function SignupForm({ onSuccess }) {
 }
 
 function LoginForm({ onSuccess }) {
-  const [slug, setSlug] = useState(localStorage.getItem(STORAGE.slug) || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [accountOptions, setAccountOptions] = useState(null);
 
-  async function submit(e) {
-    e.preventDefault();
+  async function attemptLogin(orgSlug) {
     setError(null); setBusy(true);
     try {
       const data = await apiRequest('/api/auth/login', {
-        method: 'POST', slug,
-        body: { email, password },
+        method: 'POST',
+        body: { email, password, org_slug: orgSlug || undefined },
       });
-      const org = await apiRequest(`/api/organizations/${slug}`);
-      const session = { token: data.token, user: data.user, organization: org, slug: org.slug };
+      if (data.multiple_accounts) {
+        setAccountOptions(data.multiple_accounts);
+        setBusy(false);
+        return;
+      }
+      const session = {
+        token: data.token,
+        user: data.user,
+        organization: data.organization,
+        slug: data.organization && data.organization.slug,
+      };
       saveSession(session);
       onSuccess(session);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    attemptLogin();
   }
 
   async function submitForgot(e) {
@@ -2350,7 +2363,7 @@ function LoginForm({ onSuccess }) {
     setError(null); setBusy(true);
     try {
       await apiRequest('/api/auth/forgot-password', {
-        method: 'POST', slug, body: { email },
+        method: 'POST', body: { email },
       });
       setForgotSent(true);
     } catch (err) { setError(err.message); }
@@ -2362,7 +2375,7 @@ function LoginForm({ onSuccess }) {
       return (
         <div>
           <p style={{ fontSize: 14 }}>
-            If an account with that email exists in <strong>{slug}</strong>, a reset link is on its way.
+            If an account with that email exists, a reset link is on its way.
             Check your inbox (and spam folder).
           </p>
           <button className="primary block" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
@@ -2373,11 +2386,9 @@ function LoginForm({ onSuccess }) {
     }
     return (
       <form onSubmit={submitForgot}>
-        <p className="subtitle" style={{ marginBottom: 16 }}>Enter the email + company slug for your account. We'll send a reset link.</p>
-        <label>Company URL slug</label>
-        <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} required />
+        <p className="subtitle" style={{ marginBottom: 16 }}>Enter the email for your account. We'll send a reset link.</p>
         <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         {error && <div className="error">{error}</div>}
         <button type="submit" className="primary block" disabled={busy}>
           {busy ? 'Sending...' : 'Send reset link'}
@@ -2389,12 +2400,38 @@ function LoginForm({ onSuccess }) {
     );
   }
 
+  if (accountOptions) {
+    return (
+      <div>
+        <p className="subtitle" style={{ marginBottom: 16 }}>
+          You have accounts at multiple businesses. Which one are you signing into?
+        </p>
+        {accountOptions.map((a) => (
+          <button
+            key={a.slug}
+            className="secondary block"
+            style={{ width: '100%', marginBottom: 8, padding: 14, textAlign: 'left' }}
+            disabled={busy}
+            onClick={() => attemptLogin(a.slug)}
+          >
+            <strong>{a.name}</strong>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{a.slug}</span>
+          </button>
+        ))}
+        {error && <div className="error">{error}</div>}
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button type="button" className="link-button" onClick={() => { setAccountOptions(null); setError(null); }}>
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={submit}>
-      <label>Company URL slug</label>
-      <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-lawn-care" required />
       <label>Email</label>
-      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
       <label>Password</label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       {error && <div className="error">{error}</div>}
@@ -8073,16 +8110,15 @@ function EmailTemplatesSection({ token }) {
 function VerifyEmailPage() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token') || '';
-  const orgSlug = params.get('org') || '';
   const [state, setState] = useState('working');
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!token || !orgSlug) { setState('invalid'); return; }
+    if (!token) { setState('invalid'); return; }
     (async () => {
       try {
         await apiRequest('/api/auth/verify-email', {
-          method: 'POST', slug: orgSlug, body: { token },
+          method: 'POST', body: { token },
         });
         setState('done');
       } catch (err) {
@@ -8090,7 +8126,7 @@ function VerifyEmailPage() {
         setState('error');
       }
     })();
-  }, [token, orgSlug]);
+  }, [token]);
 
   return (
     <div className="auth-shell">
@@ -8123,7 +8159,6 @@ function VerifyEmailPage() {
 function ResetPasswordPage() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token') || '';
-  const orgSlug = params.get('org') || '';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState(null);
@@ -8140,7 +8175,7 @@ function ResetPasswordPage() {
     setBusy(true);
     try {
       await apiRequest('/api/auth/reset-password', {
-        method: 'POST', slug: orgSlug,
+        method: 'POST',
         body: { token, new_password: password },
       });
       setDone(true);
@@ -8148,7 +8183,7 @@ function ResetPasswordPage() {
     finally { setBusy(false); }
   }
 
-  if (!token || !orgSlug) {
+  if (!token) {
     return (
       <div className="auth-shell">
         <div className="card">

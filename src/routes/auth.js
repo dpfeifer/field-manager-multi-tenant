@@ -217,33 +217,6 @@ router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res, 
   } catch (err) { next(err); }
 });
 
-router.post('/verify-email', async (req, res, next) => {
-  const { token } = req.body || {};
-  if (!token) return res.status(400).json({ error: 'token is required' });
-  try {
-    const tokenHash = hashToken(token);
-    const { rows } = await query(
-      `SELECT id FROM users
-       WHERE organization_id = $1
-         AND email_verification_token = $2
-         AND email_verification_expires_at > NOW()
-         AND deleted_at IS NULL
-       LIMIT 1`,
-      [req.organization.id, tokenHash]
-    );
-    if (rows.length === 0) return res.status(400).json({ error: 'Verification link is invalid or expired' });
-    await query(
-      `UPDATE users SET email_verified_at = NOW(),
-           email_verification_token = NULL,
-           email_verification_expires_at = NULL,
-           updated_at = NOW()
-       WHERE id = $1`,
-      [rows[0].id]
-    );
-    res.json({ ok: true });
-  } catch (err) { next(err); }
-});
-
 router.post('/resend-verification', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
@@ -264,7 +237,7 @@ router.post('/resend-verification', requireAuth, async (req, res, next) => {
     );
 
     const base = process.env.APP_URL || 'https://fieldmgr.com';
-    const verifyUrl = `${base}/verify-email?token=${token}&org=${encodeURIComponent(req.organization.slug)}`;
+    const verifyUrl = `${base}/verify-email?token=${token}`;
     const tpl = await require('../utils/templateStore').getTemplate('email_verification');
     const { renderEditableTemplate } = require('../utils/emailTemplates');
     const rendered = renderEditableTemplate(tpl, {
@@ -276,121 +249,6 @@ router.post('/resend-verification', requireAuth, async (req, res, next) => {
 
     res.json({ ok: true });
   } catch (err) { next(err); }
-});
-
-router.post('/forgot-password', async (req, res, next) => {
-  // resolveOrganization runs first, so req.organization is set.
-  const { email } = req.body || {};
-  // Always respond success to avoid email enumeration.
-  const okResponse = { ok: true };
-
-  if (!email) return res.json(okResponse);
-
-  try {
-    const { rows } = await query(
-      'SELECT id, email, name FROM users WHERE organization_id = $1 AND email = $2 AND deleted_at IS NULL LIMIT 1',
-      [req.organization.id, email.toLowerCase()]
-    );
-    const user = rows[0];
-    if (!user) return res.json(okResponse);
-
-    const token = crypto.randomBytes(32).toString('hex');
-    const tokenHash = hashToken(token);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    await query(
-      `UPDATE users
-       SET password_reset_token = $2, password_reset_expires_at = $3, updated_at = NOW()
-       WHERE id = $1`,
-      [user.id, tokenHash, expiresAt]
-    );
-
-    const base = process.env.APP_URL || 'https://fieldmgr.com';
-    const resetUrl = `${base}/reset-password?token=${token}&org=${encodeURIComponent(req.organization.slug)}`;
-    const { subject, html, text } = passwordResetTemplate({ user, orgSlug: req.organization.slug, resetUrl });
-    await sendEmail({ to: user.email, subject, html, text });
-
-    res.json(okResponse);
-  } catch (err) { next(err); }
-});
-
-router.post('/reset-password', async (req, res, next) => {
-  const { token, new_password } = req.body || {};
-  if (!token || !new_password) {
-    return res.status(400).json({ error: 'token and new_password are required' });
-  }
-  const passwordError = validatePassword(new_password);
-  if (passwordError) return res.status(400).json({ error: passwordError });
-
-  try {
-    const tokenHash = hashToken(token);
-    const { rows } = await query(
-      `SELECT id FROM users
-       WHERE organization_id = $1
-         AND password_reset_token = $2
-         AND password_reset_expires_at > NOW()
-         AND deleted_at IS NULL
-       LIMIT 1`,
-      [req.organization.id, tokenHash]
-    );
-    if (rows.length === 0) return res.status(400).json({ error: 'Reset link is invalid or expired' });
-
-    const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
-    const newHash = await bcrypt.hash(new_password, rounds);
-
-    await query(
-      `UPDATE users
-       SET password_hash = $2,
-           password_reset_token = NULL,
-           password_reset_expires_at = NULL,
-           updated_at = NOW()
-       WHERE id = $1`,
-      [rows[0].id, newHash]
-    );
-
-    res.json({ ok: true });
-  } catch (err) { next(err); }
-});
-
-router.post('/login', async (req, res, next) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
-  }
-
-  try {
-    const { rows } = await query(
-      'SELECT id, email, password_hash, name, role FROM users WHERE organization_id = $1 AND email = $2 LIMIT 1',
-      [req.organization.id, email.toLowerCase()]
-    );
-
-    const user = rows[0];
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const is_system_admin = isSystemAdminEmail(user.email);
-
-    const token = jwt.sign(
-      {
-        sub: user.id,
-        organization_id: req.organization.id,
-        email: user.email,
-        role: user.role,
-        is_system_admin,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, is_system_admin },
-    });
-  } catch (err) {
-    next(err);
-  }
 });
 
 module.exports = router;

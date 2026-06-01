@@ -95,7 +95,7 @@ router.post('/', async (req, res, next) => {
     // Send verification email (best-effort; don't block signup if it fails).
     try {
       const base = process.env.APP_URL || 'https://fieldmgr.com';
-      const verifyUrl = `${base}/verify-email?token=${result.user._verificationToken}&org=${encodeURIComponent(result.organization.slug)}`;
+      const verifyUrl = `${base}/verify-email?token=${result.user._verificationToken}`;
       const tpl = await getTemplate('email_verification');
       const rendered = renderEditableTemplate(tpl, {
         user_name: result.user.name || result.user.email,
