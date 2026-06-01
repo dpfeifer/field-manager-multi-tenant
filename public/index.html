@@ -7580,11 +7580,6 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Dashboard</h2>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{formatDateString(todayStr)}</div>
-      </div>
-
       {error && <div className="error">{error}</div>}
 
       {loading ? (
