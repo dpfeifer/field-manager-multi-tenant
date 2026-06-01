@@ -1145,6 +1145,13 @@
       display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 14px; margin-bottom: 24px;
     }
+    .stats-grid.row-fixed-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 720px) {
+      .stats-grid.row-fixed-3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 500px) {
+      .stats-grid.row-fixed-3 { grid-template-columns: 1fr; }
+    }
     .stat-card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; padding: 18px;
@@ -7226,35 +7233,44 @@ function DashboardWidgetGreeting({ ctx }) {
 }
 
 function DashboardWidgetStats({ ctx }) {
-  const { terms, todayOccurrences, overdueOccurrences, outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected } = ctx;
+  const { terms, todayOccurrences, overdueOccurrences, outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected, newCustomersThisWeek } = ctx;
   return (
-    <div className="stats-grid">
-      <div className="stat-card accent">
-        <div className="label">Today's {terms.jobsLower}</div>
-        <div className="value">{todayOccurrences.length}</div>
-        <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
+    <>
+      <div className="stats-grid row-fixed-3">
+        <div className="stat-card">
+          <div className="label">Outstanding</div>
+          <div className="value">{formatPrice(outstandingTotal)}</div>
+          <div className="subvalue">{outstandingInvoices.length} {outstandingInvoices.length === 1 ? 'invoice' : 'invoices'}</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Last 7 days revenue</div>
+          <div className="value">{formatPrice(weekRevenue)}</div>
+          <div className="subvalue">paid invoices</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Next 7 days projected</div>
+          <div className="value">{formatPrice(next7DaysProjected)}</div>
+          <div className="subvalue">from upcoming work</div>
+        </div>
       </div>
-      <div className="stat-card">
-        <div className="label">Overdue</div>
-        <div className="value">{overdueOccurrences.length}</div>
-        <div className="subvalue">last 90 days</div>
+      <div className="stats-grid row-fixed-3">
+        <div className="stat-card accent">
+          <div className="label">Today's {terms.jobsLower}</div>
+          <div className="value">{todayOccurrences.length}</div>
+          <div className="subvalue">{todayOccurrences.filter((o) => o.completed).length} completed</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Overdue</div>
+          <div className="value">{overdueOccurrences.length}</div>
+          <div className="subvalue">last 90 days</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">New {terms.customersLower}</div>
+          <div className="value">{newCustomersThisWeek}</div>
+          <div className="subvalue">last 7 days</div>
+        </div>
       </div>
-      <div className="stat-card">
-        <div className="label">Outstanding</div>
-        <div className="value">{formatPrice(outstandingTotal)}</div>
-        <div className="subvalue">{outstandingInvoices.length} {outstandingInvoices.length === 1 ? 'invoice' : 'invoices'}</div>
-      </div>
-      <div className="stat-card">
-        <div className="label">Last 7 days revenue</div>
-        <div className="value">{formatPrice(weekRevenue)}</div>
-        <div className="subvalue">paid invoices</div>
-      </div>
-      <div className="stat-card">
-        <div className="label">Next 7 days projected</div>
-        <div className="value">{formatPrice(next7DaysProjected)}</div>
-        <div className="subvalue">from upcoming work</div>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -7440,6 +7456,7 @@ const DASHBOARD_WIDGET_REGISTRY = {
 function DashboardView({ session, me, pendingRequestsCount }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -7449,12 +7466,14 @@ function DashboardView({ session, me, pendingRequestsCount }) {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [jobsData, invoicesData] = await Promise.all([
+      const [jobsData, invoicesData, customersData] = await Promise.all([
         apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
         apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
+        apiRequest('/api/customers', { slug: session.slug, token: session.token }),
       ]);
       setJobs(jobsData);
       setInvoices(invoicesData);
+      setCustomers(customersData);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [session.slug, session.token]);
@@ -7524,11 +7543,17 @@ function DashboardView({ session, me, pendingRequestsCount }) {
     );
   }
 
+  const newCustomersThisWeek = customers.filter((c) => {
+    if (!c.created_at) return false;
+    return c.created_at.split('T')[0] >= weekAgoStr;
+  }).length;
+
   const ctx = {
     session, terms, today,
-    jobs, invoices,
+    jobs, invoices, customers,
     todayOccurrences, tomorrowOccurrences, overdueOccurrences,
     outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected,
+    newCustomersThisWeek,
     pendingRequestsCount: pendingRequestsCount || 0,
     onMarkComplete: (job, date) => setCompleting({ job, date }),
     onMarkPaid: markInvoicePaid,
@@ -7669,7 +7694,7 @@ function ReportsView({ session }) {
         <div className="list-empty">Loading...</div>
       ) : report ? (
         <>
-          <div className="stats-grid">
+          <div className="stats-grid row-fixed-3">
             <div className="stat-card accent">
               <div className="label">Paid revenue</div>
               <div className="value">{formatPrice(report.invoices.paid_total)}</div>
@@ -7681,7 +7706,14 @@ function ReportsView({ session }) {
               <div className="subvalue">{report.invoices.outstanding_count} unpaid (all time)</div>
             </div>
             <div className="stat-card">
-              <div className="label">Visits completed</div>
+              <div className="label">Projected income</div>
+              <div className="value">{formatPrice(projectedIncome)}</div>
+              <div className="subvalue">from upcoming work in range</div>
+            </div>
+          </div>
+          <div className="stats-grid row-fixed-3">
+            <div className="stat-card">
+              <div className="label">{terms.jobs} completed</div>
               <div className="value">{report.completed_work}</div>
               <div className="subvalue">in selected range</div>
             </div>
@@ -7691,9 +7723,9 @@ function ReportsView({ session }) {
               <div className="subvalue">in selected range</div>
             </div>
             <div className="stat-card">
-              <div className="label">Projected income</div>
-              <div className="value">{formatPrice(projectedIncome)}</div>
-              <div className="subvalue">from upcoming work in range</div>
+              <div className="label" style={{ visibility: 'hidden' }}>spacer</div>
+              <div className="value" style={{ visibility: 'hidden' }}>·</div>
+              <div className="subvalue" style={{ visibility: 'hidden' }}>·</div>
             </div>
           </div>
 
