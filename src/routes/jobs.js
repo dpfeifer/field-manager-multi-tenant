@@ -15,7 +15,8 @@ const BASE_SELECT = `
     j.deleted_dates, j.completion_notes, j.created_at, j.updated_at,
     c.first_name AS customer_first_name,
     c.last_name AS customer_last_name,
-    c.business_name AS customer_business_name
+    c.business_name AS customer_business_name,
+    c.phone AS customer_phone
   FROM jobs j
   JOIN customers c ON c.id = j.customer_id
 `;

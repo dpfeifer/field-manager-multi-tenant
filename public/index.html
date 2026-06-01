@@ -803,6 +803,35 @@
       transition: background 0.15s;
     }
     .day-block-complete:hover { background: rgba(255,255,255,0.32); }
+    .day-block-sms {
+      margin-top: 4px; padding: 3px 6px;
+      background: rgba(255,255,255,0.18); color: white;
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+      max-width: 100%;
+    }
+    .day-block-sms option { color: var(--text); background: var(--card); }
+    .day-block.completed .day-block-sms { display: none; }
+
+    /* Quick-text editor rows in Settings */
+    .sms-template-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px; margin-bottom: 12px;
+      background: var(--tinted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .sms-template-fields { flex: 1; display: grid; grid-template-columns: 200px 1fr; gap: 10px; }
+    .sms-template-row button.danger { flex-shrink: 0; }
+    .sms-template-row code {
+      background: var(--card); padding: 1px 5px; border-radius: 3px;
+      font-family: ui-monospace, monospace; font-size: 12px;
+    }
+    @media (max-width: 600px) {
+      .sms-template-row { flex-direction: column; }
+      .sms-template-fields { grid-template-columns: 1fr; }
+    }
 
     /* Week view — 7 columns of day summaries */
     .week-grid {
@@ -3745,7 +3774,7 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
   );
 }
 
-function CalendarView({ jobs, onChipClick, onMarkComplete }) {
+function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) {
   const today = todayStart();
   const todayStr = formatYMD(today);
   const [view, setView] = useState('day');
@@ -3879,6 +3908,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
             isToday={selectedDate === todayStr}
             onOpen={onChipClick}
             onMarkComplete={onMarkComplete}
+            smsTemplates={smsTemplates}
           />
         </>
       )}
@@ -3919,7 +3949,22 @@ function formatHourLabel(h) {
   return `${h - 12} PM`;
 }
 
-function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete }) {
+function customerFirstName(c) {
+  if (!c) return '';
+  if (c.customer_first_name) return c.customer_first_name;
+  if (c.customer_business_name) return c.customer_business_name;
+  return 'there';
+}
+
+function sendSmsTemplate(phone, template, customer) {
+  if (!phone || !template) return;
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  const msg = String(template.message || '').replace(/\{name\}/g, customerFirstName(customer));
+  // iOS uses ?body=, Android wants &body=. Most platforms accept both.
+  window.open(`sms:${cleanPhone}?body=${encodeURIComponent(msg)}`);
+}
+
+function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplates = [] }) {
   const untimed = occurrences.filter((o) => !o.job.start_time);
   const timed = occurrences.filter((o) => o.job.start_time);
 
@@ -3990,6 +4035,8 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete }) {
               const top = timeToY(o.job.start_time);
               const minH = 32;
               const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - 4);
+              const phone = o.job.customer_phone;
+              const showSms = phone && smsTemplates.length > 0 && height >= 90;
               return (
                 <div
                   key={i}
@@ -4004,6 +4051,23 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete }) {
                   <div className="day-block-title">{o.job.title}</div>
                   {height >= 56 && (
                     <div className="day-block-customer">{jobCustomerName(o.job)}</div>
+                  )}
+                  {showSms && (
+                    <select
+                      className="day-block-sms"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                        if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                        e.target.value = '';
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>💬 Text customer…</option>
+                      {smsTemplates.map((t) => (
+                        <option key={t.id} value={t.id}>{t.label}</option>
+                      ))}
+                    </select>
                   )}
                   {!o.completed && height >= 72 && (
                     <button
@@ -4426,7 +4490,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
   );
 }
 
-function JobsView({ session, features = { invoices: true }, planContext }) {
+function JobsView({ session, features = { invoices: true }, planContext, smsTemplates = [] }) {
   const terms = useTerms();
   const atCap = planContext && planContext.atCap;
   const [jobs, setJobs] = useState([]);
@@ -4690,7 +4754,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
         loading ? (
           <div className="list-empty">Loading...</div>
         ) : (
-          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} />
+          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} smsTemplates={smsTemplates} />
         )
       ) : (
       <div className="list">
@@ -5853,6 +5917,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
   const path = useLocation();
   const subView = path === '/settings/modules' ? 'modules'
     : path === '/settings/terminology' ? 'terminology'
+    : path === '/settings/quick-text' ? 'quick-text'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -5904,6 +5969,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         job_label: data.job_label || 'Job',
         job_label_plural: data.job_label_plural || 'Jobs',
         about: data.about || '',
+        sms_templates: Array.isArray(data.sms_templates) ? data.sms_templates : [],
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -5930,7 +5996,33 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     finally { setBusy(false); }
   }
 
-  if (loading && (subView === 'company' || subView === 'terminology')) {
+  function setSmsTemplate(index, key, value) {
+    setForm((f) => {
+      const next = (f.sms_templates || []).slice();
+      next[index] = { ...next[index], [key]: value };
+      return { ...f, sms_templates: next };
+    });
+    setSaved(false);
+  }
+  function addSmsTemplate() {
+    setForm((f) => ({
+      ...f,
+      sms_templates: [
+        ...(f.sms_templates || []),
+        { id: 'tpl_' + Math.random().toString(36).slice(2, 9), label: '', message: '' },
+      ],
+    }));
+    setSaved(false);
+  }
+  function removeSmsTemplate(index) {
+    setForm((f) => ({
+      ...f,
+      sms_templates: (f.sms_templates || []).filter((_, i) => i !== index),
+    }));
+    setSaved(false);
+  }
+
+  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -5955,6 +6047,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'terminology' ? 'active' : ''}`}
             onClick={() => navigate('/settings/terminology')}
           >Terminology</button>
+          <button
+            className={`chip ${subView === 'quick-text' ? 'active' : ''}`}
+            onClick={() => navigate('/settings/quick-text')}
+          >Quick text</button>
           {isAdmin && (
             <button
               className={`chip ${subView === 'modules' ? 'active' : ''}`}
@@ -6035,6 +6131,61 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               <div className="form-actions">
                 <button type="submit" className="primary" disabled={busy}>
                   {busy ? 'Saving...' : 'Save terminology'}
+                </button>
+              </div>
+            )}
+          </form>
+        </>
+      )}
+
+      {subView === 'quick-text' && (
+        <>
+          {error && <div className="error">{error}</div>}
+          {saved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+          )}
+          <form onSubmit={submit} className="form-card">
+            <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+              One-tap text-message templates that show up on the day's job blocks. Use <code>{'{name}'}</code> to insert the customer's first name (or business name) at send time.
+            </p>
+            {(form.sms_templates || []).map((t, i) => (
+              <div key={t.id || i} className="sms-template-row">
+                <div className="sms-template-fields">
+                  <div>
+                    <label>Button label</label>
+                    <input
+                      value={t.label || ''}
+                      onChange={(e) => setSmsTemplate(i, 'label', e.target.value)}
+                      placeholder="On the way"
+                      disabled={!isAdmin}
+                      maxLength={40}
+                    />
+                  </div>
+                  <div>
+                    <label>Message</label>
+                    <textarea
+                      rows={2}
+                      value={t.message || ''}
+                      onChange={(e) => setSmsTemplate(i, 'message', e.target.value)}
+                      placeholder="Hi {name}! We're on our way..."
+                      disabled={!isAdmin}
+                      maxLength={500}
+                    />
+                  </div>
+                </div>
+                {isAdmin && (
+                  <button type="button" className="danger" onClick={() => removeSmsTemplate(i)}>Remove</button>
+                )}
+              </div>
+            ))}
+            {(form.sms_templates || []).length === 0 && (
+              <div className="list-empty">No templates yet. Add your first one below.</div>
+            )}
+            {isAdmin && (
+              <div className="form-actions" style={{ justifyContent: 'space-between' }}>
+                <button type="button" className="secondary" onClick={addSmsTemplate}>+ Add template</button>
+                <button type="submit" className="primary" disabled={busy}>
+                  {busy ? 'Saving...' : 'Save templates'}
                 </button>
               </div>
             )}
@@ -6154,6 +6305,7 @@ const APP_ROUTES = {
   '/settings': 'settings',
   '/settings/modules': 'settings',
   '/settings/terminology': 'settings',
+  '/settings/quick-text': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
@@ -6772,7 +6924,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       </div>
       <div className="content">
         {view === 'dashboard' && <DashboardView session={session} features={features} />}
-        {view === 'jobs' && <JobsView session={session} features={features} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
+        {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && <RequestsView session={session} />}
         {view === 'invoices' && (isFree

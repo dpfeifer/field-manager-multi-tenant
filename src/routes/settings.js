@@ -8,14 +8,14 @@ const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',
   'venmo_handle', 'resend_from_email', 'cloudinary_folder',
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
-  'about',
+  'about', 'sms_templates',
 ];
 
 const SELECT = `
   SELECT company_name, logo_url, address, phone, email,
          venmo_handle, resend_from_email, cloudinary_folder,
          customer_label, customer_label_plural, job_label, job_label_plural,
-         about,
+         about, sms_templates,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -41,6 +41,19 @@ const TERMINOLOGY_FIELDS = new Set([
 // entirely uppercase letters (e.g. 'CLIENTS') down-case all but the first
 // letter so the nav doesn't read as shouting. Otherwise leave the user's
 // casing alone so 'eBook' or 'pet-sitter' survive unchanged.
+function normalizeSmsTemplates(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((t) => t && typeof t === 'object')
+    .map((t) => ({
+      id: typeof t.id === 'string' && t.id.length <= 32 ? t.id : 'tpl_' + Math.random().toString(36).slice(2, 9),
+      label: typeof t.label === 'string' ? t.label.trim().slice(0, 80) : '',
+      message: typeof t.message === 'string' ? t.message.trim().slice(0, 1000) : '',
+    }))
+    .filter((t) => t.label && t.message)
+    .slice(0, 24);
+}
+
 function normalizeLabel(v) {
   if (typeof v !== 'string') return v;
   const trimmed = v.trim();
@@ -60,6 +73,7 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
       let v = body[f] === '' ? null : body[f];
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
+      if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
       values.push(v);
       setClauses.push(`${f} = $${values.length}`);
     }
