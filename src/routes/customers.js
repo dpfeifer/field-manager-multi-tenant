@@ -199,4 +199,62 @@ router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   }
 });
 
+// Customer notes timeline
+router.get('/:id/notes', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT n.id, n.body, n.created_at, n.author_user_id,
+              u.name AS author_name, u.email AS author_email
+       FROM customer_notes n
+       LEFT JOIN users u ON u.id = n.author_user_id
+       WHERE n.customer_id = $1 AND n.organization_id = $2
+       ORDER BY n.created_at DESC
+       LIMIT 200`,
+      [req.params.id, req.organization.id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/notes', async (req, res, next) => {
+  const body = (req.body && typeof req.body.body === 'string') ? req.body.body.trim() : '';
+  if (!body) return res.status(400).json({ error: 'body is required' });
+  if (body.length > 5000) return res.status(400).json({ error: 'body is too long (5000 char max)' });
+  try {
+    // Make sure the customer actually belongs to this org before noting it.
+    const ownCheck = await query(
+      'SELECT 1 FROM customers WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id, req.organization.id]
+    );
+    if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
+
+    const { rows } = await query(
+      `INSERT INTO customer_notes (organization_id, customer_id, author_user_id, body)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, body, created_at, author_user_id`,
+      [req.organization.id, req.params.id, req.user.sub, body]
+    );
+    // JWT only carries email; pull the author's display name so the row can
+    // render with attribution without a refetch.
+    const author = await query('SELECT name, email FROM users WHERE id = $1 LIMIT 1', [req.user.sub]);
+    res.status(201).json({
+      ...rows[0],
+      author_name: (author.rows[0] && author.rows[0].name) || null,
+      author_email: (author.rows[0] && author.rows[0].email) || req.user.email || null,
+    });
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/notes/:noteId', async (req, res, next) => {
+  try {
+    const { rowCount } = await query(
+      `DELETE FROM customer_notes
+       WHERE id = $1 AND customer_id = $2 AND organization_id = $3`,
+      [req.params.noteId, req.params.id, req.organization.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'Note not found' });
+    res.status(204).end();
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
