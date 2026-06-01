@@ -805,6 +805,26 @@
       max-width: 110px;
     }
 
+    /* Jobs page sub-tabs (Schedule / List) */
+    .jobs-tabs {
+      display: flex; gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .jobs-tab {
+      background: none; border: none; cursor: pointer;
+      padding: 10px 18px; margin-bottom: -1px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .jobs-tab:hover { color: var(--text); }
+    .jobs-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--primary);
+    }
+
     /* Day view — time grid */
     .day-grid {
       background: var(--card); border: 1px solid var(--border);
@@ -5045,6 +5065,25 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
       {planContext && planContext.isFree && planContext.atCap && (
         <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.jobsLower} />
       )}
+      <div className="jobs-tabs">
+        <button
+          className={`jobs-tab${layout === 'calendar' ? ' active' : ''}`}
+          onClick={() => setLayout('calendar')}
+        >Schedule</button>
+        <button
+          className={`jobs-tab${layout === 'list' ? ' active' : ''}`}
+          onClick={() => setLayout('list')}
+        >List</button>
+      </div>
+      <PlanError error={error} session={session} />
+      {layout === 'calendar' ? (
+        loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : (
+          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} smsTemplates={smsTemplates} />
+        )
+      ) : (
+      <>
       <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
@@ -5060,20 +5099,6 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
           <option value="price">Sort: Price (high)</option>
         </select>
       </div>
-      <div className="filter-bar">
-        <div className="toggle-group">
-          <button className={layout === 'list' ? 'active' : ''} onClick={() => setLayout('list')}>List</button>
-          <button className={layout === 'calendar' ? 'active' : ''} onClick={() => setLayout('calendar')}>Calendar</button>
-        </div>
-      </div>
-      <PlanError error={error} session={session} />
-      {layout === 'calendar' ? (
-        loading ? (
-          <div className="list-empty">Loading...</div>
-        ) : (
-          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} smsTemplates={smsTemplates} />
-        )
-      ) : (
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -5128,6 +5153,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
           })
         )}
       </div>
+      </>
       )}
     </div>
   );
