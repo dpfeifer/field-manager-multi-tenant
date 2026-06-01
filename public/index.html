@@ -6229,7 +6229,7 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
-function SettingsView({ session, features = { invoices: true, quotes: true, reports: true, team: true }, onFeaturesChange }) {
+function SettingsView({ session, features = { invoices: true, quotes: true, reports: true, team: true, requests: true }, onFeaturesChange }) {
   const path = useLocation();
   const subView = path === '/settings/modules' ? 'modules'
     : path === '/settings/terminology' ? 'terminology'
@@ -6433,6 +6433,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               label="Team"
               description="Invite admins, leads, and employees. Skip if you're a solo operator."
             />
+            <FeatureRow
+              enabled={localFeatures.requests} onToggle={() => toggleFeature('requests')}
+              label="Requests"
+              description="Public booking page + an inbox tab where you accept or decline incoming requests."
+            />
             {featuresSaved && (
               <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
             )}
@@ -6606,7 +6611,9 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
       <form onSubmit={submit} className="form-card">
         <div className="section-heading" style={{ marginTop: 0 }}>Public links</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-          Two URLs you can share. The profile is your at-a-glance business card; the booking link drops customers straight into the request form.
+          {features.requests
+            ? "Two URLs you can share. The profile is your at-a-glance business card; the booking link drops customers straight into the request form."
+            : "Your public profile URL. Booking link is hidden because the Requests module is off."}
         </p>
         <label>Profile</label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
@@ -6617,15 +6624,19 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           />
           <CopyButton text={`${window.location.origin}/o/${session.slug}`} />
         </div>
-        <label>Booking</label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-          <input
-            readOnly
-            value={`${window.location.origin}/book/${session.slug}`}
-            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-          />
-          <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
-        </div>
+        {features.requests && (
+          <>
+            <label>Booking</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <input
+                readOnly
+                value={`${window.location.origin}/book/${session.slug}`}
+                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+              />
+              <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+            </div>
+          </>
+        )}
 
         <div className="section-heading">Company</div>
         <div className="form-grid">
@@ -7316,8 +7327,9 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
     return () => { cancelled = true; };
   }, [session.slug, session.token, path]);
 
-  const features = (me && me.features) || { invoices: true, quotes: true, reports: true, team: true };
+  const features = (me && me.features) || { invoices: true, quotes: true, reports: true, team: true, requests: true };
   if (me && me.features && me.features.team === undefined) features.team = true;
+  if (me && me.features && me.features.requests === undefined) features.requests = true;
   const terms = getTerms(me);
   const plan = (me && me.plan) || 'pro';
   const isFree = plan === 'free';
@@ -7387,12 +7399,14 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           <Icon name="customers" />{terms.customers}
           {isFree && me && <span className={`nav-quota${customersAtCap ? ' over' : ''}`}>{counts.customers}/{limits.customers}</span>}
         </button>
-        <button className={view === 'requests' ? 'active' : ''} onClick={() => navigate('/requests')}>
-          <Icon name="quotes" />Requests
-          {pendingRequestsCount > 0 && (
-            <span className="nav-badge">{pendingRequestsCount}</span>
-          )}
-        </button>
+        {features.requests && (
+          <button className={view === 'requests' ? 'active' : ''} onClick={() => navigate('/requests')}>
+            <Icon name="quotes" />Requests
+            {pendingRequestsCount > 0 && (
+              <span className="nav-badge">{pendingRequestsCount}</span>
+            )}
+          </button>
+        )}
         {(isFree || features.invoices) && (
           <button
             className={`${view === 'invoices' ? 'active' : ''}${isFree ? ' locked' : ''}`}
@@ -7432,7 +7446,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
-        {view === 'requests' && <RequestsView session={session} />}
+        {view === 'requests' && features.requests && <RequestsView session={session} />}
         {view === 'invoices' && (isFree
           ? <LockedFeature feature="invoices" session={session} />
           : (features.invoices && <InvoicesView session={session} />))}
@@ -8033,7 +8047,7 @@ function ReportsView({ session }) {
 function OnboardingPage({ session, onDone }) {
   const terms = useTerms();
   const [step, setStep] = useState('modules');
-  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false });
+  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false, requests: false });
   const [terminology, setTerminology] = useState({
     customer_label: 'Customer',
     customer_label_plural: 'Customers',
@@ -8145,6 +8159,11 @@ function OnboardingPage({ session, onDone }) {
           enabled={features.team} onToggle={() => toggle('team')}
           label="Team"
           description="Invite admins, leads, and employees with role-based access. Skip if you're a solo operator."
+        />
+        <FeatureRow
+          enabled={features.requests} onToggle={() => toggle('requests')}
+          label="Requests"
+          description={`Public booking page where ${terms.customersLower} can request appointments. Adds a Requests tab where you accept or decline them.`}
         />
 
         <div className="form-actions" style={{ marginTop: 24 }}>
