@@ -6658,7 +6658,8 @@ function QuotesView({ session, features = { invoices: true } }) {
   );
 }
 
-function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error, submit, terms }) {
+function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error, submit }) {
+  const terms = useTerms();
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState(null);
   const [runError, setRunError] = useState(null);
@@ -7111,7 +7112,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           saved={saved}
           error={error}
           submit={submit}
-          terms={terms}
         />
       )}
 
