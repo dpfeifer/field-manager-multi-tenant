@@ -36,6 +36,39 @@ router.get('/orgs/:slug', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/profile/:slug', async (req, res, next) => {
+  const slug = (req.params.slug || '').toLowerCase();
+  if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows } = await query(
+      `SELECT o.slug, o.name AS organization_name,
+              s.company_name, s.logo_url, s.about,
+              s.address, s.phone, s.email,
+              s.customer_label, s.customer_label_plural,
+              s.job_label, s.job_label_plural
+       FROM organizations o
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE o.slug = $1 AND o.deleted_at IS NULL LIMIT 1`,
+      [slug]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const row = rows[0];
+    res.json({
+      slug: row.slug,
+      name: row.company_name || row.organization_name,
+      logo_url: row.logo_url,
+      about: row.about,
+      address: row.address,
+      phone: row.phone,
+      email: row.email,
+      customer_label: row.customer_label || 'Customer',
+      customer_label_plural: row.customer_label_plural || 'Customers',
+      job_label: row.job_label || 'Job',
+      job_label_plural: row.job_label_plural || 'Jobs',
+    });
+  } catch (err) { next(err); }
+});
+
 router.post('/book/:slug', async (req, res, next) => {
   const slug = (req.params.slug || '').toLowerCase();
   if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });

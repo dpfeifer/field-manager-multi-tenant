@@ -14,12 +14,22 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+const { query: dbQuery } = require('../config/db');
+async function findAvailableSlug(base) {
+  for (let i = 0; i < 100; i++) {
+    const candidate = i === 0 ? base : `${base}-${i + 1}`;
+    if (validateSlug(candidate)) continue; // reserved or otherwise invalid — try next
+    const { rows } = await dbQuery('SELECT 1 FROM organizations WHERE slug = $1 LIMIT 1', [candidate]);
+    if (rows.length === 0) return candidate;
+  }
+  return null;
+}
+
 const router = express.Router();
 
 router.post('/', async (req, res, next) => {
   const { organization = {}, user = {} } = req.body || {};
   const orgName = (organization.name || '').trim();
-  const orgSlugInput = (organization.slug || '').trim().toLowerCase();
   const userEmail = (user.email || '').trim().toLowerCase();
   const userName = (user.name || '').trim() || null;
   const userPassword = user.password;
@@ -31,10 +41,16 @@ router.post('/', async (req, res, next) => {
     return res.status(400).json({ error: 'user.email is required' });
   }
 
-  const slug = orgSlugInput || slugify(orgName);
-  const slugError = validateSlug(slug);
-  if (slugError) {
-    return res.status(400).json({ error: slugError });
+  // Slug is always derived from the company name now. If the derived slug
+  // collides we retry with -2, -3, ... up to -99 before bailing.
+  const baseSlug = slugify(orgName);
+  const baseSlugError = validateSlug(baseSlug);
+  if (baseSlugError) {
+    return res.status(400).json({ error: `Could not derive a URL slug from "${orgName}". Try a different company name.` });
+  }
+  const slug = await findAvailableSlug(baseSlug);
+  if (!slug) {
+    return res.status(409).json({ error: 'Too many businesses with similar names. Try a more distinctive company name.' });
   }
 
   const passwordError = validatePassword(userPassword);
