@@ -114,6 +114,39 @@
     .fade-in-delay-2 { animation: fadeInUp 0.5s 0.12s cubic-bezier(0.16, 1, 0.3, 1) both; }
     .fade-in-delay-3 { animation: fadeInUp 0.5s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+    /* Scroll-reveal: hidden by default, revealed when JS adds .is-revealed */
+    [data-reveal] {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    [data-reveal].is-revealed { opacity: 1; transform: translateY(0); }
+    [data-reveal-delay="1"] { transition-delay: 0.08s; }
+    [data-reveal-delay="2"] { transition-delay: 0.16s; }
+    [data-reveal-delay="3"] { transition-delay: 0.24s; }
+    [data-reveal-delay="4"] { transition-delay: 0.32s; }
+    [data-reveal-delay="5"] { transition-delay: 0.4s; }
+    @media (prefers-reduced-motion: reduce) {
+      [data-reveal] { opacity: 1; transform: none; transition: none; }
+      .fade-in, .fade-in-delay-1, .fade-in-delay-2, .fade-in-delay-3 { animation: none; opacity: 1; }
+    }
+
+    /* Bold sans typography scoped to landing — keep app shell serif */
+    .landing h1, .landing h2 {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      font-feature-settings: 'ss01', 'cv11';
+    }
+    .landing h3 {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .landing .eyebrow,
+    .landing .section-label { font-weight: 600; }
+
     /* Auth screens */
     .auth-shell { max-width: 480px; margin: 80px auto; padding: 0 16px; }
     .card {
@@ -593,7 +626,7 @@
     .landing-nav .nav-actions { display: flex; gap: 12px; align-items: center; }
     .landing-section { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
     .landing-hero {
-      padding: 96px 40px 72px; text-align: center; max-width: 820px; margin: 0 auto;
+      padding: 120px 40px 96px; text-align: center; max-width: 1100px; margin: 0 auto;
       position: relative;
     }
     .landing-hero::before {
@@ -603,18 +636,20 @@
       opacity: 0.6;
     }
     .landing-hero .eyebrow {
-      display: inline-block; padding: 4px 12px;
+      display: inline-block; padding: 5px 14px;
       background: var(--card); border: 1px solid var(--border-strong);
       border-radius: 999px; font-size: 12px; color: var(--text-muted);
-      font-weight: 500; margin-bottom: 20px; letter-spacing: 0.02em;
+      font-weight: 600; margin-bottom: 28px;
+      letter-spacing: 0.06em; text-transform: uppercase;
     }
     .landing-hero h1 {
-      font-size: 60px; line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 22px;
-      font-weight: 600;
+      font-size: clamp(44px, 9vw, 92px);
+      line-height: 0.98; letter-spacing: -0.045em; margin: 0 0 28px;
+      font-weight: 800;
     }
     .landing-hero .lede {
-      font-size: 19px; color: var(--text-muted); line-height: 1.55; margin: 0 0 36px;
-      max-width: 580px; margin-left: auto; margin-right: auto;
+      font-size: 20px; color: var(--text-muted); line-height: 1.5; margin: 0 0 40px;
+      max-width: 620px; margin-left: auto; margin-right: auto;
     }
     .landing-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .landing-hero .cta-row button.primary {
@@ -654,8 +689,9 @@
       font-family: 'Inter', sans-serif;
     }
     .section-title-large {
-      font-size: 36px; line-height: 1.1; letter-spacing: -0.02em;
-      margin: 0 0 16px; max-width: 700px;
+      font-size: clamp(36px, 6vw, 60px);
+      line-height: 1.02; letter-spacing: -0.04em;
+      margin: 0 0 16px; max-width: 900px;
     }
     .section-lede-large {
       font-size: 17px; color: var(--text-muted); line-height: 1.55;
@@ -676,9 +712,9 @@
     }
     .how-left .section-label { text-align: left; margin-bottom: 18px; }
     .how-left h2 {
-      font-family: var(--serif);
-      font-size: 30px; line-height: 1.15; letter-spacing: -0.015em;
-      margin: 0 0 16px; font-weight: 500;
+      font-size: clamp(34px, 4.5vw, 52px);
+      line-height: 1; letter-spacing: -0.04em;
+      margin: 0 0 18px;
     }
     .how-left p {
       margin: 0; color: var(--text-muted);
@@ -747,7 +783,11 @@
       padding: 60px 0; text-align: center;
       border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
-    .industries h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .industries h2 {
+      font-size: clamp(32px, 5vw, 56px); margin: 0 0 16px;
+      letter-spacing: -0.04em; line-height: 1.02;
+      max-width: 800px; margin-left: auto; margin-right: auto;
+    }
     .industries .lede { color: var(--text-muted); margin: 0 0 36px; font-size: 15px; }
     .industries-row {
       display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
@@ -757,8 +797,11 @@
       border-radius: 999px; font-size: 14px; font-weight: 500;
     }
 
-    .pricing { padding: 80px 0 40px; text-align: center; }
-    .pricing h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .pricing { padding: 100px 0 40px; text-align: center; }
+    .pricing h2 {
+      font-size: clamp(32px, 5vw, 56px); margin: 0 0 16px;
+      letter-spacing: -0.04em; line-height: 1.02;
+    }
     .pricing .lede { color: var(--text-muted); margin: 0 0 40px; font-size: 15px; }
     .price-card {
       max-width: 460px; margin: 0 auto;
@@ -795,7 +838,10 @@
       background: var(--card); border-radius: 16px; margin: 60px auto;
       max-width: 760px; box-shadow: var(--shadow-sm);
     }
-    .cta-band h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .cta-band h2 {
+      font-size: clamp(32px, 5vw, 52px); margin: 0 0 16px;
+      letter-spacing: -0.04em; line-height: 1.02;
+    }
     .cta-band p { color: var(--text-muted); margin: 0 0 24px; font-size: 15px; }
 
     .landing-footer {
@@ -809,8 +855,7 @@
 
     @media (max-width: 720px) {
       .landing-nav { padding: 16px 20px; }
-      .landing-hero { padding: 50px 20px 40px; }
-      .landing-hero h1 { font-size: 32px; }
+      .landing-hero { padding: 60px 20px 48px; }
       .landing-hero .lede { font-size: 16px; }
       .landing-section { padding: 0 20px; }
       .features-grid { padding: 40px 0; gap: 14px; }
@@ -1321,6 +1366,23 @@ function LoginForm({ onSuccess }) {
 }
 
 function LandingPage() {
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-revealed'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          observer.unobserve(entry.target);
+        }
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="landing">
       <nav className="landing-nav">
@@ -1348,27 +1410,27 @@ function LandingPage() {
 
       <section className="how-band">
         <div className="how-inner">
-          <div className="how-left">
+          <div className="how-left" data-reveal>
             <div className="section-label">How it works</div>
             <h2>Up and running in an afternoon.</h2>
             <p>No long onboarding. No "schedule a demo" gate. Three steps from sign-up to your first paid invoice.</p>
           </div>
           <div className="steps">
-            <div className="step">
+            <div className="step" data-reveal data-reveal-delay="1">
               <div className="step-num">01</div>
               <div>
                 <h3>Bring your customers</h3>
                 <p>Type them in, paste a CSV, or migrate from your old tool. Email, phone, address, notes — whatever you've got.</p>
               </div>
             </div>
-            <div className="step">
+            <div className="step" data-reveal data-reveal-delay="2">
               <div className="step-num">02</div>
               <div>
                 <h3>Schedule the work</h3>
                 <p>One-time jobs or recurring (weekly, biweekly, monthly). Skip a week without breaking the series. Assign teammates.</p>
               </div>
             </div>
-            <div className="step">
+            <div className="step" data-reveal data-reveal-delay="3">
               <div className="step-num">03</div>
               <div>
                 <h3>Send invoices, get paid</h3>
@@ -1383,7 +1445,7 @@ function LandingPage() {
         <hr className="divider-fancy" />
       </div>
 
-      <section className="quote-section">
+      <section className="quote-section" data-reveal>
         <blockquote>
           "I was using spreadsheets and a calendar app. Switching took an hour. The recurring schedule alone is worth the price."
         </blockquote>
@@ -1391,35 +1453,37 @@ function LandingPage() {
       </section>
 
       <section className="landing-section">
-        <div className="section-label" style={{ textAlign: 'center' }}>What you get</div>
-        <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>Every feature, included.</h2>
+        <div data-reveal style={{ textAlign: 'center' }}>
+          <div className="section-label">What you get</div>
+          <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>Every feature, included.</h2>
+        </div>
         <div className="features-grid">
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="1">
             <div className="feature-icon"><Icon name="clock" /></div>
             <h3>Recurring schedules that work</h3>
             <p>Weekly, biweekly, or monthly visits per customer. Skip a week, reschedule one occurrence, mark visits complete with notes — without nuking the whole series.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="2">
             <div className="feature-icon"><Icon name="invoices" /></div>
             <h3>Customer-first invoices</h3>
             <p>Send a public link your customer can open on any device. Per-line items, optional tax + discount, Venmo pay-link built in.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="3">
             <div className="feature-icon"><Icon name="quotes" /></div>
             <h3>Quotes that become work</h3>
             <p>Quote a prospect, promote them to a customer in one click, convert the quote into a scheduled job or a draft invoice.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="1">
             <div className="feature-icon"><Icon name="reports" /></div>
             <h3>Reports for the owner</h3>
             <p>Paid revenue, outstanding balance per customer, projected income from upcoming visits, late invoices flagged automatically.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="2">
             <div className="feature-icon"><Icon name="team" /></div>
             <h3>Teammates without confusion</h3>
             <p>Admins, leads, and employees each see only what they need. Assign jobs to specific people; employees only see their own work.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card" data-reveal data-reveal-delay="3">
             <div className="feature-icon"><Icon name="shield" /></div>
             <h3>Your data, your data</h3>
             <p>Import existing customers from CSV. Export everything back out anytime. No lock-in, no manipulative gates.</p>
@@ -1430,9 +1494,11 @@ function LandingPage() {
       {/* CTA-band, pricing, footer continue below */}
 
       <section className="industries">
-        <h2>Built for the businesses that go where the work is.</h2>
-        <p className="lede">Whatever you call yourself, if you serve customers in the field, Field Manager fits.</p>
-        <div className="industries-row">
+        <div data-reveal>
+          <h2>Built for the businesses that go where the work is.</h2>
+          <p className="lede">Whatever you call yourself, if you serve customers in the field, Field Manager fits.</p>
+        </div>
+        <div className="industries-row" data-reveal data-reveal-delay="1">
           <div className="industry-chip">Lawn care</div>
           <div className="industry-chip">House cleaning</div>
           <div className="industry-chip">Handyman</div>
@@ -1444,9 +1510,11 @@ function LandingPage() {
       </section>
 
       <section className="landing-section pricing">
-        <h2>Simple pricing. One plan.</h2>
-        <p className="lede">No tiers to puzzle over. Every feature, every teammate, every customer — one price.</p>
-        <div className="price-card">
+        <div data-reveal>
+          <h2>Simple pricing. One plan.</h2>
+          <p className="lede">No tiers to puzzle over. Every feature, every teammate, every customer — one price.</p>
+        </div>
+        <div className="price-card" data-reveal data-reveal-delay="1">
           <div>
             <span className="amount">$29</span>
             <span className="amount-suffix"> / month</span>
@@ -1467,7 +1535,7 @@ function LandingPage() {
       </section>
 
       <section className="landing-section">
-        <div className="cta-band">
+        <div className="cta-band" data-reveal>
           <h2>Set up your shop in two minutes.</h2>
           <p>No credit card required. Bring your existing customers or start fresh.</p>
           <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => navigate('/signup')}>Create your account</button>
