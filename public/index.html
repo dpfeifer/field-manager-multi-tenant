@@ -602,6 +602,38 @@
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
     .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    .cal-mode-row {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .cal-mode-toggle { flex-shrink: 0; }
+    .cal-day-nav {
+      display: flex; align-items: center; gap: 6px;
+      margin-left: auto;
+    }
+    .cal-day-nav .secondary { padding: 6px 12px; font-size: 14px; }
+    .cal-day-picker {
+      padding: 6px 10px; font-size: 13px; width: auto;
+      font-family: ui-monospace, monospace;
+    }
+    .cal-day-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin: 4px 0 14px;
+    }
+    .cal-day-header h3 {
+      font-family: var(--serif); font-size: 24px; margin: 0;
+      letter-spacing: -0.02em; font-weight: 600;
+    }
+    .cal-day-count {
+      font-size: 13px; color: var(--text-muted);
+      font-weight: 500;
+    }
+    @media (max-width: 600px) {
+      .cal-day-nav { margin-left: 0; width: 100%; }
+      .cal-day-picker { flex: 1; }
+      .cal-day-header h3 { font-size: 20px; }
+    }
+
     .calendar {
       background: var(--card); border-radius: 12px;
       border: 1px solid var(--border); padding: 18px;
@@ -3394,23 +3426,124 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
 }
 
 function CalendarView({ jobs, onChipClick, onMarkComplete }) {
-  const [monthOffset, setMonthOffset] = useState(0);
   const today = todayStart();
   const todayStr = formatYMD(today);
+  const [view, setView] = useState('day');
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  function shiftDay(delta) {
+    const cur = new Date(selectedDate + 'T00:00:00');
+    cur.setDate(cur.getDate() + delta);
+    setSelectedDate(formatYMD(cur));
+  }
+  function jumpToToday() {
+    setSelectedDate(todayStr);
+    setMonthOffset(0);
+  }
+
+  // For month view, compute the visible month + occurrences within it.
   const viewMonth = addMonths(today, monthOffset);
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
   const monthStartStr = formatYMD(monthStart);
   const monthEndStr = formatYMD(monthEnd);
-
-  const byDate = {};
+  const monthByDate = {};
   jobs.forEach((j) => {
     jobOccurrencesInRange(j, monthStartStr, monthEndStr).forEach((o) => {
-      (byDate[o.date] = byDate[o.date] || []).push(o);
+      (monthByDate[o.date] = monthByDate[o.date] || []).push(o);
     });
   });
 
+  // For day view, only compute the single day's occurrences and sort by
+  // start_time (untimed jobs sink to the bottom).
+  const dayOccurrences = (() => {
+    if (view !== 'day') return [];
+    const out = [];
+    jobs.forEach((j) => {
+      jobOccurrencesInRange(j, selectedDate, selectedDate).forEach((o) => out.push(o));
+    });
+    return out.sort((a, b) => {
+      const ta = a.job.start_time || '99:99';
+      const tb = b.job.start_time || '99:99';
+      return ta.localeCompare(tb);
+    });
+  })();
+
+  const selectedDateLabel = (() => {
+    const d = new Date(selectedDate + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  })();
+
+  return (
+    <div>
+      <div className="cal-mode-row">
+        <div className="toggle-group cal-mode-toggle">
+          <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>Day</button>
+          <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Month</button>
+        </div>
+        {view === 'day' && (
+          <div className="cal-day-nav">
+            <button className="secondary" onClick={() => shiftDay(-1)} aria-label="Previous day">←</button>
+            <input
+              type="date" value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="cal-day-picker"
+            />
+            <button className="secondary" onClick={() => shiftDay(1)} aria-label="Next day">→</button>
+            {selectedDate !== todayStr && (
+              <button className="secondary" onClick={jumpToToday}>Today</button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {view === 'day' && (
+        <>
+          <div className="cal-day-header">
+            <h3>{selectedDateLabel}</h3>
+            <span className="cal-day-count">
+              {dayOccurrences.length} {dayOccurrences.length === 1 ? 'visit' : 'visits'}
+            </span>
+          </div>
+          <div className="list">
+            {dayOccurrences.length === 0 ? (
+              <div className="list-empty">No visits scheduled for this day.</div>
+            ) : (
+              dayOccurrences.map((o, i) => (
+                <OccurrenceRow
+                  key={`${o.job.id}-${o.date}-${i}`}
+                  occurrence={o}
+                  onMarkComplete={onMarkComplete}
+                  onEdit={onChipClick}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {view === 'month' && (
+        <CalendarMonthGrid
+          today={today}
+          todayStr={todayStr}
+          viewMonth={viewMonth}
+          monthByDate={monthByDate}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          monthOffset={monthOffset}
+          setMonthOffset={setMonthOffset}
+          onChipClick={onChipClick}
+          onMarkComplete={onMarkComplete}
+        />
+      )}
+    </div>
+  );
+}
+
+function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDate, setSelectedDate, monthOffset, setMonthOffset, onChipClick, onMarkComplete }) {
+  const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+  const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
   const firstDayOfWeek = monthStart.getDay();
   const daysInMonth = monthEnd.getDate();
   const cells = [];
@@ -3419,11 +3552,10 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
   while (cells.length % 7 !== 0) cells.push(null);
   const monthLabel = viewMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
   const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  const selectedOccurrences = selectedDate ? (byDate[selectedDate] || []) : [];
+  const selectedOccurrences = selectedDate ? (monthByDate[selectedDate] || []) : [];
 
   return (
-    <div>
+    <>
       <div className="calendar">
         <div className="cal-nav">
           <button className="secondary" onClick={() => setMonthOffset(monthOffset - 1)}>← Prev</button>
@@ -3435,7 +3567,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
           {cells.map((d, i) => {
             if (d === null) return <div key={i} className="cal-cell empty"></div>;
             const dateStr = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const occs = byDate[dateStr] || [];
+            const occs = monthByDate[dateStr] || [];
             const isToday = dateStr === todayStr;
             const isSelected = dateStr === selectedDate;
             const classes = ['cal-cell'];
@@ -3485,7 +3617,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete }) {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
 
@@ -3788,7 +3920,7 @@ function JobsView({ session, features = { invoices: true }, planContext }) {
   const [completionInitialDate, setCompletionInitialDate] = useState(null);
   const [returnMode, setReturnMode] = useState('list');
   const [filter, setFilter] = useState('all');
-  const [layout, setLayout] = useState('list');
+  const [layout, setLayout] = useState('calendar');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
 
