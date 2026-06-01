@@ -333,18 +333,35 @@
     /* User menu */
     .user-menu-wrap { position: relative; }
     .user-menu-trigger {
-      background: none; border: none; cursor: pointer;
-      padding: 0; border-radius: 50%;
-      transition: box-shadow 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      cursor: pointer;
+      padding: 3px 8px 3px 3px; border-radius: 999px;
+      color: var(--text-muted);
+      transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
     }
-    .user-menu-trigger:hover { box-shadow: 0 0 0 3px var(--tinted); }
-    .user-menu-trigger[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--primary-ring, rgba(44,62,87,0.18)); }
+    .user-menu-trigger:hover {
+      border-color: var(--primary); color: var(--text);
+      box-shadow: 0 2px 8px -2px rgba(40,30,20,0.12);
+    }
+    .user-menu-trigger[aria-expanded="true"] {
+      border-color: var(--primary); color: var(--text);
+      box-shadow: 0 0 0 3px var(--primary-ring, rgba(44,62,87,0.18));
+    }
     .user-menu-avatar {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 50%;
+      width: 28px; height: 28px; border-radius: 50%;
       background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-      color: white; font-weight: 600; font-size: 13px;
+      color: white; font-weight: 600; font-size: 12px;
       letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .user-menu-caret {
+      width: 10px; height: 7px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .user-menu-trigger[aria-expanded="true"] .user-menu-caret {
+      transform: rotate(180deg);
     }
     .user-menu-pop {
       position: absolute; right: 0; top: calc(100% + 8px);
@@ -7152,6 +7169,9 @@ function UserMenu({ session, onLogout, onSwitch }) {
         title={name}
       >
         <span className="user-menu-avatar">{initial}</span>
+        <svg className="user-menu-caret" viewBox="0 0 12 8" aria-hidden="true">
+          <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
       {open && (
         <div className="user-menu-pop" role="menu">
