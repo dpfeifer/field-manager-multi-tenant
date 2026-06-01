@@ -5367,7 +5367,14 @@ function ReportsView({ session }) {
 
 function OnboardingPage({ session, onDone }) {
   const terms = useTerms();
+  const [step, setStep] = useState('modules');
   const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false });
+  const [terminology, setTerminology] = useState({
+    customer_label: 'Customer',
+    customer_label_plural: 'Customers',
+    job_label: 'Job',
+    job_label_plural: 'Jobs',
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -5375,19 +5382,94 @@ function OnboardingPage({ session, onDone }) {
     setFeatures((f) => ({ ...f, [key]: !f[key] }));
   }
 
+  function setTermField(key, value) {
+    setTerminology((t) => ({ ...t, [key]: value }));
+  }
+
+  function applyPreset(presetKey) {
+    const preset = INDUSTRY_PRESETS[presetKey];
+    if (!preset) return;
+    setTerminology(preset);
+  }
+
   async function submit() {
     setBusy(true); setError(null);
     try {
       await apiRequest('/api/onboarding/complete', {
-        method: 'POST', slug: session.slug, token: session.token, body: { features },
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { features, terminology },
       });
       await onDone();
     } catch (err) { setError(err.message); setBusy(false); }
   }
 
+  if (step === 'terminology') {
+    return (
+      <div className="auth-shell" style={{ maxWidth: 640 }}>
+        <div className="card">
+          <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            Step 2 of 2
+          </p>
+          <h1>What do you call your work?</h1>
+          <p className="subtitle" style={{ marginBottom: 16 }}>
+            Every business is different. Tell us what you call jobs and customers and we'll use those words throughout the app. You can change this later in Settings → Terminology.
+          </p>
+
+          <label style={{ marginTop: 4 }}>Industry presets</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+            {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
+              <button
+                key={key} type="button" className="chip"
+                onClick={() => applyPreset(key)}
+                title={`${preset.customer_label} / ${preset.job_label}`}
+              >
+                {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </button>
+            ))}
+          </div>
+
+          <div className="form-grid">
+            <div>
+              <label>What do you call a customer?</label>
+              <input value={terminology.customer_label} onChange={(e) => setTermField('customer_label', e.target.value)} placeholder="Customer" />
+            </div>
+            <div>
+              <label>Plural</label>
+              <input value={terminology.customer_label_plural} onChange={(e) => setTermField('customer_label_plural', e.target.value)} placeholder="Customers" />
+            </div>
+            <div>
+              <label>What do you call a job?</label>
+              <input value={terminology.job_label} onChange={(e) => setTermField('job_label', e.target.value)} placeholder="Job" />
+            </div>
+            <div>
+              <label>Plural</label>
+              <input value={terminology.job_label_plural} onChange={(e) => setTermField('job_label_plural', e.target.value)} placeholder="Jobs" />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, padding: 14, background: 'var(--tinted)', borderRadius: 8, fontSize: 13, color: 'var(--text-muted)' }}>
+            Preview: Your sidebar will say <strong style={{ color: 'var(--text)' }}>{terminology.customer_label_plural || 'Customers'}</strong> and <strong style={{ color: 'var(--text)' }}>{terminology.job_label_plural || 'Jobs'}</strong>.
+          </div>
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="form-actions" style={{ marginTop: 24, justifyContent: 'space-between' }}>
+            <button className="secondary" disabled={busy} onClick={() => setStep('modules')}>← Back</button>
+            <button className="primary" disabled={busy} onClick={submit}>
+              {busy ? 'Saving...' : 'Finish setup'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-shell" style={{ maxWidth: 640 }}>
       <div className="card">
+        <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+          Step 1 of 2
+        </p>
         <h1>Welcome to {session.organization.name}!</h1>
         <p className="subtitle" style={{ marginBottom: 16 }}>
           You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>{terms.customers}</strong>, <strong style={{ color: 'var(--text)' }}>{terms.jobs}</strong>, and <strong style={{ color: 'var(--text)' }}>Team</strong> management. These are always on — they're the core of Field Manager.
@@ -5414,11 +5496,9 @@ function OnboardingPage({ session, onDone }) {
           description={`Revenue dashboard, projected income, top ${terms.customersLower}, monthly trends. Admin-only when on.`}
         />
 
-        {error && <div className="error">{error}</div>}
-
         <div className="form-actions" style={{ marginTop: 24 }}>
-          <button className="primary" disabled={busy} onClick={submit}>
-            {busy ? 'Saving...' : 'Continue to dashboard'}
+          <button className="primary" disabled={busy} onClick={() => setStep('terminology')}>
+            Continue →
           </button>
         </div>
       </div>
