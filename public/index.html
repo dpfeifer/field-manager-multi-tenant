@@ -138,15 +138,7 @@
       align-items: center;
       line-height: 1;
     }
-    .hero-line {
-      display: block;
-      overflow: hidden;
-      max-height: 1.5em;
-      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                  max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-                  margin 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .hero-line.hidden { opacity: 0; max-height: 0; margin: 0; }
+    .hero-line { display: block; }
     .hero-cycle-line {
       display: block;
       line-height: 1.15;
@@ -1390,7 +1382,16 @@ function LoginForm({ onSuccess }) {
   );
 }
 
-const INDUSTRIES = ['lawn care', 'cleaning', 'handyman', 'pet care', 'mobile barber', 'pool service', 'pressure washing', 'business'];
+const INDUSTRIES = [
+  'lawn care business',
+  'cleaning business',
+  'handyman business',
+  'pet care business',
+  'mobile barber business',
+  'pool service business',
+  'pressure washing business',
+  'business',
+];
 
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
@@ -1404,11 +1405,11 @@ function CyclingHeadline() {
 
   return (
     <h1 className="fade-in-delay-1 hero-stacked">
-      <span className={`hero-line${reachedEnd ? ' hidden' : ''}`}>Run your</span>
+      <span className="hero-line">Run your</span>
       <span className="hero-cycle-line">
         <span className="cycle-word" key={idx}>{INDUSTRIES[idx]}</span>
       </span>
-      <span className={`hero-line${reachedEnd ? ' hidden' : ''}`}>business in one place.</span>
+      <span className="hero-line">in one place.</span>
     </h1>
   );
 }
