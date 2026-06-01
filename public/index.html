@@ -266,6 +266,13 @@
     .nav button.active { color: var(--text); font-weight: 600; border-bottom-color: var(--primary); }
     .nav button.active .icon { opacity: 1; color: var(--primary); }
     .nav button:hover { color: var(--text); }
+    .nav-badge {
+      background: var(--accent); color: white;
+      font-size: 10px; font-weight: 700;
+      padding: 1px 7px; border-radius: 999px;
+      margin-left: 4px; letter-spacing: 0.02em;
+      line-height: 1.4;
+    }
     .content { max-width: 960px; margin: 32px auto; padding: 0 28px; }
     .page-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -2276,6 +2283,159 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
   );
 }
 
+function RequestsView({ session }) {
+  const terms = useTerms();
+  const [requests, setRequests] = useState([]);
+  const [filter, setFilter] = useState('pending');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [decliningId, setDecliningId] = useState(null);
+  const [declineReason, setDeclineReason] = useState('');
+
+  const canMutate = ['admin', 'lead'].includes(session.user.role);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest(`/api/booking-requests?status=${filter}`, {
+        slug: session.slug, token: session.token,
+      });
+      setRequests(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [session.slug, session.token, filter]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function accept(id) {
+    if (!confirm(`Accept this request? This will create a new ${terms.customerLower} and ${terms.jobLower}.`)) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/booking-requests/${id}/accept`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function submitDecline(id) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/booking-requests/${id}/decline`, {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { reason: declineReason },
+      });
+      setDecliningId(null); setDeclineReason('');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function destroy(id) {
+    if (!confirm('Permanently delete this request? This cannot be undone.')) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/booking-requests/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Requests</h2>
+      </div>
+      <p className="subtitle" style={{ marginTop: -8, marginBottom: 16 }}>
+        Booking requests submitted by visitors to your public link. Accept to create a {terms.customerLower} and {terms.jobLower}.
+      </p>
+      <div className="filter-bar">
+        <div className="chip-group">
+          {['pending', 'accepted', 'declined', 'all'].map((f) => (
+            <button key={f} className={`chip ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : requests.length === 0 ? (
+          <div className="list-empty">
+            {filter === 'pending' ? 'No pending requests. Share your booking link to start receiving them.' : `No ${filter} requests.`}
+          </div>
+        ) : (
+          requests.map((r) => (
+            <div key={r.id} className="row">
+              <div className="info" style={{ flex: 1 }}>
+                <div className="name">
+                  {r.requester_name}
+                  <span className={`badge ${r.status}`} style={{ marginLeft: 10 }}>{r.status}</span>
+                </div>
+                <div className="meta">
+                  {r.requester_email && <>{r.requester_email}</>}
+                  {r.requester_email && r.requester_phone && ' · '}
+                  {r.requester_phone}
+                  {r.preferred_date && <> · Wants {r.preferred_date} ({r.preferred_time_window})</>}
+                </div>
+                <div className="secondary-meta" style={{ marginTop: 6, color: 'var(--text)' }}>
+                  {r.service_description}
+                </div>
+                {r.requester_address && (
+                  <div className="secondary-meta">📍 {r.requester_address}</div>
+                )}
+                {r.notes && (
+                  <div className="secondary-meta">Notes: {r.notes}</div>
+                )}
+                <div className="secondary-meta" style={{ marginTop: 6, fontSize: 11 }}>
+                  Received {new Date(r.created_at).toLocaleString()}
+                </div>
+                {r.status === 'declined' && r.declined_reason && (
+                  <div className="secondary-meta" style={{ fontStyle: 'italic' }}>Decline note: {r.declined_reason}</div>
+                )}
+                {r.status === 'accepted' && r.created_job_id && (
+                  <div className="secondary-meta">
+                    Created <button className="link-button" onClick={() => navigate('/jobs')}>{terms.jobLower} ↗</button>
+                  </div>
+                )}
+                {decliningId === r.id && (
+                  <div style={{ marginTop: 10, padding: 12, background: 'var(--tinted)', borderRadius: 8 }}>
+                    <label>Decline note <span className="hint">(internal, not sent to requester)</span></label>
+                    <textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} rows={2} />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <button className="danger" onClick={() => submitDecline(r.id)} disabled={busy}>Confirm decline</button>
+                      <button className="secondary" onClick={() => { setDecliningId(null); setDeclineReason(''); }} disabled={busy}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {canMutate && (
+                <div className="actions">
+                  {r.status === 'pending' && (
+                    <>
+                      <button className="primary" onClick={() => accept(r.id)} disabled={busy}>Accept</button>
+                      <button className="secondary" onClick={() => { setDecliningId(r.id); setDeclineReason(''); }} disabled={busy}>Decline</button>
+                    </>
+                  )}
+                  {r.status !== 'pending' && session.user.role === 'admin' && (
+                    <button className="danger" onClick={() => destroy(r.id)} disabled={busy}>Delete</button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
   const defaultDate = initialDate || (job.type === 'single' && job.date ? job.date : formatYMD(new Date()));
   const [date, setDate] = useState(defaultDate);
@@ -4161,6 +4321,24 @@ function QuotesView({ session, features = { invoices: true } }) {
   );
 }
 
+function CopyButton({ text, label = 'Copy' }) {
+  const [copied, setCopied] = useState(false);
+  async function doCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      alert('Could not copy. The link is: ' + text);
+    }
+  }
+  return (
+    <button type="button" className="secondary" onClick={doCopy}>
+      {copied ? 'Copied!' : label}
+    </button>
+  );
+}
+
 function SettingsView({ session, features = { invoices: true, quotes: true, reports: true }, onFeaturesChange }) {
   const path = useLocation();
   const subView = path === '/settings/modules' ? 'modules'
@@ -4378,7 +4556,20 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
       )}
       <form onSubmit={submit} className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Company</div>
+        <div className="section-heading" style={{ marginTop: 0 }}>Public booking link</div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
+          Share this URL on your website, social media, or business card so customers can request appointments.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+          <input
+            readOnly
+            value={`${window.location.origin}/book/${session.slug}`}
+            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+          />
+          <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+        </div>
+
+        <div className="section-heading">Company</div>
         <div className="form-grid">
           <div className="full">
             <label>Company name</label>
@@ -4441,6 +4632,7 @@ const APP_ROUTES = {
   '/dashboard': 'dashboard',
   '/jobs': 'jobs',
   '/customers': 'customers',
+  '/requests': 'requests',
   '/invoices': 'invoices',
   '/quotes': 'quotes',
   '/reports': 'reports',
@@ -4657,15 +4849,19 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
     } catch (err) { console.error('me reload failed', err); }
   }, [session.slug, session.token]);
 
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [b, m] = await Promise.all([
+        const [b, m, c] = await Promise.all([
           apiRequest('/api/billing/status', { slug: session.slug, token: session.token }),
           apiRequest('/api/auth/me', { slug: session.slug, token: session.token }),
+          apiRequest('/api/booking-requests/count', { slug: session.slug, token: session.token })
+            .catch(() => ({ pending: 0 })),
         ]);
-        if (!cancelled) { setBilling(b); setMe(m); }
+        if (!cancelled) { setBilling(b); setMe(m); setPendingRequestsCount(c.pending || 0); }
       } catch (err) {
         console.error('appshell load failed', err);
       }
@@ -4726,6 +4922,12 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}><Icon name="jobs" />{terms.jobs}</button>
         <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}><Icon name="customers" />{terms.customers}</button>
+        <button className={view === 'requests' ? 'active' : ''} onClick={() => navigate('/requests')}>
+          <Icon name="quotes" />Requests
+          {pendingRequestsCount > 0 && (
+            <span className="nav-badge">{pendingRequestsCount}</span>
+          )}
+        </button>
         {features.invoices && (
           <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}><Icon name="invoices" />Invoices</button>
         )}
@@ -4750,6 +4952,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'dashboard' && <DashboardView session={session} features={features} />}
         {view === 'jobs' && <JobsView session={session} features={features} />}
         {view === 'customers' && <CustomersView session={session} features={features} />}
+        {view === 'requests' && <RequestsView session={session} />}
         {view === 'invoices' && features.invoices && <InvoicesView session={session} />}
         {view === 'quotes' && features.quotes && <QuotesView session={session} features={features} />}
         {view === 'reports' && features.reports && session.user.role === 'admin' && <ReportsView session={session} />}
@@ -6456,12 +6659,161 @@ function StaffApp() {
   );
 }
 
+function PublicBookingView({ slug }) {
+  const [org, setOrg] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [service, setService] = useState('');
+  const [date, setDate] = useState('');
+  const [window_, setWindow] = useState('anytime');
+  const [notes, setNotes] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const o = await apiRequest(`/api/public/orgs/${slug}`);
+        setOrg(o);
+      } catch (err) {
+        setNotFound(true);
+      }
+    })();
+  }, [slug]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/public/book/${slug}`, {
+        method: 'POST',
+        body: {
+          requester_name: name,
+          requester_email: email,
+          requester_phone: phone,
+          requester_address: address,
+          service_description: service,
+          preferred_date: date || null,
+          preferred_time_window: window_,
+          notes,
+          website,
+        },
+      });
+      setDone(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (notFound) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h1>Not found</h1>
+          <p className="subtitle">We couldn't find a business at this booking link. Double-check the URL.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!org) {
+    return <div className="auth-shell"><div className="card"><p className="subtitle">Loading...</p></div></div>;
+  }
+
+  if (done) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          {org.logo_url && <img src={org.logo_url} alt={org.name} style={{ maxWidth: 80, maxHeight: 80, marginBottom: 16, borderRadius: 8 }} />}
+          <h1>Request sent</h1>
+          <p className="subtitle">
+            Thanks! {org.name} got your request and will be in touch shortly to confirm.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const customer = org.customer_label || 'Customer';
+  const job = (org.job_label || 'Job').toLowerCase();
+
+  return (
+    <div className="auth-shell" style={{ maxWidth: 560 }}>
+      <div className="card">
+        {org.logo_url && <img src={org.logo_url} alt={org.name} style={{ maxWidth: 80, maxHeight: 80, marginBottom: 12, borderRadius: 8 }} />}
+        <h1>Book {job} with {org.name}</h1>
+        <p className="subtitle">Fill out a few details and {org.name} will get back to you to confirm.</p>
+        <form onSubmit={submit}>
+          <label>Your name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+
+          <label>Phone <span className="hint">(at least one of email or phone)</span></label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" />
+
+          <label>Address <span className="hint">(where the work happens, optional)</span></label>
+          <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+
+          <label>What do you need?</label>
+          <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder="Brief description of the service you'd like" />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label>Preferred date <span className="hint">(optional)</span></label>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <label>Time of day</label>
+              <select value={window_} onChange={(e) => setWindow(e.target.value)}>
+                <option value="anytime">Anytime</option>
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+                <option value="evening">Evening</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Notes <span className="hint">(optional)</span></label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Anything else they should know?" />
+
+          <input
+            type="text" name="website" value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
+            tabIndex={-1} autoComplete="off"
+          />
+
+          {error && <div className="error">{error}</div>}
+
+          <button type="submit" className="primary block" disabled={busy}>
+            {busy ? 'Sending...' : 'Send request'}
+          </button>
+        </form>
+        <p style={{ marginTop: 18, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+          Powered by <a href="/" style={{ color: 'inherit', textDecoration: 'underline' }}>Field Manager</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const path = useLocation();
   const [session, setSession] = useState(loadSession);
 
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
+  const bookMatch = path.match(/^\/book\/([^/]+)/);
+  if (bookMatch) return <PublicBookingView slug={bookMatch[1].toLowerCase()} />;
   if (path.startsWith('/staff')) return <StaffApp />;
   // /system/* is the URL space used by SystemView's chips and detail pages.
   // If a staff session is active and there's no regular user session, keep
