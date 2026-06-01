@@ -662,23 +662,47 @@
       max-width: 600px; margin: 0 0 48px;
     }
 
+    .how-band {
+      background: var(--tinted);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 40px;
+      margin: 60px 0;
+    }
+    .how-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 280px 1fr; gap: 80px;
+      align-items: start;
+    }
+    .how-left .section-label { text-align: left; margin-bottom: 18px; }
+    .how-left h2 {
+      font-family: var(--serif);
+      font-size: 30px; line-height: 1.15; letter-spacing: -0.015em;
+      margin: 0 0 16px; font-weight: 500;
+    }
+    .how-left p {
+      margin: 0; color: var(--text-muted);
+      font-size: 14.5px; line-height: 1.6;
+    }
     .steps {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
-      padding: 60px 0;
+      display: flex; flex-direction: column;
     }
     .step {
-      position: relative; padding-top: 8px;
+      position: relative;
+      display: grid; grid-template-columns: 64px 1fr;
+      gap: 28px; align-items: start;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
     }
+    .step:last-child { border-bottom: none; }
     .step-num {
       font-family: var(--serif);
-      font-size: 14px; font-weight: 600;
-      color: var(--primary); margin-bottom: 14px;
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border-radius: 999px;
-      background: var(--tinted);
+      font-size: 44px; line-height: 1; font-weight: 400;
+      color: var(--text-muted); opacity: 0.55;
+      letter-spacing: -0.02em;
     }
-    .step h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.3; }
-    .step p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+    .step h3 { margin: 8px 0 6px; font-size: 17px; line-height: 1.3; font-weight: 600; }
+    .step p { margin: 0; color: var(--text-muted); font-size: 14.5px; line-height: 1.6; max-width: 520px; }
 
     .quote-section {
       padding: 80px 40px; text-align: center;
@@ -707,11 +731,16 @@
       color: var(--accent); font-size: 10px;
     }
 
+    @media (max-width: 860px) {
+      .how-inner { grid-template-columns: 1fr; gap: 40px; }
+      .how-band { padding: 56px 24px; margin: 40px 0; }
+    }
     @media (max-width: 720px) {
-      .steps { grid-template-columns: 1fr; gap: 24px; padding: 40px 0; }
       .section-title-large { font-size: 28px; }
       .quote-section { padding: 50px 24px; }
       .quote-section blockquote { font-size: 22px; }
+      .step { grid-template-columns: 48px 1fr; gap: 18px; padding: 20px 0; }
+      .step-num { font-size: 36px; }
     }
 
     .industries {
@@ -1317,27 +1346,35 @@ function LandingPage() {
         </p>
       </header>
 
-      <section className="landing-section">
-        <div className="section-label" style={{ textAlign: 'center' }}>How it works</div>
-        <h2 className="section-title-large" style={{ textAlign: 'center', margin: '0 auto 16px' }}>From zero to running your business in an afternoon.</h2>
-        <p className="section-lede-large" style={{ textAlign: 'center', margin: '0 auto 48px' }}>
-          No long onboarding. No "schedule a demo" gate. Sign up, bring your customers, start scheduling.
-        </p>
-        <div className="steps">
-          <div className="step fade-in">
-            <div className="step-num">1</div>
-            <h3>Bring your customers</h3>
-            <p>Type them in, paste a CSV, or migrate from your old tool. Email, phone, address, notes — whatever you've got.</p>
+      <section className="how-band">
+        <div className="how-inner">
+          <div className="how-left">
+            <div className="section-label">How it works</div>
+            <h2>Up and running in an afternoon.</h2>
+            <p>No long onboarding. No "schedule a demo" gate. Three steps from sign-up to your first paid invoice.</p>
           </div>
-          <div className="step fade-in-delay-1">
-            <div className="step-num">2</div>
-            <h3>Schedule the work</h3>
-            <p>One-time jobs or recurring (weekly, biweekly, monthly). Skip a week without breaking the series. Assign teammates.</p>
-          </div>
-          <div className="step fade-in-delay-2">
-            <div className="step-num">3</div>
-            <h3>Send invoices, get paid</h3>
-            <p>Mark visits complete in the field, generate invoices from the work, email or share a public link. Venmo pay link built in.</p>
+          <div className="steps">
+            <div className="step">
+              <div className="step-num">01</div>
+              <div>
+                <h3>Bring your customers</h3>
+                <p>Type them in, paste a CSV, or migrate from your old tool. Email, phone, address, notes — whatever you've got.</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-num">02</div>
+              <div>
+                <h3>Schedule the work</h3>
+                <p>One-time jobs or recurring (weekly, biweekly, monthly). Skip a week without breaking the series. Assign teammates.</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-num">03</div>
+              <div>
+                <h3>Send invoices, get paid</h3>
+                <p>Mark visits complete in the field, generate invoices from the work, email or share a public link. Venmo pay link built in.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
