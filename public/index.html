@@ -1307,6 +1307,104 @@
     .stat-card .subvalue { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .stat-card.accent .value { color: var(--primary); }
 
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 56px 28px;
+      background: var(--card); border: 1px dashed var(--border-strong);
+      border-radius: 14px;
+    }
+    .empty-state-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px; border-radius: 16px;
+      background: var(--tinted); color: var(--primary);
+      margin-bottom: 16px;
+    }
+    .empty-state-icon .icon { font-size: 26px; }
+    .empty-state h3 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 22px; letter-spacing: -0.01em;
+      margin: 0 0 8px;
+    }
+    .empty-state p {
+      color: var(--text-muted); font-size: 14px; line-height: 1.55;
+      margin: 0 auto 22px; max-width: 380px;
+    }
+    .empty-state-cta {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    }
+
+    /* Reports page */
+    .reports-hero {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+    .reports-hero-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+    }
+    .reports-hero-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(28px, 4vw, 36px);
+      letter-spacing: -0.025em; margin: 0 0 6px;
+    }
+    .reports-hero-sub {
+      color: var(--text-muted); font-size: 14px;
+      margin: 0 0 18px;
+      font-variant-numeric: tabular-nums;
+    }
+    .reports-range-chips {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .reports-panel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 24px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .reports-panel-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .reports-panel-head h3 {
+      font-family: var(--serif); font-size: 18px; font-weight: 600;
+      letter-spacing: -0.01em; margin: 0;
+    }
+    .reports-panel-head span {
+      font-size: 12px; color: var(--text-muted);
+      font-weight: 500; letter-spacing: 0.01em;
+    }
+    .reports-top-customers { display: flex; flex-direction: column; gap: 10px; }
+    .reports-tc-row {
+      display: grid; grid-template-columns: 28px 1fr auto;
+      gap: 14px; align-items: center;
+    }
+    .reports-tc-rank {
+      font-family: var(--serif); font-size: 18px; font-weight: 500;
+      color: var(--text-muted); text-align: center;
+    }
+    .reports-tc-body { min-width: 0; }
+    .reports-tc-name {
+      font-size: 14px; font-weight: 600; color: var(--text);
+      margin-bottom: 4px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .reports-tc-bar {
+      height: 4px; background: var(--tinted); border-radius: 999px;
+      overflow: hidden;
+    }
+    .reports-tc-bar span {
+      display: block; height: 100%;
+      background: linear-gradient(to right, var(--primary), var(--accent));
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reports-tc-amount {
+      font-family: var(--serif); font-weight: 600; font-size: 15px;
+      letter-spacing: -0.01em; color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
     .revenue-bars { padding: 4px 0; }
     .revenue-bar-row {
       display: grid; grid-template-columns: 80px 1fr 90px;
@@ -2215,6 +2313,17 @@ const ICONS = {
   zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
   lock: 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4',
 };
+
+function EmptyState({ icon, title, body, action }) {
+  return (
+    <div className="empty-state">
+      {icon && <div className="empty-state-icon"><Icon name={icon} /></div>}
+      <h3>{title}</h3>
+      {body && <p>{body}</p>}
+      {action && <div className="empty-state-cta">{action}</div>}
+    </div>
+  );
+}
 
 function Icon({ name }) {
   const d = ICONS[name];
@@ -3182,6 +3291,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
   const [quotes, setQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState('jobs');
 
   useEffect(() => {
     let cancelled = false;
@@ -3234,61 +3344,76 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
       {error && <div className="error">{error}</div>}
 
+      <div className="jobs-tabs">
+        <button className={`jobs-tab${tab === 'jobs' ? ' active' : ''}`} onClick={() => setTab('jobs')}>
+          {terms.jobs} {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {jobs.length}</span>}
+        </button>
+        <button className={`jobs-tab${tab === 'invoices' ? ' active' : ''}`} onClick={() => setTab('invoices')}>
+          Invoices {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {invoices.length}</span>}
+        </button>
+        <button className={`jobs-tab${tab === 'quotes' ? ' active' : ''}`} onClick={() => setTab('quotes')}>
+          Quotes {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {quotes.length}</span>}
+        </button>
+      </div>
+
       {loading ? (
         <div className="list-empty">Loading related items...</div>
       ) : (
         <>
-          <div className="section-heading">{terms.jobs} ({jobs.length})</div>
-          <div className="list">
-            {jobs.length === 0 ? (
-              <div className="list-empty">No {terms.jobsLower} for this {terms.customerLower}.</div>
-            ) : jobs.map((j) => (
-              <div key={j.id} className="compact-row">
-                <div className="info">
-                  <div className="name">{j.title}</div>
-                  <div className="meta">
-                    {formatSchedule(j)}
-                    {j.default_price != null && <> · {formatPrice(j.default_price)}</>}
-                    {j.status === 'completed' && <> · Completed</>}
+          {tab === 'jobs' && (
+            <div className="list">
+              {jobs.length === 0 ? (
+                <div className="list-empty">No {terms.jobsLower} for this {terms.customerLower}.</div>
+              ) : jobs.map((j) => (
+                <div key={j.id} className="compact-row">
+                  <div className="info">
+                    <div className="name">{j.title}</div>
+                    <div className="meta">
+                      {formatSchedule(j)}
+                      {j.default_price != null && <> · {formatPrice(j.default_price)}</>}
+                      {j.status === 'completed' && <> · Completed</>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="section-heading">Invoices ({invoices.length})</div>
-          <div className="list">
-            {invoices.length === 0 ? (
-              <div className="list-empty">No invoices.</div>
-            ) : invoices.map((inv) => (
-              <div key={inv.id} className="compact-row">
-                <div className="info">
-                  <div className="name">
-                    Invoice #{inv.invoice_number} <span className="price">{formatPrice(lineItemsTotal(inv.line_items))}</span>
-                  </div>
-                  <div className="meta">
-                    {formatDateString(inv.date)} · <span className={`badge ${inv.status}`}>{inv.status}</span>
+          {tab === 'invoices' && (
+            <div className="list">
+              {invoices.length === 0 ? (
+                <div className="list-empty">No invoices.</div>
+              ) : invoices.map((inv) => (
+                <div key={inv.id} className="compact-row">
+                  <div className="info">
+                    <div className="name">
+                      Invoice #{inv.invoice_number} <span className="price">{formatPrice(lineItemsTotal(inv.line_items))}</span>
+                    </div>
+                    <div className="meta">
+                      {formatDateString(inv.date)} · <span className={`badge ${inv.status}`}>{inv.status}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="section-heading">Quotes ({quotes.length})</div>
-          <div className="list">
-            {quotes.length === 0 ? (
-              <div className="list-empty">No quotes.</div>
-            ) : quotes.map((q) => (
-              <div key={q.id} className="compact-row">
-                <div className="info">
-                  <div className="name">
-                    {q.description || 'Quote'} <span className="price">{formatPrice(lineItemsTotal(q.line_items))}</span>
+          {tab === 'quotes' && (
+            <div className="list">
+              {quotes.length === 0 ? (
+                <div className="list-empty">No quotes.</div>
+              ) : quotes.map((q) => (
+                <div key={q.id} className="compact-row">
+                  <div className="info">
+                    <div className="name">
+                      {q.description || 'Quote'} <span className="price">{formatPrice(lineItemsTotal(q.line_items))}</span>
+                    </div>
+                    <div className="meta"><span className={`badge ${q.status}`}>{q.status}</span></div>
                   </div>
-                  <div className="meta"><span className={`badge ${q.status}`}>{q.status}</span></div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -3616,11 +3741,24 @@ function CustomersView({ session, planContext }) {
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : sorted.length === 0 ? (
-          <div className="list-empty">
-            {customers.length === 0
-              ? (canMutate ? `No ${terms.customersLower} yet. Add your first ${terms.customerLower} to start scheduling ${terms.jobsLower} and sending invoices.` : `No ${terms.customersLower} yet.`)
-              : `No ${terms.customersLower} match this search.`}
-          </div>
+          customers.length === 0 ? (
+            <EmptyState
+              icon="customers"
+              title={`Add your first ${terms.customerLower}`}
+              body={canMutate
+                ? `Bring people in by hand, paste a CSV, or accept a booking request. Once you've got at least one, you can schedule ${terms.jobsLower} and send invoices.`
+                : `Ask an admin to add ${terms.customersLower} so you can start working.`
+              }
+              action={canMutate && (
+                <>
+                  <button className="primary" disabled={atCap} onClick={() => { setError(null); setMode('create'); }}>+ New {terms.customerLower}</button>
+                  <button className="secondary" disabled={atCap} onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
+                </>
+              )}
+            />
+          ) : (
+            <div className="list-empty">No {terms.customersLower} match this search.</div>
+          )
         ) : (
           sorted.map((c) => {
             const balance = parseFloat(c.outstanding_balance) || 0;
@@ -3895,9 +4033,18 @@ function RequestsView({ session }) {
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : requests.length === 0 ? (
-          <div className="list-empty">
-            {filter === 'pending' ? 'No pending requests. Share your booking link to start receiving them.' : `No ${filter} requests.`}
-          </div>
+          filter === 'pending' ? (
+            <EmptyState
+              icon="quotes"
+              title="Share your booking link"
+              body={`Paste it on your website, social, or a business card. When someone fills it out, the request lands here for you to accept — which auto-creates a ${terms.customerLower} and a ${terms.jobLower}.`}
+              action={
+                <CopyButton text={`${window.location.origin}/book/${session.slug}`} label="Copy booking link" />
+              }
+            />
+          ) : (
+            <div className="list-empty">No {filter} requests.</div>
+          )
         ) : (
           requests.map((r) => (
             <div key={r.id} className="row">
@@ -5103,11 +5250,21 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : searchedJobs.length === 0 ? (
-          <div className="list-empty">
-            {jobs.length === 0
-              ? (canMutate ? `No ${terms.jobsLower} yet. Create one to start tracking work for a ${terms.customerLower}.` : `No ${terms.jobsLower} assigned to you yet.`)
-              : `No ${terms.jobsLower} match this search.`}
-          </div>
+          jobs.length === 0 ? (
+            <EmptyState
+              icon="jobs"
+              title={`Create your first ${terms.jobLower}`}
+              body={canMutate
+                ? `Pick a ${terms.customerLower}, add a title, and set the schedule — one-time or recurring. ${terms.jobs} show up on the calendar and can be marked complete from the field.`
+                : `No ${terms.jobsLower} are assigned to you yet.`
+              }
+              action={canMutate && (
+                <button className="primary" disabled={atCap} onClick={() => { setError(null); setMode('create'); }}>+ New {terms.jobLower}</button>
+              )}
+            />
+          ) : (
+            <div className="list-empty">No {terms.jobsLower} match this search.</div>
+          )
         ) : (
           searchedJobs.map((j) => {
             const isCompletedSingle = j.type === 'single' && j.status === 'completed';
@@ -5698,11 +5855,21 @@ function InvoicesView({ session }) {
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : sortedInvoices.length === 0 ? (
-          <div className="list-empty">
-            {invoices.length === 0
-              ? (canMutate ? `No invoices yet. Draft an invoice for any ${terms.customerLower} with completed work.` : 'No invoices yet.')
-              : 'No invoices match these filters.'}
-          </div>
+          invoices.length === 0 ? (
+            <EmptyState
+              icon="invoices"
+              title="Draft your first invoice"
+              body={canMutate
+                ? `Bill a ${terms.customerLower} for completed work. Add line items, optional tax + discount, and share a public link your ${terms.customerLower} can pay from any device.`
+                : `No invoices yet.`
+              }
+              action={canMutate && (
+                <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>
+              )}
+            />
+          ) : (
+            <div className="list-empty">No invoices match these filters.</div>
+          )
         ) : (
           sortedInvoices.map((inv) => {
             const math = invoiceMath(inv);
@@ -6190,11 +6357,21 @@ function QuotesView({ session, features = { invoices: true } }) {
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : sortedQuotes.length === 0 ? (
-          <div className="list-empty">
-            {quotes.length === 0
-              ? (canMutate ? 'No quotes yet. Draft a quote for an existing customer or a prospect.' : 'No quotes yet.')
-              : 'No quotes match this search.'}
-          </div>
+          quotes.length === 0 ? (
+            <EmptyState
+              icon="quotes"
+              title="Send your first quote"
+              body={canMutate
+                ? `Estimate work for an existing ${terms.customerLower} or a brand-new prospect. Accepted quotes convert in one click — to a ${terms.customerLower}, a ${terms.jobLower}, or an invoice.`
+                : 'No quotes yet.'
+              }
+              action={canMutate && (
+                <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>
+              )}
+            />
+          ) : (
+            <div className="list-empty">No quotes match this search.</div>
+          )
         ) : (
           sortedQuotes.map((q) => {
             const total = lineItemsTotal(q.line_items);
@@ -7954,16 +8131,22 @@ function ReportsView({ session }) {
     ? Math.max(...report.monthly_revenue.map((r) => parseFloat(r.paid_total) || 0))
     : 0;
 
+  // Avg paid per invoice in range (KPI ish)
+  const avgPerInvoice = report && report.invoices.paid_count > 0
+    ? report.invoices.paid_total / report.invoices.paid_count
+    : 0;
+
   return (
     <div>
-      <div className="page-header">
-        <h2>Reports</h2>
-        <div className="meta" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          {formatDateString(range.from)} — {formatDateString(range.to)}
-        </div>
-      </div>
-      <div className="filter-bar">
-        <div className="chip-group">
+      <div className="reports-hero">
+        <div className="reports-hero-eyebrow">Reports</div>
+        <h2 className="reports-hero-title">
+          {REPORT_PRESETS[preset] || 'Custom range'}
+        </h2>
+        <p className="reports-hero-sub">
+          {formatDateString(range.from)} <span style={{ opacity: 0.5 }}>→</span> {formatDateString(range.to)}
+        </p>
+        <div className="reports-range-chips">
           {Object.entries(REPORT_PRESETS).map(([key, label]) => (
             <button
               key={key}
@@ -8012,7 +8195,7 @@ function ReportsView({ session }) {
               <div className="subvalue">from upcoming work in range</div>
             </div>
           </div>
-          <div className="stats-grid row-fixed-2">
+          <div className="stats-grid row-fixed-3">
             <div className="stat-card">
               <div className="label">{terms.jobs} completed</div>
               <div className="value">{report.completed_work}</div>
@@ -8023,10 +8206,18 @@ function ReportsView({ session }) {
               <div className="value">{report.new_customers}</div>
               <div className="subvalue">in selected range</div>
             </div>
+            <div className="stat-card">
+              <div className="label">Avg per invoice</div>
+              <div className="value">{formatPrice(avgPerInvoice)}</div>
+              <div className="subvalue">paid invoices, range</div>
+            </div>
           </div>
 
-          <div className="section-heading">Revenue by month</div>
-          <div className="form-card">
+          <div className="reports-panel">
+            <div className="reports-panel-head">
+              <h3>Revenue by month</h3>
+              <span>{report.monthly_revenue.length} {report.monthly_revenue.length === 1 ? 'month' : 'months'}</span>
+            </div>
             {report.monthly_revenue.length === 0 ? (
               <div className="line-items-empty">No revenue in this range.</div>
             ) : (
@@ -8048,21 +8239,30 @@ function ReportsView({ session }) {
             )}
           </div>
 
-          <div className="section-heading">Top {terms.customersLower}</div>
-          <div className="list">
+          <div className="reports-panel">
+            <div className="reports-panel-head">
+              <h3>Top {terms.customersLower}</h3>
+              <span>by paid revenue</span>
+            </div>
             {report.top_customers.length === 0 ? (
-              <div className="list-empty">No paid invoices in this range.</div>
+              <div className="line-items-empty">No paid invoices in this range.</div>
             ) : (
-              report.top_customers.map((c, i) => (
-                <div key={c.id} className="row">
-                  <div className="info">
-                    <div className="name">
-                      {i + 1}. {customerDisplayName(c)}
-                      <span className="price">{formatPrice(c.paid_total)}</span>
+              <div className="reports-top-customers">
+                {report.top_customers.map((c, i) => {
+                  const max = parseFloat(report.top_customers[0].paid_total) || 0;
+                  const pct = max > 0 ? ((parseFloat(c.paid_total) || 0) / max) * 100 : 0;
+                  return (
+                    <div key={c.id} className="reports-tc-row">
+                      <div className="reports-tc-rank">{i + 1}</div>
+                      <div className="reports-tc-body">
+                        <div className="reports-tc-name">{customerDisplayName(c)}</div>
+                        <div className="reports-tc-bar"><span style={{ width: `${pct}%` }} /></div>
+                      </div>
+                      <div className="reports-tc-amount">{formatPrice(c.paid_total)}</div>
                     </div>
-                  </div>
-                </div>
-              ))
+                  );
+                })}
+              </div>
             )}
           </div>
         </>
