@@ -5821,7 +5821,7 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
-function SettingsView({ session, features = { invoices: true, quotes: true, reports: true }, onFeaturesChange }) {
+function SettingsView({ session, features = { invoices: true, quotes: true, reports: true, team: true }, onFeaturesChange }) {
   const path = useLocation();
   const subView = path === '/settings/modules' ? 'modules'
     : path === '/settings/terminology' ? 'terminology'
@@ -5957,6 +5957,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
               label="Reports"
               description="Revenue dashboard, projected income, top customers."
+            />
+            <FeatureRow
+              enabled={localFeatures.team} onToggle={() => toggleFeature('team')}
+              label="Team"
+              description="Invite admins, leads, and employees. Skip if you're a solo operator."
             />
             {featuresSaved && (
               <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
@@ -6613,7 +6618,8 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
     return () => { cancelled = true; };
   }, [session.slug, session.token, path]);
 
-  const features = (me && me.features) || { invoices: true, quotes: true, reports: true };
+  const features = (me && me.features) || { invoices: true, quotes: true, reports: true, team: true };
+  if (me && me.features && me.features.team === undefined) features.team = true;
   const terms = getTerms(me);
   const plan = (me && me.plan) || 'pro';
   const isFree = plan === 'free';
@@ -6713,7 +6719,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
             {isFree && <span className="nav-lock">Pro</span>}
           </button>
         )}
-        {session.user.role === 'admin' && (
+        {session.user.role === 'admin' && (isFree || features.team) && (
           <button
             className={`${view === 'team' ? 'active' : ''}${isFree ? ' locked' : ''}`}
             onClick={() => navigate('/team')}
@@ -6744,7 +6750,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           : (features.reports && session.user.role === 'admin' && <ReportsView session={session} />))}
         {view === 'team' && (isFree
           ? <LockedFeature feature="team" session={session} />
-          : (session.user.role === 'admin' && <TeamView session={session} />))}
+          : (session.user.role === 'admin' && features.team && <TeamView session={session} />))}
         {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} me={me} />}
         {view === 'settings' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
@@ -7138,7 +7144,7 @@ function ReportsView({ session }) {
 function OnboardingPage({ session, onDone }) {
   const terms = useTerms();
   const [step, setStep] = useState('modules');
-  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false });
+  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false });
   const [terminology, setTerminology] = useState({
     customer_label: 'Customer',
     customer_label_plural: 'Customers',
@@ -7223,7 +7229,7 @@ function OnboardingPage({ session, onDone }) {
         </p>
         <h1>Welcome to {session.organization.name}!</h1>
         <p className="subtitle" style={{ marginBottom: 16 }}>
-          You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>{terms.customers}</strong>, <strong style={{ color: 'var(--text)' }}>{terms.jobs}</strong>, and <strong style={{ color: 'var(--text)' }}>Team</strong> management. These are always on — they're the core of Field Manager.
+          You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>{terms.customers}</strong>, and <strong style={{ color: 'var(--text)' }}>{terms.jobs}</strong>. These are always on — they're the core of Field Manager.
         </p>
         <p className="subtitle">
           Click below to add anything else you need. You can change this later in Settings → Modules.
@@ -7245,6 +7251,11 @@ function OnboardingPage({ session, onDone }) {
           enabled={features.reports} onToggle={() => toggle('reports')}
           label="Reports"
           description={`Revenue dashboard, projected income, top ${terms.customersLower}, monthly trends. Admin-only when on.`}
+        />
+        <FeatureRow
+          enabled={features.team} onToggle={() => toggle('team')}
+          label="Team"
+          description="Invite admins, leads, and employees with role-based access. Skip if you're a solo operator."
         />
 
         <div className="form-actions" style={{ marginTop: 24 }}>

@@ -4,10 +4,10 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const ALLOWED_FEATURES = new Set(['invoices', 'quotes', 'reports']);
+const ALLOWED_FEATURES = new Set(['invoices', 'quotes', 'reports', 'team']);
 
 function normalizeFeatures(input) {
-  const out = { invoices: true, quotes: true, reports: true };
+  const out = { invoices: true, quotes: true, reports: true, team: true };
   if (!input || typeof input !== 'object') return out;
   for (const key of Object.keys(out)) {
     if (input[key] === false) out[key] = false;
