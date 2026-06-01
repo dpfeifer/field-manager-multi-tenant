@@ -982,6 +982,39 @@ function clearSession() {
   Object.values(STORAGE).forEach((k) => localStorage.removeItem(k));
 }
 
+const DEFAULT_TERMS = {
+  customer: 'Customer', customers: 'Customers',
+  job: 'Job', jobs: 'Jobs',
+};
+
+function getTerms(source) {
+  const s = source || {};
+  const customer = s.customer_label || DEFAULT_TERMS.customer;
+  const customers = s.customer_label_plural || DEFAULT_TERMS.customers;
+  const job = s.job_label || DEFAULT_TERMS.job;
+  const jobs = s.job_label_plural || DEFAULT_TERMS.jobs;
+  return {
+    customer, customers, job, jobs,
+    customerLower: customer.toLowerCase(),
+    customersLower: customers.toLowerCase(),
+    jobLower: job.toLowerCase(),
+    jobsLower: jobs.toLowerCase(),
+  };
+}
+
+const TermsContext = React.createContext(getTerms(null));
+function useTerms() { return React.useContext(TermsContext); }
+
+const INDUSTRY_PRESETS = {
+  'lawn-care':       { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
+  'cleaning':        { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
+  'handyman':        { customer_label: 'Customer', customer_label_plural: 'Customers', job_label: 'Job', job_label_plural: 'Jobs' },
+  'pet-care':        { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Visit', job_label_plural: 'Visits' },
+  'barber':          { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Appointment', job_label_plural: 'Appointments' },
+  'food-truck':      { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Event', job_label_plural: 'Events' },
+  'photographer':    { customer_label: 'Client', customer_label_plural: 'Clients', job_label: 'Booking', job_label_plural: 'Bookings' },
+};
+
 async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (slug) headers['x-organization-slug'] = slug;
@@ -1626,6 +1659,7 @@ function AuthShell({ onSession }) {
 }
 
 function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
+  const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [quotes, setQuotes] = useState([]);
@@ -1687,10 +1721,10 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
         <div className="list-empty">Loading related items...</div>
       ) : (
         <>
-          <div className="section-heading">Jobs ({jobs.length})</div>
+          <div className="section-heading">{terms.jobs} ({jobs.length})</div>
           <div className="list">
             {jobs.length === 0 ? (
-              <div className="list-empty">No jobs for this customer.</div>
+              <div className="list-empty">No {terms.jobsLower} for this {terms.customerLower}.</div>
             ) : jobs.map((j) => (
               <div key={j.id} className="compact-row">
                 <div className="info">
@@ -1745,6 +1779,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 }
 
 function CsvImportView({ session, onDone, onCancel }) {
+  const terms = useTerms();
   const [text, setText] = useState('');
   const [parsed, setParsed] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -1791,11 +1826,11 @@ function CsvImportView({ session, onDone, onCancel }) {
 
   return (
     <div>
-      <div className="page-header"><h2>Import customers from CSV</h2></div>
+      <div className="page-header"><h2>Import {terms.customersLower} from CSV</h2></div>
       {error && <div className="error">{error}</div>}
       {result && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
-          Imported {result.inserted_count} customers ({result.skipped_count} skipped — no name).
+          Imported {result.inserted_count} {terms.customersLower} ({result.skipped_count} skipped — no name).
         </div>
       )}
       <div className="form-card">
@@ -1811,7 +1846,7 @@ function CsvImportView({ session, onDone, onCancel }) {
           <button type="button" className="secondary" onClick={handleParse} disabled={busy || !text.trim()}>Preview</button>
           {parsed && (
             <button type="button" className="primary" onClick={handleImport} disabled={busy}>
-              {busy ? 'Importing...' : `Import ${parsed.rows.length} customer${parsed.rows.length === 1 ? '' : 's'}`}
+              {busy ? 'Importing...' : `Import ${parsed.rows.length} ${parsed.rows.length === 1 ? terms.customerLower : terms.customersLower}`}
             </button>
           )}
           <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Back</button>
@@ -1843,6 +1878,7 @@ function CsvImportView({ session, onDone, onCancel }) {
 }
 
 function CustomerForm({ initial, onSubmit, onCancel, busy }) {
+  const terms = useTerms();
   const [first_name, setFirst] = useState(initial?.first_name || '');
   const [last_name, setLast] = useState(initial?.last_name || '');
   const [business_name, setBusiness] = useState(initial?.business_name || '');
@@ -1890,7 +1926,7 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create customer')}
+          {busy ? 'Saving...' : (initial ? 'Save changes' : `Create ${terms.customerLower}`)}
         </button>
         <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
       </div>
@@ -1899,6 +1935,7 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
 }
 
 function CustomersView({ session }) {
+  const terms = useTerms();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1955,7 +1992,7 @@ function CustomersView({ session }) {
   }
 
   async function deleteCustomer(id) {
-    if (!confirm('Delete this customer? This cannot be undone from the UI.')) return;
+    if (!confirm(`Delete this ${terms.customerLower}? This cannot be undone from the UI.`)) return;
     setError(null);
     try {
       await apiRequest(`/api/customers/${id}`, {
@@ -1968,7 +2005,7 @@ function CustomersView({ session }) {
   if (mode === 'create') {
     return (
       <div>
-        <div className="page-header"><h2>New customer</h2></div>
+        <div className="page-header"><h2>New {terms.customerLower}</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
           <CustomerForm onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
@@ -1980,7 +2017,7 @@ function CustomersView({ session }) {
   if (mode === 'edit' && editing) {
     return (
       <div>
-        <div className="page-header"><h2>Edit customer</h2></div>
+        <div className="page-header"><h2>Edit {terms.customerLower}</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
           <CustomerForm
@@ -2028,13 +2065,13 @@ function CustomersView({ session }) {
   return (
     <div>
       <div className="page-header">
-        <h2>Customers</h2>
+        <h2>{terms.customers}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" onClick={exportCustomers} disabled={customers.length === 0}>Export</button>
           {canMutate && (
             <>
               <button className="secondary" onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
-              <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New customer</button>
+              <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New {terms.customerLower}</button>
             </>
           )}
         </div>
@@ -2044,7 +2081,7 @@ function CustomersView({ session }) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search customers by name, phone, email..."
+          placeholder={`Search ${terms.customersLower} by name, phone, email...`}
           style={{ flex: 1 }}
         />
         <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
@@ -2060,8 +2097,8 @@ function CustomersView({ session }) {
         ) : sorted.length === 0 ? (
           <div className="list-empty">
             {customers.length === 0
-              ? (canMutate ? 'No customers yet. Add your first customer to start scheduling jobs and sending invoices.' : 'No customers yet.')
-              : 'No customers match this search.'}
+              ? (canMutate ? `No ${terms.customersLower} yet. Add your first ${terms.customerLower} to start scheduling ${terms.jobsLower} and sending invoices.` : `No ${terms.customersLower} yet.`)
+              : `No ${terms.customersLower} match this search.`}
           </div>
         ) : (
           sorted.map((c) => {
@@ -2096,6 +2133,7 @@ function CustomersView({ session }) {
 }
 
 function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
+  const terms = useTerms();
   const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
   const [title, setTitle] = useState(initial?.title || '');
   const [description, setDescription] = useState(initial?.description || '');
@@ -2139,9 +2177,9 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
     <form onSubmit={submit}>
       <div className="form-grid">
         <div className="full">
-          <label>Customer</label>
+          <label>{terms.customer}</label>
           <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
-            {customers.length === 0 && <option value="">No customers yet — add one first</option>}
+            {customers.length === 0 && <option value="">No {terms.customersLower} yet — add one first</option>}
             {customers.map((c) => (
               <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>
             ))}
@@ -2230,7 +2268,7 @@ function JobForm({ initial, customers, users, onSubmit, onCancel, busy }) {
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Saving...' : (initial ? 'Save changes' : 'Create job')}
+          {busy ? 'Saving...' : (initial ? 'Save changes' : `Create ${terms.jobLower}`)}
         </button>
         <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
       </div>
@@ -2460,6 +2498,7 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
 }
 
 function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, features = { invoices: true } }) {
+  const terms = useTerms();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
@@ -2547,7 +2586,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
     <div>
       <div className="page-header">
         <h2>Schedule</h2>
-        <button className="secondary" onClick={onBack}>Back to jobs</button>
+        <button className="secondary" onClick={onBack}>Back to {terms.jobsLower}</button>
       </div>
       <div className="schedule-summary">
         <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
@@ -2692,6 +2731,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
 }
 
 function JobsView({ session, features = { invoices: true } }) {
+  const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -2760,7 +2800,7 @@ function JobsView({ session, features = { invoices: true } }) {
   }
 
   async function deleteJob(id) {
-    if (!confirm('Delete this job?')) return;
+    if (!confirm(`Delete this ${terms.jobLower}?`)) return;
     setError(null);
     try {
       await apiRequest(`/api/jobs/${id}`, {
@@ -2812,12 +2852,12 @@ function JobsView({ session, features = { invoices: true } }) {
   if (mode === 'create') {
     return (
       <div>
-        <div className="page-header"><h2>New job</h2></div>
+        <div className="page-header"><h2>New {terms.jobLower}</h2></div>
         {error && <div className="error">{error}</div>}
         {customers.length === 0 ? (
           <div className="form-card">
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-              You need at least one customer before you can create a job. Add a customer first.
+              You need at least one {terms.customerLower} before you can create a {terms.jobLower}. Add a {terms.customerLower} first.
             </p>
             <div className="form-actions"><button className="secondary" onClick={() => setMode('list')}>Back</button></div>
           </div>
@@ -2839,7 +2879,7 @@ function JobsView({ session, features = { invoices: true } }) {
   if (mode === 'edit' && editing) {
     return (
       <div>
-        <div className="page-header"><h2>Edit job</h2></div>
+        <div className="page-header"><h2>Edit {terms.jobLower}</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
           <JobForm
@@ -2918,11 +2958,11 @@ function JobsView({ session, features = { invoices: true } }) {
   return (
     <div>
       <div className="page-header">
-        <h2>Jobs</h2>
+        <h2>{terms.jobs}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" onClick={exportJobs} disabled={jobs.length === 0}>Export</button>
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New job</button>
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New {terms.jobLower}</button>
           )}
         </div>
       </div>
@@ -2931,7 +2971,7 @@ function JobsView({ session, features = { invoices: true } }) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by job title, customer, or description..."
+          placeholder={`Search by ${terms.jobLower} title, ${terms.customerLower}, or description...`}
           style={{ flex: 1 }}
         />
         <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
@@ -2970,7 +3010,7 @@ function JobsView({ session, features = { invoices: true } }) {
           {loading ? (
             <div className="list-empty">Loading...</div>
           ) : occurrences.length === 0 ? (
-            <div className="list-empty">No jobs match this filter.</div>
+            <div className="list-empty">No {terms.jobsLower} match this filter.</div>
           ) : (
             occurrences.map((o, i) => (
               <OccurrenceRow
@@ -2989,8 +3029,8 @@ function JobsView({ session, features = { invoices: true } }) {
         ) : searchedJobs.length === 0 ? (
           <div className="list-empty">
             {jobs.length === 0
-              ? (canMutate ? 'No jobs yet. Create one to start tracking work for a customer.' : 'No jobs assigned to you yet.')
-              : 'No jobs match this search.'}
+              ? (canMutate ? `No ${terms.jobsLower} yet. Create one to start tracking work for a ${terms.customerLower}.` : `No ${terms.jobsLower} assigned to you yet.`)
+              : `No ${terms.jobsLower} match this search.`}
           </div>
         ) : (
           searchedJobs.map((j) => {
@@ -3243,6 +3283,7 @@ function computeProjectedIncome(jobs, fromStr, toStr) {
 }
 
 function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
+  const terms = useTerms();
   const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
   const [description, setDescription] = useState(initial?.description || '');
   const [date, setDate] = useState(initial?.date || formatYMD(new Date()));
@@ -3275,9 +3316,9 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
     <form onSubmit={submit}>
       <div className="form-grid">
         <div className="full">
-          <label>Customer</label>
+          <label>{terms.customer}</label>
           <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
-            {customers.length === 0 && <option value="">No customers — add one first</option>}
+            {customers.length === 0 && <option value="">No {terms.customersLower} — add one first</option>}
             {customers.map((c) => <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>)}
           </select>
         </div>
@@ -3287,7 +3328,7 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
         </div>
         <div></div>
         <div className="full">
-          <label>Description <span className="hint">(shown to the customer)</span></label>
+          <label>Description <span className="hint">(shown to the {terms.customerLower})</span></label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. May lawn service" />
         </div>
         <div className="full">
@@ -3353,6 +3394,7 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
 }
 
 function InvoicesView({ session }) {
+  const terms = useTerms();
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3563,7 +3605,7 @@ function InvoicesView({ session }) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by invoice #, customer, or description..."
+          placeholder={`Search by invoice #, ${terms.customerLower}, or description...`}
           style={{ flex: 1 }}
         />
         <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
@@ -3581,7 +3623,7 @@ function InvoicesView({ session }) {
         ) : sortedInvoices.length === 0 ? (
           <div className="list-empty">
             {invoices.length === 0
-              ? (canMutate ? 'No invoices yet. Draft an invoice for any customer with completed work.' : 'No invoices yet.')
+              ? (canMutate ? `No invoices yet. Draft an invoice for any ${terms.customerLower} with completed work.` : 'No invoices yet.')
               : 'No invoices match these filters.'}
           </div>
         ) : (
@@ -3609,7 +3651,7 @@ function InvoicesView({ session }) {
                 {canMutate && (
                   <div className="actions">
                     {(inv.status === 'draft' || inv.status === 'sent') && (
-                      <button className="primary" onClick={() => emailInvoice(inv)}>Email to customer</button>
+                      <button className="primary" onClick={() => emailInvoice(inv)}>Email to {terms.customerLower}</button>
                     )}
                     {inv.status === 'sent' && (
                       <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
@@ -3641,6 +3683,7 @@ function InvoicesView({ session }) {
 }
 
 function QuoteForm({ initial, customers, onSubmit, onCancel, busy }) {
+  const terms = useTerms();
   const initialIsProspect = initial ? !initial.customer_id : false;
   const [isProspect, setIsProspect] = useState(initialIsProspect);
   const [customer_id, setCustomerId] = useState(initial?.customer_id || (customers[0]?.id || ''));
@@ -3678,15 +3721,15 @@ function QuoteForm({ initial, customers, onSubmit, onCancel, busy }) {
         <div className="full">
           <label>Recipient</label>
           <div className="toggle-group">
-            <button type="button" className={!isProspect ? 'active' : ''} onClick={() => setIsProspect(false)}>Existing customer</button>
+            <button type="button" className={!isProspect ? 'active' : ''} onClick={() => setIsProspect(false)}>Existing {terms.customerLower}</button>
             <button type="button" className={isProspect ? 'active' : ''} onClick={() => setIsProspect(true)}>Prospect</button>
           </div>
         </div>
         {!isProspect ? (
           <div className="full">
-            <label>Customer</label>
+            <label>{terms.customer}</label>
             <select value={customer_id} onChange={(e) => setCustomerId(e.target.value)} required>
-              {customers.length === 0 && <option value="">No customers — add one first</option>}
+              {customers.length === 0 && <option value="">No {terms.customersLower} — add one first</option>}
               {customers.map((c) => <option key={c.id} value={c.id}>{customerDisplayName(c)}</option>)}
             </select>
           </div>
@@ -3750,6 +3793,7 @@ function splitProspectName(name) {
 }
 
 function PromoteForm({ quote, onSubmit, onCancel, busy }) {
+  const terms = useTerms();
   const split = splitProspectName(quote.prospect_name);
   const [first_name, setFirst] = useState(split.first);
   const [last_name, setLast] = useState(split.last);
@@ -3767,8 +3811,8 @@ function PromoteForm({ quote, onSubmit, onCancel, busy }) {
   return (
     <form onSubmit={submit}>
       <p className="subtitle" style={{ marginBottom: 20 }}>
-        Creating a customer from prospect <strong style={{ color: 'var(--text)' }}>{quote.prospect_name}</strong>.
-        The quote will be re-linked to the new customer and the prospect fields will be cleared.
+        Creating a {terms.customerLower} from prospect <strong style={{ color: 'var(--text)' }}>{quote.prospect_name}</strong>.
+        The quote will be re-linked to the new {terms.customerLower} and the prospect fields will be cleared.
       </p>
       <div className="form-grid">
         <div>
@@ -3802,7 +3846,7 @@ function PromoteForm({ quote, onSubmit, onCancel, busy }) {
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Creating...' : 'Create customer'}
+          {busy ? 'Creating...' : `Create ${terms.customerLower}`}
         </button>
         <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
       </div>
@@ -3822,6 +3866,7 @@ function quoteRecipientName(q) {
 }
 
 function QuotesView({ session, features = { invoices: true } }) {
+  const terms = useTerms();
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -3984,7 +4029,7 @@ function QuotesView({ session, features = { invoices: true } }) {
   if (mode === 'promote' && editing) {
     return (
       <div>
-        <div className="page-header"><h2>Promote prospect to customer</h2></div>
+        <div className="page-header"><h2>Promote prospect to {terms.customerLower}</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
           <PromoteForm
@@ -4011,7 +4056,7 @@ function QuotesView({ session, features = { invoices: true } }) {
     };
     return (
       <div>
-        <div className="page-header"><h2>Create job from quote</h2></div>
+        <div className="page-header"><h2>Create {terms.jobLower} from quote</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
           <JobForm
@@ -4093,14 +4138,14 @@ function QuotesView({ session, features = { invoices: true } }) {
                   <div className="actions">
                     <button className="primary" onClick={() => emailQuote(q)}>Email</button>
                     {!q.customer_id && (
-                      <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to customer</button>
+                      <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to {terms.customerLower}</button>
                     )}
                     {q.customer_id && (
                       <>
                         {features.invoices && (
                           <button className="secondary" onClick={() => createInvoiceFromQuote(q.id)}>Create invoice</button>
                         )}
-                        <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create job</button>
+                        <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create {terms.jobLower}</button>
                       </>
                     )}
                     <button className="secondary" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
@@ -4164,6 +4209,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         venmo_handle: data.venmo_handle || '',
         resend_from_email: data.resend_from_email || '',
         cloudinary_folder: data.cloudinary_folder || '',
+        customer_label: data.customer_label || 'Customer',
+        customer_label_plural: data.customer_label_plural || 'Customers',
+        job_label: data.job_label || 'Job',
+        job_label_plural: data.job_label_plural || 'Jobs',
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -4173,6 +4222,13 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
 
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
+    setSaved(false);
+  }
+
+  function applyPreset(presetKey) {
+    const preset = INDUSTRY_PRESETS[presetKey];
+    if (!preset) return;
+    setForm((f) => ({ ...f, ...preset }));
     setSaved(false);
   }
 
@@ -4290,6 +4346,42 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           <div className="full">
             <label>Venmo handle <span className="hint">(without the @)</span></label>
             <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
+          </div>
+        </div>
+
+        <div className="section-heading">Terminology</div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+          What you call jobs and customers. "Job" might be an appointment, visit, event, or booking. "Customer" might be a client. Pick a preset or type your own.
+        </p>
+        {isAdmin && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+            {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
+              <button
+                key={key} type="button" className="chip"
+                onClick={() => applyPreset(key)}
+                title={`${preset.customer_label} / ${preset.job_label}`}
+              >
+                {key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="form-grid">
+          <div>
+            <label>Singular word for a customer</label>
+            <input value={form.customer_label} onChange={(e) => setField('customer_label', e.target.value)} placeholder="Customer" disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Plural <span className="hint">(if more than one)</span></label>
+            <input value={form.customer_label_plural} onChange={(e) => setField('customer_label_plural', e.target.value)} placeholder="Customers" disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Singular word for a job</label>
+            <input value={form.job_label} onChange={(e) => setField('job_label', e.target.value)} placeholder="Job" disabled={!isAdmin} />
+          </div>
+          <div>
+            <label>Plural</label>
+            <input value={form.job_label_plural} onChange={(e) => setField('job_label_plural', e.target.value)} placeholder="Jobs" disabled={!isAdmin} />
           </div>
         </div>
 
@@ -4556,6 +4648,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   }, [session.slug, session.token, path]);
 
   const features = (me && me.features) || { invoices: true, quotes: true, reports: true };
+  const terms = getTerms(me);
   const needsOnboarding = me && !me.onboarding_completed_at && isAdmin;
 
   if (needsOnboarding) {
@@ -4578,6 +4671,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   const trialDaysLeft = billing && billing.trial_ends_at ? daysUntil(billing.trial_ends_at) : null;
 
   return (
+    <TermsContext.Provider value={terms}>
     <div>
       <div className="topbar">
         <div className="brand">{(me && me.display_name) || session.organization.name}</div>
@@ -4604,8 +4698,8 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
-        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}><Icon name="jobs" />Jobs</button>
-        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}><Icon name="customers" />Customers</button>
+        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}><Icon name="jobs" />{terms.jobs}</button>
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}><Icon name="customers" />{terms.customers}</button>
         {features.invoices && (
           <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}><Icon name="invoices" />Invoices</button>
         )}
@@ -4640,6 +4734,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
       </div>
     </div>
+    </TermsContext.Provider>
   );
 }
 
@@ -4871,6 +4966,7 @@ function getReportRange(preset, customFrom, customTo) {
 }
 
 function ReportsView({ session }) {
+  const terms = useTerms();
   const [preset, setPreset] = useState('month');
   const [customFrom, setCustomFrom] = useState(formatYMD(todayStart()));
   const [customTo, setCustomTo] = useState(formatYMD(todayStart()));
@@ -4965,7 +5061,7 @@ function ReportsView({ session }) {
               <div className="subvalue">in selected range</div>
             </div>
             <div className="stat-card">
-              <div className="label">New customers</div>
+              <div className="label">New {terms.customersLower}</div>
               <div className="value">{report.new_customers}</div>
               <div className="subvalue">in selected range</div>
             </div>
@@ -4999,7 +5095,7 @@ function ReportsView({ session }) {
             )}
           </div>
 
-          <div className="section-heading">Top customers</div>
+          <div className="section-heading">Top {terms.customersLower}</div>
           <div className="list">
             {report.top_customers.length === 0 ? (
               <div className="list-empty">No paid invoices in this range.</div>
@@ -5023,6 +5119,7 @@ function ReportsView({ session }) {
 }
 
 function OnboardingPage({ session, onDone }) {
+  const terms = useTerms();
   const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -5046,7 +5143,7 @@ function OnboardingPage({ session, onDone }) {
       <div className="card">
         <h1>Welcome to {session.organization.name}!</h1>
         <p className="subtitle" style={{ marginBottom: 16 }}>
-          You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>Customers</strong>, <strong style={{ color: 'var(--text)' }}>Jobs</strong>, and <strong style={{ color: 'var(--text)' }}>Team</strong> management. These are always on — they're the core of Field Manager.
+          You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>{terms.customers}</strong>, <strong style={{ color: 'var(--text)' }}>{terms.jobs}</strong>, and <strong style={{ color: 'var(--text)' }}>Team</strong> management. These are always on — they're the core of Field Manager.
         </p>
         <p className="subtitle">
           Click below to add anything else you need. You can change this later in Settings → Modules.
@@ -5057,17 +5154,17 @@ function OnboardingPage({ session, onDone }) {
         <FeatureRow
           enabled={features.invoices} onToggle={() => toggle('invoices')}
           label="Invoices"
-          description="Track billable work, send invoices to customers (email or shareable link), record payments, tax + discounts, recurring-job auto-billing."
+          description={`Track billable work, send invoices to ${terms.customersLower} (email or shareable link), record payments, tax + discounts, recurring-${terms.jobLower} auto-billing.`}
         />
         <FeatureRow
           enabled={features.quotes} onToggle={() => toggle('quotes')}
           label="Quotes / Estimates"
-          description="Send estimates to prospects, convert accepted quotes into customers, jobs, or invoices in one click."
+          description={`Send estimates to prospects, convert accepted quotes into ${terms.customersLower}, ${terms.jobsLower}, or invoices in one click.`}
         />
         <FeatureRow
           enabled={features.reports} onToggle={() => toggle('reports')}
           label="Reports"
-          description="Revenue dashboard, projected income, top customers, monthly trends. Admin-only when on."
+          description={`Revenue dashboard, projected income, top ${terms.customersLower}, monthly trends. Admin-only when on.`}
         />
 
         {error && <div className="error">{error}</div>}

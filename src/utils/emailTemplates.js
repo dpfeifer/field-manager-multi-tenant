@@ -36,9 +36,10 @@ function shellHTML({ heading, bodyHtml, footerHtml }) {
 
 function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, tax }) {
   const companyName = settings.company_name || org.name;
+  const customerLabel = settings.customer_label || 'Customer';
   const customerName = (invoice.customer_business_name) ||
     [invoice.customer_first_name, invoice.customer_last_name].filter(Boolean).join(' ') ||
-    'Customer';
+    customerLabel;
   const invoiceUrl = `${process.env.APP_URL || 'https://fieldmgr.com'}/i/${invoice.id}`;
   const venmo = settings.venmo_handle && invoice.status !== 'paid'
     ? `<p style="margin:16px 0 0;"><strong>Pay via Venmo:</strong> @${escapeHtml(settings.venmo_handle)}</p>`

@@ -7,11 +7,14 @@ const router = express.Router();
 const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',
   'venmo_handle', 'resend_from_email', 'cloudinary_folder',
+  'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
 ];
 
 const SELECT = `
   SELECT company_name, logo_url, address, phone, email,
-         venmo_handle, resend_from_email, cloudinary_folder, updated_at
+         venmo_handle, resend_from_email, cloudinary_folder,
+         customer_label, customer_label_plural, job_label, job_label_plural,
+         updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
 

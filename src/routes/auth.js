@@ -21,7 +21,9 @@ router.get('/me', requireAuth, async (req, res, next) => {
       `SELECT u.id, u.email, u.name, u.role, u.created_at, u.email_verified_at,
               o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name,
               o.features, o.onboarding_completed_at,
-              s.company_name AS settings_company_name
+              s.company_name AS settings_company_name,
+              s.customer_label, s.customer_label_plural,
+              s.job_label, s.job_label_plural
        FROM users u
        JOIN organizations o ON o.id = u.organization_id
        LEFT JOIN organization_settings s ON s.organization_id = o.id
