@@ -3882,7 +3882,13 @@ function BillingBanner({ status, trialDaysLeft, isAdmin }) {
   let bg = '#fff5e6';
   let color = '#8c5a00';
 
-  if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
+  if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft > 3) {
+    bg = 'var(--tinted)';
+    color = 'var(--text-muted)';
+    body = isAdmin
+      ? <>You're on a free trial — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to lock in your subscription.</>
+      : <>This organization is on a free trial — {trialDaysLeft} days left.</>;
+  } else if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     body = isAdmin
       ? <>Your free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep editing</button>.</>
       : <>Your organization's free trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. Ask an admin to subscribe.</>;
