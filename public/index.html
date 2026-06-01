@@ -330,6 +330,20 @@
     .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
     .topbar .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
     .topbar .right .user { color: var(--text-muted); }
+    .topbar-system-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px;
+      background: var(--tinted); color: var(--text-muted);
+      border: 1px solid var(--border);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.02em; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .topbar-system-link:hover {
+      color: white; background: var(--primary); border-color: var(--primary);
+    }
+    .topbar-system-link .icon { font-size: 13px; opacity: 0.75; }
+    .topbar-system-link:hover .icon { opacity: 1; }
     .nav {
       background: var(--card); border-bottom: 1px solid var(--border);
       padding: 0 28px; display: flex; gap: 2px;
@@ -6676,6 +6690,15 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
               {isFree ? 'Free' : 'Pro'}{isFree && isAdmin && ' · Upgrade'}
             </span>
           )}
+          {session.user.is_system_admin && (
+            <button
+              className="topbar-system-link"
+              onClick={() => navigate('/system')}
+              title="Platform admin"
+            >
+              <Icon name="system" /> System
+            </button>
+          )}
           <button className="link-button" onClick={() => navigate('/profile')}>
             {session.user.name || session.user.email}
           </button>
@@ -6746,9 +6769,6 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}><Icon name="billing" />Billing</button>
         )}
         <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
-        {session.user.is_system_admin && (
-          <button className={view === 'system' ? 'active' : ''} onClick={() => navigate('/system')}><Icon name="system" />System</button>
-        )}
       </div>
       <div className="content">
         {view === 'dashboard' && <DashboardView session={session} features={features} />}
