@@ -883,10 +883,10 @@
     }
     .day-grid-hour:last-child { border-bottom: none; }
     .day-grid-hour-label {
-      position: absolute; top: -7px; left: 8px;
+      position: absolute; top: 4px; left: 8px;
       font-size: 11px; font-weight: 600;
-      color: var(--text-muted); background: var(--card);
-      padding: 0 4px;
+      color: var(--text-muted);
+      padding: 0;
     }
     .day-grid-blocks { flex: 1; position: relative; }
     .day-grid-lane { border-bottom: 1px dashed var(--border); }
@@ -4308,28 +4308,32 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                   {height >= 56 && (
                     <div className="day-block-customer">{jobCustomerName(o.job)}</div>
                   )}
-                  {showSms && (
-                    <select
-                      className="day-block-sms"
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        const tpl = smsTemplates.find((t) => t.id === e.target.value);
-                        if (tpl) sendSmsTemplate(phone, tpl, o.job);
-                        e.target.value = '';
-                      }}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>💬 Text customer…</option>
-                      {smsTemplates.map((t) => (
-                        <option key={t.id} value={t.id}>{t.label}</option>
-                      ))}
-                    </select>
-                  )}
-                  {!o.completed && height >= 72 && (
-                    <button
-                      className="day-block-complete"
-                      onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
-                    >Mark complete</button>
+                  {(showSms || !o.completed) && (
+                    <div className="day-block-actions">
+                      {showSms && (
+                        <select
+                          className="day-block-sms"
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                            if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                            e.target.value = '';
+                          }}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💬 Text…</option>
+                          {smsTemplates.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                          ))}
+                        </select>
+                      )}
+                      {!o.completed && (
+                        <button
+                          className="day-block-complete"
+                          onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                        >Mark complete</button>
+                      )}
+                    </div>
                   )}
                 </div>
               );
