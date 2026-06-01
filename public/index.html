@@ -793,7 +793,14 @@
     .occurrence-row .body { flex: 1; min-width: 0; }
     .occurrence-row .body .title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
-    .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+    .occurrence-row .actions .row-sms,
+    .row .actions .row-sms {
+      padding: 6px 10px; font-size: 13px;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 8px; font-family: inherit; cursor: pointer;
+      color: var(--text); font-weight: 500;
+    }
 
     /* Day view — time grid */
     .day-grid {
@@ -933,8 +940,14 @@
     .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
     .day-block-actions {
       display: flex; gap: 6px; align-items: center;
-      justify-content: flex-end; flex-wrap: wrap;
+      justify-content: flex-end; flex-wrap: nowrap;
       margin-top: auto;
+      min-width: 0;
+    }
+    .day-block-actions .day-block-sms { flex: 0 1 auto; max-width: 100px; }
+    @media (max-width: 600px) {
+      .day-block-actions { flex-wrap: wrap; }
+      .day-block-actions .day-block-sms { max-width: none; }
     }
     .day-block-complete {
       background: rgba(255,255,255,0.18); color: white;
@@ -2278,6 +2291,8 @@ function getTerms(source) {
 
 const TermsContext = React.createContext(getTerms(null));
 function useTerms() { return React.useContext(TermsContext); }
+const SmsTemplatesContext = React.createContext([]);
+function useSmsTemplates() { return React.useContext(SmsTemplatesContext); }
 
 async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -3946,11 +3961,14 @@ function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
 }
 
 function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
+  const smsTemplates = useSmsTemplates();
   const d = parseDate(occurrence.date);
   const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
   const monthName = d.toLocaleDateString(undefined, { month: 'short' });
   const isToday = occurrence.date === formatYMD(todayStart());
   const isOverdue = !occurrence.completed && occurrence.date < formatYMD(todayStart());
+  const phone = occurrence.job.customer_phone;
+  const showSms = phone && smsTemplates.length > 0 && !occurrence.completed;
   const classes = ['occurrence-row'];
   if (occurrence.completed) classes.push('completed');
   if (isToday) classes.push('today');
@@ -3977,6 +3995,23 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
         </div>
       </div>
       <div className="actions">
+        {showSms && (
+          <select
+            className="row-sms"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const tpl = smsTemplates.find((t) => t.id === e.target.value);
+              if (tpl) sendSmsTemplate(phone, tpl, occurrence.job);
+              e.target.value = '';
+            }}
+            defaultValue=""
+          >
+            <option value="" disabled>💬 Text…</option>
+            {smsTemplates.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+        )}
         {!occurrence.completed && (
           <button className="primary" onClick={() => onMarkComplete(occurrence.job, occurrence.date)}>Mark complete</button>
         )}
@@ -7296,6 +7331,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   const trialDaysLeft = billing && billing.trial_ends_at ? daysUntil(billing.trial_ends_at) : null;
 
   return (
+    <SmsTemplatesContext.Provider value={(me && me.sms_templates) || []}>
     <TermsContext.Provider value={terms}>
     <div>
       <div className="topbar">
@@ -7395,6 +7431,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       </div>
     </div>
     </TermsContext.Provider>
+    </SmsTemplatesContext.Provider>
   );
 }
 
