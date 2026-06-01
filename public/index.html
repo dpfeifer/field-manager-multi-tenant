@@ -3731,6 +3731,8 @@ function QuotesView({ session, features = { invoices: true } }) {
 }
 
 function SettingsView({ session, features = { invoices: true, quotes: true, reports: true }, onFeaturesChange }) {
+  const path = useLocation();
+  const subView = path === '/settings/modules' ? 'modules' : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -3801,7 +3803,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     finally { setBusy(false); }
   }
 
-  if (loading) {
+  if (loading && subView === 'company') {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -3816,6 +3818,57 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         <h2>Settings</h2>
         {!isAdmin && <span className="badge">Read-only</span>}
       </div>
+      <div className="filter-bar">
+        <div className="chip-group">
+          <button
+            className={`chip ${subView === 'company' ? 'active' : ''}`}
+            onClick={() => navigate('/settings')}
+          >Company</button>
+          {isAdmin && (
+            <button
+              className={`chip ${subView === 'modules' ? 'active' : ''}`}
+              onClick={() => navigate('/settings/modules')}
+            >Modules</button>
+          )}
+        </div>
+      </div>
+
+      {subView === 'modules' && isAdmin && (
+        <>
+          {error && <div className="error">{error}</div>}
+          <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
+            <p className="hint" style={{ marginBottom: 14, marginTop: 0 }}>
+              Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
+            </p>
+            <FeatureRow
+              enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
+              label="Invoices"
+              description="Bill customers, track payments, send via email or public link."
+            />
+            <FeatureRow
+              enabled={localFeatures.quotes} onToggle={() => toggleFeature('quotes')}
+              label="Quotes / Estimates"
+              description="Prospect quoting, convert to customer/job/invoice."
+            />
+            <FeatureRow
+              enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
+              label="Reports"
+              description="Revenue dashboard, projected income, top customers."
+            />
+            {featuresSaved && (
+              <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
+            )}
+            <div className="form-actions">
+              <button type="submit" className="primary" disabled={featuresBusy}>
+                {featuresBusy ? 'Saving...' : 'Save modules'}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+
+      {subView === 'company' && (
+        <>
       {error && <div className="error">{error}</div>}
       {saved && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
@@ -3873,37 +3926,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         )}
       </form>
-
-      {isAdmin && (
-        <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
-          <div className="section-heading" style={{ marginTop: 0 }}>Modules</div>
-          <p className="hint" style={{ marginBottom: 14 }}>
-            Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
-          </p>
-          <FeatureRow
-            enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
-            label="Invoices"
-            description="Bill customers, track payments, send via email or public link."
-          />
-          <FeatureRow
-            enabled={localFeatures.quotes} onToggle={() => toggleFeature('quotes')}
-            label="Quotes / Estimates"
-            description="Prospect quoting, convert to customer/job/invoice."
-          />
-          <FeatureRow
-            enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
-            label="Reports"
-            description="Revenue dashboard, projected income, top customers."
-          />
-          {featuresSaved && (
-            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
-          )}
-          <div className="form-actions">
-            <button type="submit" className="primary" disabled={featuresBusy}>
-              {featuresBusy ? 'Saving...' : 'Save modules'}
-            </button>
-          </div>
-        </form>
+        </>
       )}
     </div>
   );
@@ -3920,6 +3943,7 @@ const APP_ROUTES = {
   '/team': 'team',
   '/billing': 'billing',
   '/settings': 'settings',
+  '/settings/modules': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
