@@ -146,4 +146,20 @@ function passwordResetTemplate({ user, orgSlug, resetUrl }) {
   return { subject: 'Reset your Field Manager password', html, text };
 }
 
-module.exports = { invoiceTemplate, quoteTemplate, passwordResetTemplate };
+// Editable template renderer (uses templateStore + substitution).
+// Wraps the customizable intro in the standard shell with a CTA button.
+function renderEditableTemplate(template, vars, { ctaLabel, ctaUrl, heading }) {
+  const subject = (require('./templateStore').substitute(template.subject, vars));
+  const introHtml = require('./templateStore').substitute(template.intro_html, vars);
+  const introText = require('./templateStore').substitute(template.intro_text, vars);
+  const cta = ctaUrl
+    ? `<div style="margin:24px 0 0;">
+         <a href="${ctaUrl}" style="display:inline-block; background:#4a5e7a; color:#ffffff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:600; font-size:14px;">${escapeHtml(ctaLabel || 'Continue')}</a>
+       </div>`
+    : '';
+  const bodyHtml = `${introHtml}${cta}`;
+  const html = shellHTML({ heading: heading || subject, bodyHtml });
+  return { subject, html, text: introText };
+}
+
+module.exports = { invoiceTemplate, quoteTemplate, passwordResetTemplate, renderEditableTemplate };

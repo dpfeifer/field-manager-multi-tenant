@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
 const { sendEmail } = require('../utils/email');
+const { listTemplates, saveTemplate, resetTemplate, DEFAULTS } = require('../utils/templateStore');
 
 const router = express.Router();
 
@@ -101,6 +102,35 @@ router.delete('/admins/:id', async (req, res, next) => {
     );
     if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+router.get('/email-templates', async (req, res, next) => {
+  try {
+    const templates = await listTemplates();
+    res.json(templates);
+  } catch (err) { next(err); }
+});
+
+router.put('/email-templates/:key', async (req, res, next) => {
+  const { subject, intro_html, intro_text } = req.body || {};
+  if (!subject || !intro_html || !intro_text) {
+    return res.status(400).json({ error: 'subject, intro_html, and intro_text are required' });
+  }
+  if (!DEFAULTS[req.params.key]) {
+    return res.status(404).json({ error: 'Unknown template key' });
+  }
+  try {
+    await saveTemplate(req.params.key, { subject, intro_html, intro_text });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+router.delete('/email-templates/:key', async (req, res, next) => {
+  if (!DEFAULTS[req.params.key]) return res.status(404).json({ error: 'Unknown template key' });
+  try {
+    await resetTemplate(req.params.key);
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 

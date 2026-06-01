@@ -4051,21 +4051,38 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   const path = useLocation();
   const view = APP_ROUTES[path] || 'dashboard';
   const [billing, setBilling] = useState(null);
+  const [me, setMe] = useState(null);
+  const [resentVerify, setResentVerify] = useState(false);
   const isAdmin = session.user.role === 'admin';
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await apiRequest('/api/billing/status', { slug: session.slug, token: session.token });
-        if (!cancelled) setBilling(data);
+        const [b, m] = await Promise.all([
+          apiRequest('/api/billing/status', { slug: session.slug, token: session.token }),
+          apiRequest('/api/auth/me', { slug: session.slug, token: session.token }),
+        ]);
+        if (!cancelled) { setBilling(b); setMe(m); }
       } catch (err) {
-        // billing endpoint failure shouldn't break the app
-        console.error('billing status load failed', err);
+        console.error('appshell load failed', err);
       }
     })();
     return () => { cancelled = true; };
   }, [session.slug, session.token, path]);
+
+  async function resendVerification() {
+    try {
+      await apiRequest('/api/auth/resend-verification', {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setResentVerify(true);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  const showVerifyBanner = me && !me.email_verified_at;
 
   const trialDaysLeft = billing && billing.trial_ends_at ? daysUntil(billing.trial_ends_at) : null;
 
@@ -4081,6 +4098,18 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           <button className="secondary" onClick={onLogout}>Sign out</button>
         </div>
       </div>
+      {showVerifyBanner && (
+        <div style={{
+          background: '#fff5e6', color: '#8c5a00', padding: '10px 24px',
+          textAlign: 'center', fontSize: 13, fontWeight: 500,
+          borderBottom: '1px solid var(--border)',
+        }}>
+          {resentVerify
+            ? <>Verification email sent. Check your inbox.</>
+            : <>Please verify your email address. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={resendVerification}>Resend verification email</button></>
+          }
+        </div>
+      )}
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Dashboard</button>
@@ -4994,6 +5023,184 @@ function SystemView({ session }) {
       </div>
 
       <StaffManagementSection token={session.token} currentUserId={session.user.id} />
+      <EmailTemplatesSection token={session.token} />
+    </div>
+  );
+}
+
+const TEMPLATE_VARIABLES = {
+  email_verification: ['user_name', 'organization_name', 'verify_url'],
+  trial_reminder_3d: ['user_name', 'organization_name', 'trial_ends_on', 'billing_url'],
+  trial_reminder_1d: ['user_name', 'organization_name', 'trial_ends_on', 'billing_url'],
+  trial_expired: ['user_name', 'organization_name', 'billing_url'],
+};
+
+const TEMPLATE_LABELS = {
+  email_verification: 'Email verification (sent on signup)',
+  trial_reminder_3d: 'Trial reminder — 3 days before end',
+  trial_reminder_1d: 'Trial reminder — 1 day before end',
+  trial_expired: 'Trial ended notice',
+};
+
+function EmailTemplatesSection({ token }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editingKey, setEditingKey] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiRequest('/api/system/email-templates', { token });
+      setTemplates(data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  function startEdit(t) {
+    setDraft({ subject: t.subject, intro_html: t.intro_html, intro_text: t.intro_text });
+    setEditingKey(t.template_key);
+  }
+
+  async function saveEdit() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/email-templates/${editingKey}`, {
+        method: 'PUT', token, body: draft,
+      });
+      setEditingKey(null); setDraft(null);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function resetToDefault(key) {
+    if (!confirm('Reset this template to its default text?')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/system/email-templates/${key}`, { method: 'DELETE', token });
+      await refresh();
+    } catch (err) { setError(err.message); }
+  }
+
+  if (editingKey) {
+    const vars = TEMPLATE_VARIABLES[editingKey] || [];
+    return (
+      <>
+        <div className="section-heading">Edit: {TEMPLATE_LABELS[editingKey]}</div>
+        {error && <div className="error">{error}</div>}
+        <div className="form-card">
+          <p className="hint" style={{ marginBottom: 16 }}>
+            Available variables (insert as <code>{`{{variable}}`}</code>): {vars.map((v) => <code key={v} style={{ marginRight: 6 }}>{`{{${v}}}`}</code>)}
+          </p>
+          <label>Subject</label>
+          <input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+          <label>HTML body</label>
+          <textarea
+            rows={8} value={draft.intro_html}
+            onChange={(e) => setDraft({ ...draft, intro_html: e.target.value })}
+            style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+          />
+          <label>Plain text body</label>
+          <textarea
+            rows={6} value={draft.intro_text}
+            onChange={(e) => setDraft({ ...draft, intro_text: e.target.value })}
+            style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+          />
+          <div className="form-actions">
+            <button className="primary" disabled={busy} onClick={saveEdit}>{busy ? 'Saving...' : 'Save'}</button>
+            <button className="secondary" disabled={busy} onClick={() => { setEditingKey(null); setDraft(null); }}>Cancel</button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="section-heading">Email templates</div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {loading ? (
+          <div className="list-empty">Loading...</div>
+        ) : templates.length === 0 ? (
+          <div className="list-empty">No templates.</div>
+        ) : (
+          templates.map((t) => (
+            <div key={t.template_key} className="row">
+              <div className="info">
+                <div className="name">
+                  {TEMPLATE_LABELS[t.template_key] || t.template_key}
+                  {t.is_default
+                    ? <span className="hint" style={{ marginLeft: 8 }}>(using default)</span>
+                    : <span className="hint" style={{ marginLeft: 8 }}>customized {t.updated_at ? formatDateString(t.updated_at.split('T')[0]) : ''}</span>}
+                </div>
+                <div className="meta">{t.subject}</div>
+              </div>
+              <div className="actions">
+                <button className="secondary" onClick={() => startEdit(t)}>Edit</button>
+                {!t.is_default && (
+                  <button className="secondary" onClick={() => resetToDefault(t.template_key)}>Reset</button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+}
+
+function VerifyEmailPage() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token') || '';
+  const orgSlug = params.get('org') || '';
+  const [state, setState] = useState('working');
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!token || !orgSlug) { setState('invalid'); return; }
+    (async () => {
+      try {
+        await apiRequest('/api/auth/verify-email', {
+          method: 'POST', slug: orgSlug, body: { token },
+        });
+        setState('done');
+      } catch (err) {
+        setError(err.message);
+        setState('error');
+      }
+    })();
+  }, [token, orgSlug]);
+
+  return (
+    <div className="auth-shell">
+      <div className="card">
+        <h1>Email verification</h1>
+        {state === 'working' && <p className="subtitle">Verifying your email...</p>}
+        {state === 'invalid' && (
+          <>
+            <p className="subtitle">This link is missing required information. Sign in and use the resend button to get a fresh link.</p>
+            <button className="primary block" onClick={() => navigate('/signin')}>Sign in</button>
+          </>
+        )}
+        {state === 'error' && (
+          <>
+            <p className="subtitle">{error || 'Could not verify your email.'}</p>
+            <button className="primary block" onClick={() => navigate('/signin')}>Back to sign in</button>
+          </>
+        )}
+        {state === 'done' && (
+          <>
+            <p className="subtitle">Email verified. You're all set.</p>
+            <button className="primary block" onClick={() => navigate('/dashboard')}>Continue</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -5287,6 +5494,7 @@ function App() {
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
   if (path.startsWith('/staff')) return <StaffApp />;
   if (path === '/reset-password') return <ResetPasswordPage />;
+  if (path === '/verify-email') return <VerifyEmailPage />;
 
   function handleLogout() { clearSession(); setSession(null); navigate('/'); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }

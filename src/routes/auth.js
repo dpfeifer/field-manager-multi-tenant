@@ -18,7 +18,7 @@ const router = express.Router();
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT u.id, u.email, u.name, u.role, u.created_at,
+      `SELECT u.id, u.email, u.name, u.role, u.created_at, u.email_verified_at,
               o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name
        FROM users u JOIN organizations o ON o.id = u.organization_id
        WHERE u.id = $1 AND u.deleted_at IS NULL LIMIT 1`,
@@ -195,6 +195,67 @@ router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res, 
     );
     if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+router.post('/verify-email', async (req, res, next) => {
+  const { token } = req.body || {};
+  if (!token) return res.status(400).json({ error: 'token is required' });
+  try {
+    const tokenHash = hashToken(token);
+    const { rows } = await query(
+      `SELECT id FROM users
+       WHERE organization_id = $1
+         AND email_verification_token = $2
+         AND email_verification_expires_at > NOW()
+         AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.organization.id, tokenHash]
+    );
+    if (rows.length === 0) return res.status(400).json({ error: 'Verification link is invalid or expired' });
+    await query(
+      `UPDATE users SET email_verified_at = NOW(),
+           email_verification_token = NULL,
+           email_verification_expires_at = NULL,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [rows[0].id]
+    );
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+router.post('/resend-verification', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      'SELECT id, email, name, email_verified_at FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+      [req.user.sub]
+    );
+    const user = rows[0];
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    if (user.email_verified_at) return res.json({ ok: true, already_verified: true });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    await query(
+      `UPDATE users SET email_verification_token = $2,
+           email_verification_expires_at = NOW() + INTERVAL '24 hours',
+           updated_at = NOW()
+       WHERE id = $1`,
+      [user.id, hashToken(token)]
+    );
+
+    const base = process.env.APP_URL || 'https://fieldmgr.com';
+    const verifyUrl = `${base}/verify-email?token=${token}&org=${encodeURIComponent(req.organization.slug)}`;
+    const tpl = await require('../utils/templateStore').getTemplate('email_verification');
+    const { renderEditableTemplate } = require('../utils/emailTemplates');
+    const rendered = renderEditableTemplate(tpl, {
+      user_name: user.name || user.email,
+      organization_name: req.organization.name,
+      verify_url: verifyUrl,
+    }, { ctaLabel: 'Verify email', ctaUrl: verifyUrl, heading: 'Verify your email' });
+    await sendEmail({ to: user.email, subject: rendered.subject, html: rendered.html, text: rendered.text });
+
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 

@@ -7,6 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "migrate": "node db/migrate.js",
+    "trial-reminders": "node scripts/send-trial-reminders.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

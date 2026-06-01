@@ -1,10 +1,18 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { withTransaction } = require('../config/db');
 const { slugify, validateSlug } = require('../utils/slug');
 const { validatePassword } = require('../utils/password');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
+const { sendEmail } = require('../utils/email');
+const { getTemplate, substitute } = require('../utils/templateStore');
+const { renderEditableTemplate } = require('../utils/emailTemplates');
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const router = express.Router();
 
@@ -48,13 +56,17 @@ router.post('/', async (req, res, next) => {
       );
       const org = orgRes.rows[0];
 
+      const verificationToken = crypto.randomBytes(32).toString('hex');
       const userRes = await client.query(
-        `INSERT INTO users (organization_id, email, password_hash, name, role)
-         VALUES ($1, $2, $3, $4, 'admin')
+        `INSERT INTO users
+           (organization_id, email, password_hash, name, role,
+            email_verification_token, email_verification_expires_at)
+         VALUES ($1, $2, $3, $4, 'admin', $5, NOW() + INTERVAL '24 hours')
          RETURNING id, email, name, role`,
-        [org.id, userEmail, passwordHash, userName]
+        [org.id, userEmail, passwordHash, userName, hashToken(verificationToken)]
       );
       const newUser = userRes.rows[0];
+      newUser._verificationToken = verificationToken;
 
       await client.query(
         'INSERT INTO organization_settings (organization_id, company_name) VALUES ($1, $2)',
@@ -63,6 +75,26 @@ router.post('/', async (req, res, next) => {
 
       return { organization: org, user: newUser };
     });
+
+    // Send verification email (best-effort; don't block signup if it fails).
+    try {
+      const base = process.env.APP_URL || 'https://fieldmgr.com';
+      const verifyUrl = `${base}/verify-email?token=${result.user._verificationToken}&org=${encodeURIComponent(result.organization.slug)}`;
+      const tpl = await getTemplate('email_verification');
+      const rendered = renderEditableTemplate(tpl, {
+        user_name: result.user.name || result.user.email,
+        organization_name: result.organization.name,
+        verify_url: verifyUrl,
+      }, { ctaLabel: 'Verify email', ctaUrl: verifyUrl, heading: 'Verify your email' });
+      await sendEmail({
+        to: result.user.email,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+      });
+    } catch (err) {
+      console.error('signup: send verification email failed', err);
+    }
 
     const is_system_admin = isSystemAdminEmail(result.user.email);
 
