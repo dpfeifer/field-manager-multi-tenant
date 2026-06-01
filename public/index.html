@@ -280,6 +280,126 @@
       margin-left: 4px; letter-spacing: 0.02em;
       line-height: 1.4;
     }
+    .nav-lock {
+      background: var(--tinted); color: var(--text-muted);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 1px 6px; border-radius: 4px;
+      margin-left: 6px; text-transform: uppercase;
+      border: 1px solid var(--border);
+    }
+    .nav button.locked {
+      color: var(--text-muted);
+    }
+    .nav button.locked .icon { opacity: 0.45; }
+    .nav button.locked:hover { color: var(--text); }
+    .nav button.locked:hover .nav-lock { background: var(--accent); color: white; border-color: var(--accent); }
+    .nav-quota {
+      background: var(--tinted); color: var(--text-muted);
+      font-size: 10px; font-weight: 600;
+      padding: 1px 7px; border-radius: 999px;
+      margin-left: 6px; font-family: ui-monospace, monospace;
+      letter-spacing: 0;
+    }
+    .nav-quota.over {
+      background: var(--accent); color: white;
+    }
+
+    /* Plan pill in topbar */
+    .plan-pill {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      line-height: 1.6;
+    }
+    .plan-pill.plan-free {
+      background: var(--tinted); color: var(--text-muted);
+      cursor: pointer; border: 1px solid var(--border-strong);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .plan-pill.plan-free:hover {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .plan-pill.plan-pro {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: white;
+    }
+
+    /* Locked feature page */
+    .locked-feature {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 20px;
+    }
+    .locked-feature-card {
+      max-width: 540px; text-align: center;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 48px 40px;
+      box-shadow: var(--shadow-lg);
+    }
+    .locked-icon-wrap {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px; border-radius: 16px;
+      background: var(--tinted); color: var(--primary);
+      margin-bottom: 18px;
+    }
+    .locked-icon-wrap .icon { font-size: 24px; }
+    .locked-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+    }
+    .locked-feature-card h2 {
+      font-family: var(--serif); font-size: 28px;
+      margin: 0 0 12px; letter-spacing: -0.02em;
+    }
+    .locked-feature-card > p {
+      color: var(--text-muted); margin: 0 0 24px;
+      font-size: 15px; line-height: 1.55;
+    }
+    .locked-bullets {
+      list-style: none; padding: 0; margin: 0 0 28px;
+      text-align: left; max-width: 380px;
+      margin-left: auto; margin-right: auto;
+    }
+    .locked-bullets li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; font-size: 14px; color: var(--text);
+    }
+    .locked-bullets li .icon {
+      color: var(--accent); flex-shrink: 0;
+    }
+    .locked-cta-row {
+      display: flex; gap: 10px; justify-content: center;
+      flex-wrap: wrap;
+    }
+    .locked-cta-row button.primary {
+      padding: 12px 22px; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .locked-cta-row button.primary .icon { transition: transform 0.2s; }
+    .locked-cta-row button.primary:hover .icon { transform: translateX(2px); }
+    .locked-fine {
+      margin-top: 16px; font-size: 12px; color: var(--text-muted);
+    }
+
+    /* Inline upgrade prompt (limit hit) */
+    .upgrade-prompt {
+      display: flex; align-items: center; gap: 16px;
+      background: linear-gradient(to right, var(--tinted), var(--card));
+      border: 1px solid var(--accent);
+      border-radius: 12px; padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+    .upgrade-prompt-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--accent); color: white;
+      flex-shrink: 0;
+    }
+    .upgrade-prompt-icon .icon { font-size: 16px; }
+    .upgrade-prompt-text { flex: 1; }
+    .upgrade-prompt-text strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+    .upgrade-prompt-text span { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .upgrade-prompt button.primary { white-space: nowrap; flex-shrink: 0; }
     .content { max-width: 960px; margin: 32px auto; padding: 0 28px; }
     .page-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -1501,6 +1621,7 @@ const ICONS = {
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-15v5l3 3',
   zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+  lock: 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4',
 };
 
 function Icon({ name }) {
@@ -1570,6 +1691,24 @@ function saveSession({ token, user, organization }) {
 
 function clearSession() {
   Object.values(STORAGE).forEach((k) => localStorage.removeItem(k));
+}
+
+async function startUpgrade(session) {
+  try {
+    const r = await apiRequest('/api/billing/checkout', {
+      method: 'POST', slug: session.slug, token: session.token,
+    });
+    window.location.href = r.url;
+  } catch (err) {
+    alert('Could not start checkout: ' + err.message);
+  }
+}
+
+function isPlanLimitError(err) {
+  return err && err.message && (
+    err.message.includes('Free plan limit') ||
+    err.message.includes('Pro feature')
+  );
 }
 
 const DEFAULT_TERMS = {
@@ -2760,8 +2899,9 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
   );
 }
 
-function CustomersView({ session }) {
+function CustomersView({ session, planContext }) {
   const terms = useTerms();
+  const atCap = planContext && planContext.atCap;
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -2896,12 +3036,15 @@ function CustomersView({ session }) {
           <button className="secondary" onClick={exportCustomers} disabled={customers.length === 0}>Export</button>
           {canMutate && (
             <>
-              <button className="secondary" onClick={() => { setError(null); setMode('import'); }}>Import CSV</button>
-              <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New {terms.customerLower}</button>
+              <button className="secondary" onClick={() => { setError(null); setMode('import'); }} disabled={atCap}>Import CSV</button>
+              <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New {terms.customerLower}</button>
             </>
           )}
         </div>
       </div>
+      {planContext && planContext.isFree && planContext.atCap && (
+        <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.customersLower} />
+      )}
       <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
@@ -3709,8 +3852,9 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
   );
 }
 
-function JobsView({ session, features = { invoices: true } }) {
+function JobsView({ session, features = { invoices: true }, planContext }) {
   const terms = useTerms();
+  const atCap = planContext && planContext.atCap;
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -3941,10 +4085,13 @@ function JobsView({ session, features = { invoices: true } }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" onClick={exportJobs} disabled={jobs.length === 0}>Export</button>
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New {terms.jobLower}</button>
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New {terms.jobLower}</button>
           )}
         </div>
       </div>
+      {planContext && planContext.isFree && planContext.atCap && (
+        <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.jobsLower} />
+      )}
       <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
           type="search"
@@ -5653,6 +5800,92 @@ function statusLabel(s, trialEnds) {
   return s;
 }
 
+const LOCKED_FEATURE_COPY = {
+  invoices: {
+    title: 'Invoicing is a Pro feature.',
+    body: 'Send branded invoices, share public links, accept Venmo, track payments — all unlocked with Pro.',
+    bullets: [
+      'Per-line invoices with tax + discount',
+      'Public link your customer opens on any device',
+      'Mark-paid workflow with payment history',
+      'Recurring-job auto-billing',
+    ],
+  },
+  reports: {
+    title: 'Reports are a Pro feature.',
+    body: "See paid revenue, outstanding balances, projected income from upcoming visits, and your top customers at a glance.",
+    bullets: [
+      'Paid revenue by month',
+      'Outstanding balance per customer',
+      'Projected income from upcoming jobs',
+      'Top customers by lifetime value',
+    ],
+  },
+  team: {
+    title: 'Teammates require Pro.',
+    body: "Free is single-user. Add admins, leads, and employees on Pro — each with their own role and assignments.",
+    bullets: [
+      'Unlimited teammates',
+      'Roles: admin, lead, employee',
+      'Assign jobs to specific people',
+      'Employees see only their own work',
+    ],
+  },
+};
+
+function LockedFeature({ feature, session }) {
+  const copy = LOCKED_FEATURE_COPY[feature] || { title: 'This feature is Pro-only.', body: '', bullets: [] };
+  const [busy, setBusy] = useState(false);
+  async function upgrade() {
+    setBusy(true);
+    await startUpgrade(session);
+  }
+  return (
+    <div className="locked-feature">
+      <div className="locked-feature-card">
+        <div className="locked-icon-wrap"><Icon name="lock" /></div>
+        <div className="locked-eyebrow">Pro feature</div>
+        <h2>{copy.title}</h2>
+        <p>{copy.body}</p>
+        <ul className="locked-bullets">
+          {copy.bullets.map((b, i) => (
+            <li key={i}><Icon name="check" /> {b}</li>
+          ))}
+        </ul>
+        <div className="locked-cta-row">
+          <button className="primary" onClick={upgrade} disabled={busy}>
+            {busy ? 'Opening checkout...' : 'Upgrade to Pro · $29/mo'}<Icon name="arrow" />
+          </button>
+          <button className="secondary" onClick={() => navigate('/dashboard')}>Back to dashboard</button>
+        </div>
+        <div className="locked-fine">Cancel anytime · Keeps your data and settings</div>
+      </div>
+    </div>
+  );
+}
+
+function UpgradePrompt({ session, used, limit, resource }) {
+  const [busy, setBusy] = useState(false);
+  async function upgrade() {
+    setBusy(true);
+    await startUpgrade(session);
+  }
+  return (
+    <div className="upgrade-prompt">
+      <div className="upgrade-prompt-icon"><Icon name="lock" /></div>
+      <div className="upgrade-prompt-text">
+        <strong>You've hit the Free plan limit</strong>
+        <span>
+          {used}/{limit} {resource} used. Upgrade to Pro for unlimited {resource} (and unlock invoicing, reports, and teammates).
+        </span>
+      </div>
+      <button className="primary" onClick={upgrade} disabled={busy}>
+        {busy ? '…' : 'Upgrade · $29/mo'}
+      </button>
+    </div>
+  );
+}
+
 function AppShell({ session, onLogout, onSessionUpdate }) {
   const path = useLocation();
   const view = APP_ROUTES[path] || (path.startsWith('/system/') ? 'system' : 'dashboard');
@@ -5690,6 +5923,15 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
 
   const features = (me && me.features) || { invoices: true, quotes: true, reports: true };
   const terms = getTerms(me);
+  const plan = (me && me.plan) || 'pro';
+  const isFree = plan === 'free';
+  const limits = (me && me.limits) || { customers: 5, jobs: 20 };
+  const counts = {
+    customers: (me && me.customer_count) || 0,
+    jobs: (me && me.job_count) || 0,
+  };
+  const customersAtCap = isFree && counts.customers >= limits.customers;
+  const jobsAtCap = isFree && counts.jobs >= limits.jobs;
   const needsOnboarding = me && !me.onboarding_completed_at && isAdmin;
 
   if (needsOnboarding) {
@@ -5717,6 +5959,11 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       <div className="topbar">
         <div className="brand">{(me && me.display_name) || session.organization.name}</div>
         <div className="right">
+          {me && (
+            <span className={`plan-pill plan-${plan}`} onClick={isFree && isAdmin ? () => startUpgrade(session) : undefined}>
+              {isFree ? 'Free' : 'Pro'}{isFree && isAdmin && ' · Upgrade'}
+            </span>
+          )}
           <button className="link-button" onClick={() => navigate('/profile')}>
             {session.user.name || session.user.email}
           </button>
@@ -5739,25 +5986,49 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} />}
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
-        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}><Icon name="jobs" />{terms.jobs}</button>
-        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}><Icon name="customers" />{terms.customers}</button>
+        <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>
+          <Icon name="jobs" />{terms.jobs}
+          {isFree && me && <span className={`nav-quota${jobsAtCap ? ' over' : ''}`}>{counts.jobs}/{limits.jobs}</span>}
+        </button>
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => navigate('/customers')}>
+          <Icon name="customers" />{terms.customers}
+          {isFree && me && <span className={`nav-quota${customersAtCap ? ' over' : ''}`}>{counts.customers}/{limits.customers}</span>}
+        </button>
         <button className={view === 'requests' ? 'active' : ''} onClick={() => navigate('/requests')}>
           <Icon name="quotes" />Requests
           {pendingRequestsCount > 0 && (
             <span className="nav-badge">{pendingRequestsCount}</span>
           )}
         </button>
-        {features.invoices && (
-          <button className={view === 'invoices' ? 'active' : ''} onClick={() => navigate('/invoices')}><Icon name="invoices" />Invoices</button>
+        {(isFree || features.invoices) && (
+          <button
+            className={`${view === 'invoices' ? 'active' : ''}${isFree ? ' locked' : ''}`}
+            onClick={() => navigate('/invoices')}
+          >
+            <Icon name="invoices" />Invoices
+            {isFree && <span className="nav-lock">Pro</span>}
+          </button>
         )}
         {features.quotes && (
           <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}><Icon name="quotes" />Quotes</button>
         )}
-        {features.reports && session.user.role === 'admin' && (
-          <button className={view === 'reports' ? 'active' : ''} onClick={() => navigate('/reports')}><Icon name="reports" />Reports</button>
+        {session.user.role === 'admin' && (isFree || features.reports) && (
+          <button
+            className={`${view === 'reports' ? 'active' : ''}${isFree ? ' locked' : ''}`}
+            onClick={() => navigate('/reports')}
+          >
+            <Icon name="reports" />Reports
+            {isFree && <span className="nav-lock">Pro</span>}
+          </button>
         )}
         {session.user.role === 'admin' && (
-          <button className={view === 'team' ? 'active' : ''} onClick={() => navigate('/team')}><Icon name="team" />Team</button>
+          <button
+            className={`${view === 'team' ? 'active' : ''}${isFree ? ' locked' : ''}`}
+            onClick={() => navigate('/team')}
+          >
+            <Icon name="team" />Team
+            {isFree && <span className="nav-lock">Pro</span>}
+          </button>
         )}
         {session.user.role === 'admin' && (
           <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}><Icon name="billing" />Billing</button>
@@ -5769,13 +6040,19 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       </div>
       <div className="content">
         {view === 'dashboard' && <DashboardView session={session} features={features} />}
-        {view === 'jobs' && <JobsView session={session} features={features} />}
-        {view === 'customers' && <CustomersView session={session} features={features} />}
+        {view === 'jobs' && <JobsView session={session} features={features} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
+        {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && <RequestsView session={session} />}
-        {view === 'invoices' && features.invoices && <InvoicesView session={session} />}
+        {view === 'invoices' && (isFree
+          ? <LockedFeature feature="invoices" session={session} />
+          : (features.invoices && <InvoicesView session={session} />))}
         {view === 'quotes' && features.quotes && <QuotesView session={session} features={features} />}
-        {view === 'reports' && features.reports && session.user.role === 'admin' && <ReportsView session={session} />}
-        {view === 'team' && session.user.role === 'admin' && <TeamView session={session} />}
+        {view === 'reports' && (isFree
+          ? <LockedFeature feature="reports" session={session} />
+          : (features.reports && session.user.role === 'admin' && <ReportsView session={session} />))}
+        {view === 'team' && (isFree
+          ? <LockedFeature feature="team" session={session} />
+          : (session.user.role === 'admin' && <TeamView session={session} />))}
         {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} />}
         {view === 'settings' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
