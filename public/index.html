@@ -148,15 +148,20 @@
       font-style: italic;
       color: var(--accent);
       display: inline-block;
-      animation: wordSwap 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: wordSwap 0.32s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .cycle-word.settled {
       font-style: normal;
       color: inherit;
+      animation: wordSettle 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     }
     @keyframes wordSwap {
       0%   { opacity: 0; transform: translateY(0.18em); }
       100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes wordSettle {
+      0%   { opacity: 0; transform: translateY(0.18em) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     /* Bold sans typography scoped to the hero only */
@@ -1443,7 +1448,7 @@ function CyclingHeadline() {
 
   useEffect(() => {
     if (reachedEnd) return;
-    const t = setTimeout(() => setIdx(i => i + 1), 1400);
+    const t = setTimeout(() => setIdx(i => i + 1), 550);
     return () => clearTimeout(t);
   }, [idx, reachedEnd]);
 
