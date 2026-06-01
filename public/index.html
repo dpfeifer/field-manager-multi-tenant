@@ -132,7 +132,23 @@
       .fade-in, .fade-in-delay-1, .fade-in-delay-2, .fade-in-delay-3 { animation: none; opacity: 1; }
     }
 
-    /* Cycling industry word in hero — italic + accent, same font as hero */
+    /* Stacked hero headline with cycling industry word */
+    .hero-stacked {
+      display: flex; flex-direction: column;
+      align-items: center;
+      line-height: 0.98;
+    }
+    .hero-line { display: block; }
+    .hero-cycle-line {
+      display: block;
+      overflow: hidden;
+      line-height: 0.98;
+      max-height: 1.1em;
+      transition: max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  margin 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .hero-cycle-line.collapsed { max-height: 0; opacity: 0; margin: 0; }
     .cycle-word {
       font-style: italic;
       color: var(--accent);
@@ -1373,13 +1389,29 @@ function LoginForm({ onSuccess }) {
 
 const INDUSTRIES = ['lawn care', 'cleaning', 'handyman', 'pet care', 'mobile barber', 'pool service', 'pressure washing'];
 
-function CyclingWord({ words, interval = 1400 }) {
-  const [i, setI] = useState(0);
+function CyclingHeadline() {
+  const [idx, setIdx] = useState(0);
+  const [done, setDone] = useState(false);
+
   useEffect(() => {
-    const id = setInterval(() => setI(x => (x + 1) % words.length), interval);
-    return () => clearInterval(id);
-  }, [words.length, interval]);
-  return <span className="cycle-word" key={i}>{words[i]}</span>;
+    if (done) return;
+    const isLast = idx >= INDUSTRIES.length - 1;
+    const t = setTimeout(() => {
+      if (isLast) setDone(true);
+      else setIdx(i => i + 1);
+    }, 1400);
+    return () => clearTimeout(t);
+  }, [idx, done]);
+
+  return (
+    <h1 className="fade-in-delay-1 hero-stacked">
+      <span className="hero-line">Run your</span>
+      <span className={`hero-cycle-line${done ? ' collapsed' : ''}`}>
+        <span className="cycle-word" key={idx}>{INDUSTRIES[idx]}</span>
+      </span>
+      <span className="hero-line">business in one place.</span>
+    </h1>
+  );
 }
 
 function LandingPage() {
@@ -1412,9 +1444,7 @@ function LandingPage() {
 
       <header className="landing-hero">
         <span className="eyebrow fade-in">For small service teams</span>
-        <h1 className="fade-in-delay-1">
-          Run your <CyclingWord words={INDUSTRIES} /> business in one place.
-        </h1>
+        <CyclingHeadline />
         <p className="lede fade-in-delay-2">
           Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
         </p>
