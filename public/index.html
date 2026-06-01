@@ -1146,11 +1146,13 @@
       gap: 14px; margin-bottom: 24px;
     }
     .stats-grid.row-fixed-3 { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid.row-fixed-2 { grid-template-columns: repeat(2, 1fr); }
     @media (max-width: 720px) {
       .stats-grid.row-fixed-3 { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 500px) {
-      .stats-grid.row-fixed-3 { grid-template-columns: 1fr; }
+      .stats-grid.row-fixed-3,
+      .stats-grid.row-fixed-2 { grid-template-columns: 1fr; }
     }
     .stat-card {
       background: var(--card); border: 1px solid var(--border);
@@ -7724,7 +7726,7 @@ function ReportsView({ session }) {
               <div className="subvalue">from upcoming work in range</div>
             </div>
           </div>
-          <div className="stats-grid row-fixed-3">
+          <div className="stats-grid row-fixed-2">
             <div className="stat-card">
               <div className="label">{terms.jobs} completed</div>
               <div className="value">{report.completed_work}</div>
@@ -7734,11 +7736,6 @@ function ReportsView({ session }) {
               <div className="label">New {terms.customersLower}</div>
               <div className="value">{report.new_customers}</div>
               <div className="subvalue">in selected range</div>
-            </div>
-            <div className="stat-card">
-              <div className="label" style={{ visibility: 'hidden' }}>spacer</div>
-              <div className="value" style={{ visibility: 'hidden' }}>·</div>
-              <div className="subvalue" style={{ visibility: 'hidden' }}>·</div>
             </div>
           </div>
 
