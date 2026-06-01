@@ -793,13 +793,15 @@
     .occurrence-row .body { flex: 1; min-width: 0; }
     .occurrence-row .body .title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
-    .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+    .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: nowrap; }
+    .occurrence-row .actions button { white-space: nowrap; }
     .occurrence-row .actions .row-sms,
     .row .actions .row-sms {
       padding: 6px 10px; font-size: 13px;
       background: var(--card); border: 1px solid var(--border-strong);
       border-radius: 8px; font-family: inherit; cursor: pointer;
       color: var(--text); font-weight: 500;
+      flex-shrink: 0;
     }
 
     /* Day view — time grid */
@@ -938,15 +940,28 @@
     }
     .day-block-title { font-weight: 600; line-height: 1.2; }
     .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
-    .day-block-actions {
-      display: flex; gap: 6px; align-items: center;
-      justify-content: flex-end; flex-wrap: nowrap;
+    .day-block-bottom {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: space-between;
       margin-top: auto;
       min-width: 0;
     }
+    .day-block-bottom .day-block-customer {
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin-top: 0;
+    }
+    .day-block-actions {
+      display: flex; gap: 6px; align-items: center;
+      justify-content: flex-end; flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
     .day-block-actions .day-block-sms { flex: 0 1 auto; max-width: 100px; }
     @media (max-width: 600px) {
-      .day-block-actions { flex-wrap: wrap; }
+      .day-block-bottom {
+        flex-direction: column; align-items: flex-start;
+      }
+      .day-block-actions { flex-wrap: wrap; justify-content: flex-start; }
       .day-block-actions .day-block-sms { max-width: none; }
     }
     .day-block-complete {
@@ -4341,33 +4356,37 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                     {o.job.default_price != null && <span className="day-block-price">{formatPrice(o.job.default_price)}</span>}
                   </div>
                   <div className="day-block-title">{o.job.title}</div>
-                  {height >= 56 && (
-                    <div className="day-block-customer">{jobCustomerName(o.job)}</div>
-                  )}
-                  {(showSms || !o.completed) && (
-                    <div className="day-block-actions">
-                      {showSms && (
-                        <select
-                          className="day-block-sms"
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const tpl = smsTemplates.find((t) => t.id === e.target.value);
-                            if (tpl) sendSmsTemplate(phone, tpl, o.job);
-                            e.target.value = '';
-                          }}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>💬 Text…</option>
-                          {smsTemplates.map((t) => (
-                            <option key={t.id} value={t.id}>{t.label}</option>
-                          ))}
-                        </select>
+                  {(height >= 56 || showSms || !o.completed) && (
+                    <div className="day-block-bottom">
+                      {height >= 56 && (
+                        <div className="day-block-customer">{jobCustomerName(o.job)}</div>
                       )}
-                      {!o.completed && (
-                        <button
-                          className="day-block-complete"
-                          onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
-                        >Mark complete</button>
+                      {(showSms || !o.completed) && (
+                        <div className="day-block-actions">
+                          {showSms && (
+                            <select
+                              className="day-block-sms"
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                                if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                                e.target.value = '';
+                              }}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>💬 Text…</option>
+                              {smsTemplates.map((t) => (
+                                <option key={t.id} value={t.id}>{t.label}</option>
+                              ))}
+                            </select>
+                          )}
+                          {!o.completed && (
+                            <button
+                              className="day-block-complete"
+                              onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                            >Mark complete</button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
