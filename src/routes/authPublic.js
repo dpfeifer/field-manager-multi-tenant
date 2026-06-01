@@ -7,6 +7,7 @@ const { validatePassword } = require('../utils/password');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
 const { sendEmail } = require('../utils/email');
 const { passwordResetTemplate } = require('../utils/emailTemplates');
+const { requireAuth } = require('../middleware/auth');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -165,6 +166,62 @@ router.post('/verify-email', async (req, res, next) => {
       [rows[0].id]
     );
     res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// All the orgs the current authenticated user can switch into (matched by
+// email, since the same person can have separate accounts at multiple orgs).
+router.get('/my-orgs', requireAuth, async (req, res, next) => {
+  try {
+    const email = (req.user.email || '').toLowerCase();
+    if (!email) return res.json({ orgs: [] });
+    const { rows } = await query(
+      `SELECT o.id, o.slug, o.name, u.role,
+              (u.id = $2) AS current
+       FROM users u
+       JOIN organizations o ON o.id = u.organization_id
+       WHERE u.email = $1 AND u.deleted_at IS NULL AND o.deleted_at IS NULL
+       ORDER BY o.name`,
+      [email, req.user.sub]
+    );
+    res.json({ orgs: rows });
+  } catch (err) { next(err); }
+});
+
+// Switch the authenticated user's session to another org they belong to.
+// Mirrors the login response shape so the frontend can save the new session
+// the same way.
+router.post('/switch-org', requireAuth, async (req, res, next) => {
+  const { org_slug } = req.body || {};
+  if (!org_slug) return res.status(400).json({ error: 'org_slug is required' });
+  try {
+    const email = (req.user.email || '').toLowerCase();
+    const { rows } = await query(
+      `SELECT u.id, u.email, u.name, u.role,
+              o.id AS org_id, o.slug AS org_slug, o.name AS org_name
+       FROM users u
+       JOIN organizations o ON o.id = u.organization_id
+       WHERE u.email = $1 AND o.slug = $2
+         AND u.deleted_at IS NULL AND o.deleted_at IS NULL
+       LIMIT 1`,
+      [email, String(org_slug).toLowerCase()]
+    );
+    if (rows.length === 0) {
+      return res.status(403).json({ error: 'No account at that organization' });
+    }
+    const u = rows[0];
+    const { isSystemAdminEmail } = require('../utils/systemAdmin');
+    const is_system_admin = isSystemAdminEmail(u.email);
+    const token = jwt.sign(
+      { sub: u.id, organization_id: u.org_id, email: u.email, role: u.role, is_system_admin },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+    res.json({
+      token,
+      user: { id: u.id, email: u.email, name: u.name, role: u.role, is_system_admin },
+      organization: { id: u.org_id, slug: u.org_slug, name: u.org_name },
+    });
   } catch (err) { next(err); }
 });
 

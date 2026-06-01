@@ -330,6 +330,74 @@
     .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
     .topbar .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
     .topbar .right .user { color: var(--text-muted); }
+    /* User menu */
+    .user-menu-wrap { position: relative; }
+    .user-menu-trigger {
+      background: none; border: none; cursor: pointer;
+      padding: 0; border-radius: 50%;
+      transition: box-shadow 0.15s;
+    }
+    .user-menu-trigger:hover { box-shadow: 0 0 0 3px var(--tinted); }
+    .user-menu-trigger[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--primary-ring, rgba(44,62,87,0.18)); }
+    .user-menu-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: white; font-weight: 600; font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+    .user-menu-pop {
+      position: absolute; right: 0; top: calc(100% + 8px);
+      min-width: 260px; max-width: 320px; z-index: 100;
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px -16px rgba(40, 30, 20, 0.25),
+                  0 6px 16px -4px rgba(40, 30, 20, 0.12);
+      padding: 6px;
+      animation: fadeInUp 0.15s ease-out;
+    }
+    .user-menu-header {
+      padding: 10px 12px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+    .user-menu-name {
+      font-weight: 600; font-size: 14px; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .user-menu-email {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .user-menu-role {
+      display: flex; align-items: center; gap: 6px; margin-top: 8px;
+    }
+    .user-menu-section {
+      padding: 8px 12px 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+    }
+    .user-menu-item {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 8px 12px;
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; color: var(--text);
+      border-radius: 6px;
+      text-align: left;
+      transition: background 0.12s;
+    }
+    .user-menu-item:hover:not(:disabled) { background: var(--tinted); }
+    .user-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+    .user-menu-item-meta {
+      font-size: 11px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+    }
+    .user-menu-item-danger { color: var(--danger); }
+    .user-menu-item-danger:hover:not(:disabled) { background: var(--danger-bg); }
+    .user-menu-divider {
+      height: 1px; background: var(--border); margin: 6px 0;
+    }
+
     .topbar-system-link {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 10px; border-radius: 6px;
@@ -7020,6 +7088,116 @@ function PlanError({ error, session }) {
   );
 }
 
+function UserMenu({ session, onLogout, onSwitch }) {
+  const [open, setOpen] = useState(false);
+  const [orgs, setOrgs] = useState(null);
+  const [switching, setSwitching] = useState(false);
+  const wrapRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || orgs !== null) return;
+    (async () => {
+      try {
+        const r = await apiRequest('/api/auth/my-orgs', { token: session.token });
+        setOrgs(r.orgs || []);
+      } catch (err) {
+        setOrgs([]);
+      }
+    })();
+  }, [open, orgs, session.token]);
+
+  async function switchTo(slug) {
+    setSwitching(true);
+    try {
+      const data = await apiRequest('/api/auth/switch-org', {
+        method: 'POST', token: session.token, body: { org_slug: slug },
+      });
+      onSwitch({
+        token: data.token,
+        user: data.user,
+        organization: data.organization,
+        slug: data.organization.slug,
+      });
+    } catch (err) {
+      alert(err.message);
+      setSwitching(false);
+    }
+  }
+
+  const name = session.user.name || session.user.email || '';
+  const initial = (name.trim().charAt(0) || '?').toUpperCase();
+  const otherOrgs = (orgs || []).filter((o) => !o.current);
+
+  return (
+    <div className="user-menu-wrap" ref={wrapRef}>
+      <button
+        className="user-menu-trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={name}
+      >
+        <span className="user-menu-avatar">{initial}</span>
+      </button>
+      {open && (
+        <div className="user-menu-pop" role="menu">
+          <div className="user-menu-header">
+            <div className="user-menu-name">{session.user.name || '(no name)'}</div>
+            <div className="user-menu-email">{session.user.email}</div>
+            <div className="user-menu-role">
+              <span className="badge">{session.user.role}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>at <strong style={{ color: 'var(--text)' }}>{session.organization && session.organization.name}</strong></span>
+            </div>
+          </div>
+          {otherOrgs.length > 0 && (
+            <>
+              <div className="user-menu-section">Switch organization</div>
+              {otherOrgs.map((o) => (
+                <button
+                  key={o.id}
+                  className="user-menu-item"
+                  disabled={switching}
+                  onClick={() => switchTo(o.slug)}
+                >
+                  <span>{o.name}</span>
+                  <span className="user-menu-item-meta">{o.role}</span>
+                </button>
+              ))}
+            </>
+          )}
+          <div className="user-menu-divider" />
+          <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/profile'); }}>
+            Profile
+          </button>
+          {session.user.is_system_admin && (
+            <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/system'); }}>
+              System admin
+            </button>
+          )}
+          <div className="user-menu-divider" />
+          <button className="user-menu-item user-menu-item-danger" onClick={() => { setOpen(false); onLogout(); }}>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AppShell({ session, onLogout, onSessionUpdate }) {
   const path = useLocation();
   const view = APP_ROUTES[path] || (path.startsWith('/system/') ? 'system' : 'dashboard');
@@ -7099,20 +7277,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
               {isFree ? 'Free' : 'Pro'}{isFree && isAdmin && ' · Upgrade'}
             </span>
           )}
-          {session.user.is_system_admin && (
-            <button
-              className="topbar-system-link"
-              onClick={() => navigate('/system')}
-              title="Platform admin"
-            >
-              <Icon name="system" /> System
-            </button>
-          )}
-          <button className="link-button" onClick={() => navigate('/profile')}>
-            {session.user.name || session.user.email}
-          </button>
-          <span className="badge">{session.user.role}</span>
-          <button className="secondary" onClick={onLogout}>Sign out</button>
+          <UserMenu session={session} onLogout={onLogout} onSwitch={(s) => { saveSession(s); window.location.reload(); }} />
         </div>
       </div>
       {showVerifyBanner && (
