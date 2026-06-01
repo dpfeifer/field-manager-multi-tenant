@@ -3873,6 +3873,38 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         )}
       </form>
+
+      {isAdmin && (
+        <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
+          <div className="section-heading" style={{ marginTop: 0 }}>Modules</div>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
+          </p>
+          <FeatureRow
+            enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
+            label="Invoices"
+            description="Bill customers, track payments, send via email or public link."
+          />
+          <FeatureRow
+            enabled={localFeatures.quotes} onToggle={() => toggleFeature('quotes')}
+            label="Quotes / Estimates"
+            description="Prospect quoting, convert to customer/job/invoice."
+          />
+          <FeatureRow
+            enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
+            label="Reports"
+            description="Revenue dashboard, projected income, top customers."
+          />
+          {featuresSaved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
+          )}
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={featuresBusy}>
+              {featuresBusy ? 'Saving...' : 'Save modules'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
@@ -4765,38 +4797,6 @@ function ProfileView({ session, onSessionUpdate }) {
           <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')}>Dark</button>
         </div>
       </div>
-
-      {isAdmin && (
-        <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
-          <div className="section-heading" style={{ marginTop: 0 }}>Modules</div>
-          <p className="hint" style={{ marginBottom: 14 }}>
-            Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
-          </p>
-          <FeatureRow
-            enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
-            label="Invoices"
-            description="Bill customers, track payments, send via email or public link."
-          />
-          <FeatureRow
-            enabled={localFeatures.quotes} onToggle={() => toggleFeature('quotes')}
-            label="Quotes / Estimates"
-            description="Prospect quoting, convert to customer/job/invoice."
-          />
-          <FeatureRow
-            enabled={localFeatures.reports} onToggle={() => toggleFeature('reports')}
-            label="Reports"
-            description="Revenue dashboard, projected income, top customers."
-          />
-          {featuresSaved && (
-            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
-          )}
-          <div className="form-actions">
-            <button type="submit" className="primary" disabled={featuresBusy}>
-              {featuresBusy ? 'Saving...' : 'Save modules'}
-            </button>
-          </div>
-        </form>
-      )}
     </div>
   );
 }
