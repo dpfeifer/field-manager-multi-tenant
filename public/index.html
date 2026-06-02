@@ -2452,7 +2452,7 @@
     .flow-step-detail {
       font-size: 13px; line-height: 1.55;
       color: var(--text-muted); margin: 0 auto;
-      max-width: 180px;
+      max-width: 220px;
     }
     @media (max-width: 720px) {
       .flow-section { padding: 56px 20px 40px; }
@@ -3743,10 +3743,10 @@ function LoginForm({ onSuccess }) {
 
 function ProcessFlowSection() {
   const steps = [
-    { word: 'Ask',      detail: 'A booking link, a text, a referral.' },
-    { word: 'Schedule', detail: 'One visit, or every Friday at 8.' },
-    { word: 'Do',       detail: 'Show up, finish, hit complete.' },
-    { word: 'Paid',     detail: 'Drafts land on the 1st. You send.' },
+    { word: 'Ask',      detail: 'A booking link, a text, or a referral. Every lead lands in one place.' },
+    { word: 'Schedule', detail: 'One visit or every Friday at 8. Recurring jobs schedule themselves.' },
+    { word: 'Do',       detail: 'Show up, finish, hit complete. Notes and totals tally themselves.' },
+    { word: 'Paid',     detail: 'Drafts land on the 1st. Review them, send them, watch the deposits.' },
   ];
   return (
     <section className="flow-section" data-reveal>
