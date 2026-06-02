@@ -2027,9 +2027,26 @@
       color: var(--text);
     }
     .ed-faq-toggle {
-      font-size: 22px; font-weight: 300;
-      color: var(--text-muted); text-align: right;
+      position: relative;
+      width: 22px; height: 22px;
+      flex-shrink: 0;
+      justify-self: end;
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: center center;
+    }
+    .ed-faq-toggle::before,
+    .ed-faq-toggle::after {
+      content: ''; position: absolute;
+      top: 50%; left: 50%;
+      background: var(--text-muted);
+    }
+    .ed-faq-toggle::before {
+      width: 14px; height: 1.5px;
+      transform: translate(-50%, -50%);
+    }
+    .ed-faq-toggle::after {
+      width: 1.5px; height: 14px;
+      transform: translate(-50%, -50%);
     }
     .ed-faq-item[open] .ed-faq-toggle {
       transform: rotate(45deg);
@@ -3704,7 +3721,7 @@ function LandingPage() {
               <summary>
                 <span className="ed-faq-num">{String(i + 1).padStart(2, '0')}</span>
                 <span className="ed-faq-q">{item.q}</span>
-                <span className="ed-faq-toggle" aria-hidden="true">+</span>
+                <span className="ed-faq-toggle" aria-hidden="true" />
               </summary>
               <div className="ed-faq-a">{item.a}</div>
             </details>
