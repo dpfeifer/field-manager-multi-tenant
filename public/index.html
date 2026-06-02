@@ -1757,6 +1757,14 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
+      /* Utility actions on invoice rows — each on its own line, full width
+         for an easier tap target. Mark paid/unpaid + Copy link + Email stay
+         clustered above. */
+      .row .actions .inv-util {
+        flex-basis: 100%;
+        width: 100%;
+        text-align: center;
+      }
       /* Schedule rows specifically — three actions fit on one line if we
          tighten them, see overrides below. */
       .occurrence-row .actions {
@@ -7288,10 +7296,10 @@ function InvoicesView({ session }) {
                       <button className="secondary" onClick={() => emailInvoice(inv)}>Email to {terms.customerLower}</button>
                     )}
                     {(inv.status === 'sent' || inv.status === 'paid') && (
-                      <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                      <button className="secondary inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
                     )}
-                    <button className="secondary" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
-                    <button className="danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
+                    <button className="secondary inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
+                    <button className="danger inv-util" onClick={() => deleteInvoice(inv.id)}>Delete</button>
                   </div>
                 )}
               </div>
