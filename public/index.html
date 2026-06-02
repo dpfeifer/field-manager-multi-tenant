@@ -1761,6 +1761,147 @@
       .narrative-cinematic .beat.flip .beat-visual { order: 2; }
     }
 
+    /* === Process flow section === */
+    .flow-section {
+      padding: 96px 24px 64px;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .flow-header {
+      text-align: center; max-width: 620px;
+      margin: 0 auto 56px;
+    }
+    .flow-eyebrow {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .flow-headline {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(28px, 3.6vw, 44px);
+      letter-spacing: -0.025em; margin: 0;
+      color: var(--text);
+    }
+    .flow-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 20px; position: relative;
+    }
+    .flow-step { position: relative; }
+    .flow-step::after {
+      content: ''; position: absolute;
+      right: -16px; top: 90px;
+      width: 12px; height: 12px;
+      border-top: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+      transform: rotate(45deg);
+      opacity: 0.55;
+    }
+    .flow-step:last-child::after { display: none; }
+    .flow-step-num {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 14px; color: var(--accent);
+      letter-spacing: 0.12em; margin-bottom: 14px;
+      padding-left: 4px;
+    }
+    .flow-step-card {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 16px; padding: 18px;
+      box-shadow: 0 14px 36px -20px rgba(40, 30, 20, 0.22);
+      min-height: 240px;
+      display: flex; flex-direction: column;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .flow-step-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 22px 48px -22px rgba(40, 30, 20, 0.28);
+    }
+    .flow-step-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 20px; color: var(--text);
+      margin: 14px 0 6px; letter-spacing: -0.01em;
+    }
+    .flow-step-caption {
+      font-size: 13px; line-height: 1.55;
+      color: var(--text-muted); margin: 0;
+    }
+    .flow-mockup {
+      background: var(--tinted); border-radius: 10px;
+      padding: 12px 14px; border: 1px solid var(--border);
+    }
+    .flow-mockup-tag {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--accent); background: rgba(201, 133, 88, 0.12);
+      padding: 3px 8px; border-radius: 999px; margin-bottom: 8px;
+    }
+    .flow-mockup-name {
+      font-weight: 600; font-size: 14px; color: var(--text);
+      margin-bottom: 2px;
+    }
+    .flow-mockup-meta {
+      font-size: 11px; color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .flow-mockup-foot {
+      font-size: 10px; color: var(--text-muted);
+      padding-top: 8px; border-top: 1px solid var(--border);
+      margin-top: 8px; font-style: italic;
+    }
+    .flow-mockup-cal-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 0; font-size: 12px; color: var(--text);
+    }
+    .flow-mockup-cal-row + .flow-mockup-cal-row { border-top: 1px dashed var(--border); }
+    .flow-mockup-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .flow-mockup-job {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px;
+    }
+    .flow-mockup-job strong {
+      display: block; font-size: 12px; color: var(--text); font-weight: 600;
+    }
+    .flow-mockup-sub {
+      display: block; font-size: 10px; color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .flow-mockup-check {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #2f6b46; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .flow-mockup-inv {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; padding: 4px 0; color: var(--text);
+    }
+    .flow-mockup-inv + .flow-mockup-inv { border-top: 1px dashed var(--border); }
+    .flow-mockup-amt { color: var(--accent); font-weight: 600; }
+    @media (max-width: 980px) {
+      .flow-grid { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+      .flow-step:nth-child(2)::after { display: none; }
+      .flow-step:nth-child(odd)::after {
+        right: -20px; top: 60px;
+      }
+      .flow-step:nth-child(even)::after {
+        display: none;
+      }
+    }
+    @media (max-width: 640px) {
+      .flow-section { padding: 64px 20px 40px; }
+      .flow-grid { grid-template-columns: 1fr; gap: 16px; }
+      .flow-step::after {
+        right: 50%; top: auto; bottom: -22px;
+        transform: translateX(50%) rotate(135deg);
+      }
+      .flow-step:nth-child(odd)::after,
+      .flow-step:nth-child(even)::after { display: block; }
+      .flow-step:last-child::after { display: none; }
+    }
+
     /* === Landing pricing block === */
     .landing-pricing {
       padding: 80px 24px 40px;
@@ -1961,6 +2102,41 @@
       padding: 2px 6px; border-radius: 4px;
     }
     .scrn-tag-paid { background: #e0eedd; color: #2f6b46; }
+    .scrn-detail-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .scrn-detail-cell {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 10px;
+    }
+    .scrn-detail-cell span {
+      display: block; font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted); margin-bottom: 2px;
+    }
+    .scrn-detail-cell strong {
+      display: block; font-size: 12px; color: var(--text);
+      font-weight: 600;
+    }
+    .scrn-row em {
+      font-style: italic; color: var(--text-muted);
+      font-weight: 400; font-size: 11px; margin-left: 4px;
+    }
+    .scrn-note {
+      background: var(--tinted); border-radius: 8px;
+      padding: 10px 12px; margin-top: 8px;
+      border-left: 3px solid var(--accent);
+    }
+    .scrn-note-label {
+      display: block; font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .scrn-note span:not(.scrn-note-label) {
+      font-size: 12px; color: var(--text); font-style: italic;
+      line-height: 1.4;
+    }
 
     /* Signup screenshot */
     .scrn-signup { padding: 24px 22px; }
@@ -3099,22 +3275,30 @@ function ScrnApp({ activeNav, children }) {
 function BeatVisual({ kind }) {
   if (kind === 'workflow') {
     return (
-      <ScrnFrame url="app.fieldmgr.com/customers/heather" className="">
+      <ScrnFrame url="app.fieldmgr.com/customers/heather-stahl" className="">
         <ScrnApp activeNav="Customers">
           <div className="scrn-pageheader">
             <h4>Heather Stahl</h4>
-            <span className="scrn-pill scrn-pill-good">Recurring · weekly</span>
+            <span className="scrn-pill scrn-pill-good">Weekly · since Apr 2026</span>
+          </div>
+          <div className="scrn-detail-row">
+            <div className="scrn-detail-cell"><span>Phone</span><strong>(216) 555-0142</strong></div>
+            <div className="scrn-detail-cell"><span>Where</span><strong>412 Maple Ave</strong></div>
           </div>
           <div className="scrn-card">
-            <div className="scrn-card-label">Upcoming jobs</div>
-            <div className="scrn-row"><span>Fri Jun 12 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
-            <div className="scrn-row"><span>Fri Jun 19 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
-            <div className="scrn-row"><span>Fri Jun 26 · 8:00 AM</span><span className="scrn-amt">$65</span></div>
+            <div className="scrn-card-label">Upcoming visits</div>
+            <div className="scrn-row"><span>Fri Jun 12 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
+            <div className="scrn-row"><span>Fri Jun 19 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
+            <div className="scrn-row"><span>Fri Jun 26 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
           </div>
           <div className="scrn-card scrn-card-tight">
-            <div className="scrn-card-label">Invoices</div>
-            <div className="scrn-row"><span>#1024 · May 31</span><span className="scrn-tag scrn-tag-paid">Paid · $130</span></div>
-            <div className="scrn-row"><span>#1019 · May 17</span><span className="scrn-tag scrn-tag-paid">Paid · $130</span></div>
+            <div className="scrn-card-label">Recent invoices</div>
+            <div className="scrn-row"><span>#1024 · May 31</span><span className="scrn-tag scrn-tag-paid">Paid · $260</span></div>
+            <div className="scrn-row"><span>#1019 · Apr 30</span><span className="scrn-tag scrn-tag-paid">Paid · $260</span></div>
+          </div>
+          <div className="scrn-note">
+            <span className="scrn-note-label">Note · Jun 4</span>
+            <span>Watch for the dog around back. Owner home most Fridays.</span>
           </div>
         </ScrnApp>
       </ScrnFrame>
@@ -3213,6 +3397,98 @@ function Narrative() {
         </section>
       ))}
     </div>
+  );
+}
+
+function ProcessFlowSection() {
+  const steps = [
+    {
+      n: '01',
+      title: 'Someone asks',
+      caption: 'A request lands from your booking link, a text, or a referral. You see who, where, and what they need.',
+      mockup: (
+        <div className="flow-mockup">
+          <div className="flow-mockup-tag">New request</div>
+          <div className="flow-mockup-name">Marcus Bell</div>
+          <div className="flow-mockup-meta">412 Maple Ave · weekly mow</div>
+          <div className="flow-mockup-foot">Mon 7:14 AM · via booking link</div>
+        </div>
+      ),
+    },
+    {
+      n: '02',
+      title: 'You schedule',
+      caption: 'One tap turns the request into a recurring job. Customer gets a confirmation, your calendar fills itself.',
+      mockup: (
+        <div className="flow-mockup">
+          <div className="flow-mockup-cal">
+            <div className="flow-mockup-cal-row"><span>Fri Jun 5</span><span className="flow-mockup-dot" /></div>
+            <div className="flow-mockup-cal-row"><span>Fri Jun 12</span><span className="flow-mockup-dot" /></div>
+            <div className="flow-mockup-cal-row"><span>Fri Jun 19</span><span className="flow-mockup-dot" /></div>
+          </div>
+          <div className="flow-mockup-foot">Repeats every Friday · 8:00 AM</div>
+        </div>
+      ),
+    },
+    {
+      n: '03',
+      title: 'You show up',
+      caption: 'Hit Complete on the day-of view. Notes, completed dates, and totals roll up behind the scenes.',
+      mockup: (
+        <div className="flow-mockup">
+          <div className="flow-mockup-job">
+            <div>
+              <strong>Fri Jun 5 · 8:00 AM</strong>
+              <span className="flow-mockup-sub">Marcus Bell · 412 Maple</span>
+            </div>
+            <div className="flow-mockup-check">✓</div>
+          </div>
+          <div className="flow-mockup-foot">Completed at 8:47 AM · $65</div>
+        </div>
+      ),
+    },
+    {
+      n: '04',
+      title: 'They pay',
+      caption: 'First of the month, a draft invoice for every recurring customer appears. Review, send, done.',
+      mockup: (
+        <div className="flow-mockup">
+          <div className="flow-mockup-inv">
+            <span>#1024 · Marcus Bell</span>
+            <span className="flow-mockup-amt">$260</span>
+          </div>
+          <div className="flow-mockup-inv">
+            <span>#1023 · Heather Stahl</span>
+            <span className="flow-mockup-amt">$260</span>
+          </div>
+          <div className="flow-mockup-inv">
+            <span>#1022 · Dee Crowley</span>
+            <span className="flow-mockup-amt">$195</span>
+          </div>
+          <div className="flow-mockup-foot">3 drafts ready · May 1 – May 31</div>
+        </div>
+      ),
+    },
+  ];
+  return (
+    <section className="flow-section" data-reveal>
+      <div className="flow-header">
+        <div className="flow-eyebrow">How a customer becomes paid revenue</div>
+        <h2 className="flow-headline">Four steps. No spreadsheets in between.</h2>
+      </div>
+      <div className="flow-grid">
+        {steps.map((s, i) => (
+          <div key={i} className="flow-step">
+            <div className="flow-step-num">{s.n}</div>
+            <div className="flow-step-card">
+              {s.mockup}
+              <div className="flow-step-title">{s.title}</div>
+              <div className="flow-step-caption">{s.caption}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -3362,6 +3638,7 @@ function LandingPage() {
       </header>
 
       <Narrative />
+      <ProcessFlowSection />
       <LandingPricing />
 
       <section className="landing-section">
