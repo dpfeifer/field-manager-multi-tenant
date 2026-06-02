@@ -10401,7 +10401,7 @@ function SupportView({ session }) {
         <div className="form-card" style={{ background: 'var(--tinted)', borderColor: 'var(--primary)' }}>
           <div className="section-heading" style={{ marginTop: 0 }}>Thanks — we got it.</div>
           <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-            We'll get back to you at <strong style={{ color: 'var(--text)' }}>{session.user.email}</strong>, usually within a day. If it's urgent, send another note marked <em>Bug</em> or <em>Billing</em>.
+            We'll get back to you usually within a day. If it's urgent, send another note marked <em>Bug</em> or <em>Billing</em>.
           </p>
           <div className="form-actions" style={{ marginTop: 16 }}>
             <button className="secondary" onClick={() => setDone(false)}>Send another</button>
@@ -10412,7 +10412,7 @@ function SupportView({ session }) {
       {!done && (
         <form className="form-card" onSubmit={submit}>
           <p className="subtitle" style={{ marginTop: 0, marginBottom: 16 }}>
-            Question, bug, or feature request — drop it here and a human will get back to you. We'll reply to <strong style={{ color: 'var(--text)' }}>{session.user.email}</strong>.
+            Question, bug, or feature request — drop it here and a human will get back to you, usually within a day.
           </p>
 
           <label>What's it about?</label>
