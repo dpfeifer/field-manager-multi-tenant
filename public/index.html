@@ -799,7 +799,16 @@
     .row:hover { background: var(--row-hover); }
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
-    .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+    .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    /* Invoice utility buttons (View / Edit / Delete) each take a full
+       width row on desktop so they don't crowd the primary action cluster.
+       Mobile overrides this further below to keep them on a shared row. */
+    .row .actions .inv-util-break {
+      display: block; flex-basis: 100%; height: 0; margin: 0;
+    }
+    .row .actions .inv-util {
+      flex-basis: 100%; max-width: 200px; text-align: center;
+    }
 
     /* Forms in app shell */
     .form-card {
@@ -895,9 +904,6 @@
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
     .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: nowrap; }
     .occurrence-row .actions button { white-space: nowrap; }
-    /* The invoice-row "wrap before utility buttons" shim — only does
-       anything inside the mobile media query below. */
-    .row .actions .inv-util-break { display: none; }
     .occurrence-row .actions .row-sms,
     .row .actions .row-sms {
       padding: 6px 10px; font-size: 13px;
@@ -1760,14 +1766,11 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
-      /* Break the row before the utility buttons, then put each utility
-         button on its own full-width line — easier tap targets and less
-         visual crowding on small screens. */
-      .row .actions .inv-util-break {
-        display: block; flex-basis: 100%; height: 0; margin: 0;
-      }
+      /* On mobile, keep View / Edit / Delete inline on a shared row
+         below the primary actions instead of each taking a full-width
+         line — desktop behavior is set up top. */
       .row .actions .inv-util {
-        flex-basis: 100%; width: 100%; text-align: center;
+        flex-basis: auto; max-width: none; width: auto;
       }
       /* Drop the trailing "to <customer>" so the Email button is short
          enough to stay inline with Mark paid + Copy link. */
