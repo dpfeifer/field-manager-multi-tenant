@@ -8610,6 +8610,7 @@ const APP_ROUTES = {
   '/system/templates': 'system',
   // /system/orgs/:id handled specially in AppShell (see startsWith check)
   '/profile': 'profile',
+  '/support': 'support',
 };
 
 function daysUntil(dateStr) {
@@ -9160,6 +9161,9 @@ function UserMenu({ session, onLogout, onSwitch }) {
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/profile'); }}>
             Profile
           </button>
+          <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/support'); }}>
+            Help &amp; support
+          </button>
           {session.user.is_system_admin && (
             <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/system'); }}>
               System admin
@@ -9346,6 +9350,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {view === 'settings' && session.user.role === 'admin' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
+        {view === 'support' && <SupportView session={session} />}
       </div>
     </div>
     </TermsContext.Provider>
@@ -10349,6 +10354,94 @@ function ProfileView({ session, onSessionUpdate }) {
         <div className="section-heading" style={{ marginTop: 0 }}>Install on your home screen</div>
         <InstallInstructions />
       </div>
+    </div>
+  );
+}
+
+function SupportView({ session }) {
+  const [subject, setSubject] = useState('');
+  const [category, setCategory] = useState('Question');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      // Pass the previous path as "context" so the support team knows where
+      // the user was before they clicked Help & Support.
+      const ctx = (typeof document !== 'undefined' && document.referrer) || '';
+      await apiRequest('/api/support', {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { subject, category, message, context: ctx },
+      });
+      setDone(true);
+      setSubject(''); setMessage(''); setCategory('Question');
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header"><h2>Help &amp; support</h2></div>
+
+      {done && (
+        <div className="form-card" style={{ background: 'var(--tinted)', borderColor: 'var(--primary)' }}>
+          <div className="section-heading" style={{ marginTop: 0 }}>Thanks — we got it.</div>
+          <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+            We'll get back to you at <strong style={{ color: 'var(--text)' }}>{session.user.email}</strong>, usually within a day. If it's urgent, send another note marked <em>Bug</em> or <em>Billing</em>.
+          </p>
+          <div className="form-actions" style={{ marginTop: 16 }}>
+            <button className="secondary" onClick={() => setDone(false)}>Send another</button>
+          </div>
+        </div>
+      )}
+
+      {!done && (
+        <form className="form-card" onSubmit={submit}>
+          <p className="subtitle" style={{ marginTop: 0, marginBottom: 16 }}>
+            Question, bug, or feature request — drop it here and a human will get back to you. We'll reply to <strong style={{ color: 'var(--text)' }}>{session.user.email}</strong>.
+          </p>
+
+          <label>What's it about?</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="Question">Question</option>
+            <option value="Bug">Bug</option>
+            <option value="Feature request">Feature request</option>
+            <option value="Billing">Billing</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label>Subject</label>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="One-line summary"
+            maxLength={200}
+            required
+          />
+
+          <label>Message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={8}
+            placeholder="What's going on? The more detail the better — including what you were doing, what you expected, and what actually happened."
+            maxLength={5000}
+            required
+          />
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="form-actions" style={{ marginTop: 16 }}>
+            <button type="submit" className="primary" disabled={busy || !subject.trim() || !message.trim()}>
+              {busy ? 'Sending...' : 'Send to support'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
