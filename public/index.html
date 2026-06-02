@@ -800,11 +800,38 @@
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-    /* Invoice utility buttons (View / Edit / Delete) each on their own
-       line at natural width. Right-aligned on desktop (follows the row's
-       justify-content), left-aligned on mobile (override below). */
+    /* Invoice utility actions — View / Edit / Delete sit inline as a
+       quieter "secondary" cluster below the primary customer-facing
+       actions. Differentiated by smaller size, lighter weight, and a
+       text-only style so they don't compete with the colored buttons
+       above. */
     .row .actions .inv-util-break {
-      display: block; flex-basis: 100%; height: 0; margin: 0;
+      display: block; flex-basis: 100%; height: 0; margin: 4px 0 0;
+    }
+    .row .actions .inv-util-group {
+      display: inline-flex; align-items: center; gap: 14px;
+      padding: 4px 0;
+    }
+    .row .actions .inv-util {
+      background: transparent; border: none; padding: 2px 0;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: color 0.15s;
+    }
+    .row .actions .inv-util:hover { color: var(--text); }
+    .row .actions .inv-util.inv-util-danger { color: var(--danger); opacity: 0.75; }
+    .row .actions .inv-util.inv-util-danger:hover { opacity: 1; }
+    /* Subtle separator between utility actions */
+    .row .actions .inv-util-group .inv-util + .inv-util {
+      position: relative;
+    }
+    .row .actions .inv-util-group .inv-util + .inv-util::before {
+      content: '';
+      position: absolute; left: -7px; top: 50%;
+      width: 1px; height: 11px;
+      background: var(--border-strong);
+      transform: translateY(-50%);
     }
 
     /* Forms in app shell */
@@ -7304,16 +7331,14 @@ function InvoicesView({ session }) {
                         Email<span className="hide-on-mobile"> to {terms.customerLower}</span>
                       </button>
                     )}
-                    {(inv.status === 'sent' || inv.status === 'paid') && (
-                      <>
-                        <div className="inv-util-break" aria-hidden="true" />
-                        <button className="secondary inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
-                      </>
-                    )}
                     <div className="inv-util-break" aria-hidden="true" />
-                    <button className="secondary inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
-                    <div className="inv-util-break" aria-hidden="true" />
-                    <button className="danger inv-util" onClick={() => deleteInvoice(inv.id)}>Delete</button>
+                    <div className="inv-util-group">
+                      {(inv.status === 'sent' || inv.status === 'paid') && (
+                        <button className="inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                      )}
+                      <button className="inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
+                      <button className="inv-util inv-util-danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
+                    </div>
                   </div>
                 )}
               </div>
