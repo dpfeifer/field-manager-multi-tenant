@@ -1879,46 +1879,22 @@
       position: relative;
       overflow: hidden;
     }
-    /* TODO: swap these background-image values with real service-work photos */
+    /* Real service-work photos via Unsplash CDN. Swap any URL to reskin. */
     .ed-photo-mow {
-      background-image:
-        linear-gradient(135deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 50%),
-        linear-gradient(180deg, #8aa46a 0%, #4f6e3a 60%, #2f4422 100%);
-    }
-    .ed-photo-mow::after {
-      content: ''; position: absolute; inset: 0;
-      background-image: repeating-linear-gradient(
-        90deg,
-        rgba(255,255,255,0.04) 0 6px,
-        rgba(0,0,0,0.04) 6px 12px
-      );
+      background-image: url('https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=600&q=80&auto=format&fit=crop');
+      background-color: #4f6e3a;
     }
     .ed-photo-clean {
-      background-image:
-        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.5) 0%, transparent 35%),
-        linear-gradient(160deg, #e8e0d4 0%, #c8bdaa 100%);
+      background-image: url('https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=600&q=80&auto=format&fit=crop');
+      background-color: #c8bdaa;
     }
     .ed-photo-truck {
-      background-image:
-        linear-gradient(180deg, #d8c3a2 0%, #a08560 60%, #5e4a30 100%);
-    }
-    .ed-photo-truck::after {
-      content: ''; position: absolute;
-      left: 18%; right: 18%; bottom: 22%;
-      height: 32%;
-      background: #2a2018; border-radius: 4px 4px 2px 2px;
-      box-shadow: 0 4px 0 -1px #1a1410;
+      background-image: url('https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=600&q=80&auto=format&fit=crop');
+      background-color: #a08560;
     }
     .ed-photo-tools {
-      background-image:
-        linear-gradient(135deg, #3a3530 0%, #1f1c19 100%);
-    }
-    .ed-photo-tools::after {
-      content: ''; position: absolute;
-      top: 30%; left: 12%; right: 12%; height: 6%;
-      background: linear-gradient(90deg, #c0a070, #d8b889, #c0a070);
-      border-radius: 2px;
-      box-shadow: 0 30px 0 -2px #b89060;
+      background-image: url('https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=600&q=80&auto=format&fit=crop');
+      background-color: #3a3530;
     }
     .ed-photo-tag {
       font-size: 10px; font-weight: 700;
@@ -2120,9 +2096,10 @@
     }
     .flow-headline {
       font-family: var(--serif); font-weight: 600;
-      font-size: clamp(36px, 5.4vw, 64px);
+      font-size: clamp(28px, 4.4vw, 52px);
       letter-spacing: -0.03em; margin: 0 0 18px;
       color: var(--text); line-height: 1.05;
+      white-space: nowrap;
     }
     .flow-arrow {
       color: var(--accent); opacity: 0.55;
@@ -2192,7 +2169,10 @@
     @media (max-width: 860px) {
       .flow-section { padding: 80px 20px 56px; }
       .flow-header { margin-bottom: 56px; }
-      .flow-headline { font-size: clamp(28px, 7vw, 40px); }
+      .flow-headline {
+        font-size: clamp(20px, 6vw, 32px);
+        white-space: normal;
+      }
       .flow-track {
         grid-template-columns: 1fr; gap: 40px;
         padding: 0;
