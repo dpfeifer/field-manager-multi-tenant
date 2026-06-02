@@ -10825,7 +10825,7 @@ function ResetPasswordPage() {
     <div className="auth-shell">
       <div className="card">
         <h1>Reset password</h1>
-        <p className="subtitle">Resetting password for <strong style={{ color: 'var(--text)' }}>{orgSlug}</strong>. Choose a new password.</p>
+        <p className="subtitle">Choose a new password to finish setup.</p>
         <form onSubmit={submit}>
           <label>New password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus />
