@@ -1908,24 +1908,44 @@
       background-image: url('https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=600&q=80&auto=format&fit=crop');
     }
     @media (max-width: 860px) {
-      .ed-hero { padding: 48px 20px 56px; }
-      .ed-hero-text { margin-bottom: 48px; }
+      .ed-hero { padding: 48px 0 56px; }
+      .ed-hero-text {
+        margin-bottom: 40px;
+        padding: 0 20px;
+      }
+      /* Mobile collage: horizontal scroll-snap carousel. Tiles keep
+         varied aspect ratios so the strip reads as a magazine spread
+         rather than a uniform grid. Full-bleed on either side. */
       .ed-collage {
         aspect-ratio: auto;
         min-height: 0;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0;
+        height: 56vw; max-height: 320px;
+        display: flex; gap: 8px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 0 20px;
+        scroll-padding-left: 20px;
       }
+      .ed-collage::-webkit-scrollbar { display: none; }
       .ed-tile {
-        position: static;
-        width: auto !important; height: auto !important;
+        position: static !important;
+        flex-shrink: 0;
+        height: 100% !important;
+        width: auto !important;
         left: auto !important; top: auto !important; bottom: auto !important;
-        aspect-ratio: 1 / 1;
+        scroll-snap-align: start;
       }
-    }
-    @media (max-width: 520px) {
-      .ed-collage { grid-template-columns: repeat(2, 1fr); }
+      .ed-tile-1 { aspect-ratio: 4 / 3 !important; }
+      .ed-tile-2 { aspect-ratio: 3 / 4 !important; }
+      .ed-tile-3 { aspect-ratio: 4 / 3 !important; }
+      .ed-tile-4 { aspect-ratio: 1 / 1 !important; }
+      .ed-tile-5 { aspect-ratio: 3 / 4 !important; }
+      .ed-tile-6 { aspect-ratio: 5 / 4 !important; }
+      .ed-tile-7 { aspect-ratio: 4 / 3 !important; }
+      .ed-tile-8 { aspect-ratio: 5 / 4 !important; }
+      .ed-tile-9 { aspect-ratio: 4 / 3 !important; }
     }
 
     /* bridge & chapters */
