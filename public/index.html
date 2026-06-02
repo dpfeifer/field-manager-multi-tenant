@@ -277,6 +277,14 @@
       background: var(--card); font-family: inherit; color: var(--text);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
+    /* Native checkboxes/radios shouldn't inherit the width:100% form-field rule.
+       Reset them so layouts that put them inline with text don't blow up. */
+    input[type="checkbox"], input[type="radio"] {
+      width: auto; padding: 0; border: 0;
+      background: transparent; box-shadow: none;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
     textarea { resize: vertical; min-height: 76px; }
     input:focus, textarea:focus {
       outline: none; border-color: var(--primary);
