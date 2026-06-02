@@ -1867,37 +1867,26 @@
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
                   z-index 0s;
     }
-    /* row 1 — above the seam (50%). bottom: 50%, varied heights upward.
-       Horizontal: lefts and widths sum without gaps within the row. */
-    .ed-tile-1 { left:  0%; bottom: 50%; width: 18%; height: 32%;
-      background-image: url('https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=600&q=80&auto=format&fit=crop');
-    }
-    .ed-tile-2 { left: 18%; bottom: 50%; width: 22%; height: 50%;
-      background-image: url('https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=700&q=80&auto=format&fit=crop');
-    }
-    .ed-tile-3 { left: 40%; bottom: 50%; width: 20%; height: 38%;
-      background-image: url('https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop');
-    }
-    .ed-tile-4 { left: 60%; bottom: 50%; width: 18%; height: 30%;
-      background-image: url('https://images.unsplash.com/photo-1593382067395-ace3045a1547?w=600&q=80&auto=format&fit=crop');
-    }
-    .ed-tile-5 { left: 78%; bottom: 50%; width: 22%; height: 48%;
-      background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop');
-    }
-    /* row 2 — below the seam. top: 50%, varied heights downward.
-       Lefts/widths sum within the row; row offset right of row 1 so the
-       outer edges stagger. */
-    .ed-tile-6 { left:  6%; top: 50%; width: 24%; height: 42%;
+    /* row 1 (above seam, anchored to bottom: 50%) — 3 tiles touching,
+       each near-square so landscape photos crop without losing subject. */
+    .ed-tile-1 { left:  0%; bottom: 50%; width: 38%; height: 42%;
       background-image: url('https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=800&q=80&auto=format&fit=crop');
     }
-    .ed-tile-7 { left: 30%; top: 50%; width: 22%; height: 36%;
+    .ed-tile-2 { left: 38%; bottom: 50%; width: 28%; height: 32%;
+      background-image: url('https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=600&q=80&auto=format&fit=crop');
+    }
+    .ed-tile-3 { left: 66%; bottom: 50%; width: 34%; height: 38%;
+      background-image: url('https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop');
+    }
+    /* row 2 (below seam) — 3 tiles, offset 6% right of row 1 left edge */
+    .ed-tile-4 { left:  6%; top: 50%; width: 36%; height: 40%;
+      background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop');
+    }
+    .ed-tile-5 { left: 42%; top: 50%; width: 30%; height: 36%;
       background-image: url('https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=700&q=80&auto=format&fit=crop');
     }
-    .ed-tile-8 { left: 52%; top: 50%; width: 25%; height: 44%;
-      background-image: url('https://images.unsplash.com/photo-1734079692160-fcbe4be6ab96?w=800&q=80&auto=format&fit=crop');
-    }
-    .ed-tile-9 { left: 77%; top: 50%; width: 18%; height: 34%;
-      background-image: url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600&q=80&auto=format&fit=crop');
+    .ed-tile-6 { left: 72%; top: 50%; width: 26%; height: 32%;
+      background-image: url('https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=700&q=80&auto=format&fit=crop');
     }
     @media (max-width: 980px) {
       .ed-hero {
@@ -1923,13 +1912,9 @@
         left: auto !important; top: auto !important; bottom: auto !important;
         aspect-ratio: 1 / 1;
       }
-      .ed-tile-2, .ed-tile-5, .ed-tile-6, .ed-tile-8 {
-        aspect-ratio: 3 / 4;
-      }
     }
     @media (max-width: 520px) {
       .ed-collage { grid-template-columns: repeat(2, 1fr); }
-      .ed-tile-9 { display: none; }
     }
 
     /* bridge & chapters */
@@ -3641,9 +3626,6 @@ function LandingPage() {
           <div className="ed-tile ed-tile-4" />
           <div className="ed-tile ed-tile-5" />
           <div className="ed-tile ed-tile-6" />
-          <div className="ed-tile ed-tile-7" />
-          <div className="ed-tile ed-tile-8" />
-          <div className="ed-tile ed-tile-9" />
         </div>
       </header>
 
