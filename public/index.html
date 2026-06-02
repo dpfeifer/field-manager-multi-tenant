@@ -1760,10 +1760,14 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
-      /* Force View / Edit / Delete onto a single shared row below the
-         primary actions on mobile. The break is hidden on desktop. */
+      /* Break the row before the utility buttons, then put each utility
+         button on its own full-width line — easier tap targets and less
+         visual crowding on small screens. */
       .row .actions .inv-util-break {
         display: block; flex-basis: 100%; height: 0; margin: 0;
+      }
+      .row .actions .inv-util {
+        flex-basis: 100%; width: 100%; text-align: center;
       }
       /* Drop the trailing "to <customer>" so the Email button is short
          enough to stay inline with Mark paid + Copy link. */
