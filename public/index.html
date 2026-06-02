@@ -1750,7 +1750,16 @@
       .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
       .page-header h2 { font-size: 18px; }
       .row, .occurrence-row, .compact-row { flex-wrap: wrap; }
-      .row .actions, .occurrence-row .actions {
+      /* Generic list rows (invoices, customers, etc.) — let action clusters
+         wrap to multiple lines so nothing gets clipped. */
+      .row .actions {
+        flex-wrap: wrap; width: 100%; margin-top: 8px;
+        min-width: 0; gap: 6px;
+      }
+      .row .actions button { flex: 0 0 auto; }
+      /* Schedule rows specifically — three actions fit on one line if we
+         tighten them, see overrides below. */
+      .occurrence-row .actions {
         flex-wrap: nowrap; width: 100%; margin-top: 8px;
         min-width: 0;
       }
@@ -7261,9 +7270,8 @@ function InvoicesView({ session }) {
                 </div>
                 {canMutate && (
                   <div className="actions">
-                    {(inv.status === 'draft' || inv.status === 'sent') && (
-                      <button className="primary" onClick={() => emailInvoice(inv)}>Email to {terms.customerLower}</button>
-                    )}
+                    {/* Primary actions first so they land on the first row when
+                        the cluster wraps on mobile: Mark paid/unpaid + Copy link. */}
                     {inv.status === 'sent' && (
                       <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
                     )}
@@ -7271,14 +7279,16 @@ function InvoicesView({ session }) {
                       <button className="secondary" onClick={() => transition(inv.id, 'mark-unpaid')}>Mark unpaid</button>
                     )}
                     {(inv.status === 'sent' || inv.status === 'paid') && (
-                      <>
-                        <button className="secondary" onClick={() => copyPublicLink(inv.id)}>
-                          {copiedId === inv.id ? 'Copied!' : 'Copy link'}
-                        </button>
-                        <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>
-                          View
-                        </button>
-                      </>
+                      <button className="secondary" onClick={() => copyPublicLink(inv.id)}>
+                        {copiedId === inv.id ? 'Copied!' : 'Copy link'}
+                      </button>
+                    )}
+                    {/* Secondary actions follow. They wrap to a new row on narrow viewports. */}
+                    {(inv.status === 'draft' || inv.status === 'sent') && (
+                      <button className="secondary" onClick={() => emailInvoice(inv)}>Email to {terms.customerLower}</button>
+                    )}
+                    {(inv.status === 'sent' || inv.status === 'paid') && (
+                      <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
                     )}
                     <button className="secondary" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
                     <button className="danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
