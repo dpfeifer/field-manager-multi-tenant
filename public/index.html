@@ -1978,18 +1978,20 @@
     }
     .ed-chapter {
       display: grid;
-      grid-template-columns: 120px minmax(0, 640px);
+      grid-template-columns: 56px minmax(0, 420px) minmax(0, 380px);
       justify-content: center;
-      gap: 48px; padding: 56px 0;
+      gap: 40px; padding: 56px 0;
+      align-items: center;
       border-top: 1px solid var(--border);
     }
     .ed-chapter:last-child { border-bottom: 1px solid var(--border); }
     .ed-chapter-num {
       font-family: var(--serif); font-weight: 500;
-      font-size: 64px; line-height: 0.9;
-      color: var(--accent); letter-spacing: -0.03em;
+      font-size: 36px; line-height: 0.9;
+      color: var(--accent); letter-spacing: -0.02em;
     }
-    .ed-chapter-body-col { max-width: 640px; }
+    .ed-chapter-body-col { max-width: 420px; }
+    .ed-chapter-mock { display: flex; justify-content: center; }
     .ed-chapter-kicker {
       font-size: 11px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.18em;
@@ -2008,12 +2010,21 @@
     .ed-chapter-prose em {
       font-style: italic; color: var(--text);
     }
-    @media (max-width: 720px) {
+    @media (max-width: 900px) {
+      .ed-chapter {
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 32px; padding: 48px 0;
+        align-items: start;
+      }
+      .ed-chapter-mock { grid-column: 1 / -1; margin-top: 8px; }
+    }
+    @media (max-width: 600px) {
       .ed-chapter {
         grid-template-columns: 1fr; gap: 16px;
-        padding: 40px 0;
+        padding: 36px 0;
       }
-      .ed-chapter-num { font-size: 48px; }
+      .ed-chapter-num { font-size: 30px; }
+      .ed-chapter-mock { margin-top: 4px; }
     }
 
     /* FAQ */
@@ -2247,6 +2258,127 @@
       .ed-close { padding: 64px 20px 48px; }
       .ed-pricing { padding: 56px 20px; }
       .ed-plan { padding: 28px 24px; }
+    }
+
+    /* === Chapter mockups === */
+    .cm-frame {
+      width: 100%; max-width: 360px;
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      box-shadow: 0 14px 36px -22px rgba(40,30,20,0.25);
+      overflow: hidden;
+      font-size: 12px;
+    }
+    .cm-bar {
+      padding: 10px 14px;
+      background: var(--tinted);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+    .cm-cal {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      padding: 12px 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cm-cal-col {
+      text-align: center; padding: 4px 2px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .cm-cal-day {
+      font-size: 9px; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .cm-cal-date {
+      font-family: var(--serif); font-size: 14px;
+      color: var(--text); line-height: 1;
+    }
+    .cm-cal-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .cm-card {
+      padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .cm-card-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: var(--text);
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .cm-card-row:last-child { border-bottom: none; }
+    .cm-card-time {
+      font-size: 11px; color: var(--text-muted);
+    }
+    .cm-card-done span:first-child {
+      text-decoration: line-through; opacity: 0.6;
+    }
+    .cm-card-check {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #2f6b46; color: #fff;
+      font-size: 11px; font-weight: 700;
+    }
+    .cm-list {
+      padding: 6px 14px 14px;
+    }
+    .cm-list-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text);
+    }
+    .cm-list-row:last-child { border-bottom: none; }
+    .cm-list-row strong { font-weight: 600; }
+    .cm-amt {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 14px; color: var(--text);
+    }
+    .cm-cta {
+      margin: 0 14px 14px;
+      padding: 10px 12px;
+      background: var(--text); color: var(--bg);
+      font-size: 12px; font-weight: 600;
+      text-align: center; border-radius: 6px;
+    }
+    .cm-field {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cm-field:last-child { border-bottom: none; padding-bottom: 16px; }
+    .cm-field-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .cm-select {
+      background: var(--bg); border: 1px solid var(--border-strong);
+      padding: 8px 10px; border-radius: 6px;
+      font-size: 13px; color: var(--text);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .cm-caret { color: var(--text-muted); font-size: 10px; }
+    .cm-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cm-stat {
+      text-align: center; padding: 6px 4px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .cm-stat-num {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 18px; color: var(--text); line-height: 1;
+    }
+    .cm-stat-lbl {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted);
     }
 
     /* === Legal pages === */
@@ -3644,6 +3776,89 @@ function ProcessFlowSection() {
   );
 }
 
+function ChapterMock({ kind }) {
+  if (kind === 'calendar') {
+    return (
+      <div className="cm-frame">
+        <div className="cm-bar"><span>Schedule · Week of Jun 1</span></div>
+        <div className="cm-cal">
+          {['M','T','W','T','F','S','S'].map((d, i) => (
+            <div key={i} className="cm-cal-col">
+              <span className="cm-cal-day">{d}</span>
+              <span className="cm-cal-date">{i + 1}</span>
+              {(i === 0 || i === 2 || i === 4) && <span className="cm-cal-dot" />}
+              {i === 4 && <span className="cm-cal-dot" />}
+            </div>
+          ))}
+        </div>
+        <div className="cm-card">
+          <div className="cm-card-row"><span>Heather Stahl</span><span className="cm-card-time">8:00 AM</span></div>
+          <div className="cm-card-row"><span>Marcus Bell</span><span className="cm-card-time">10:30 AM</span></div>
+          <div className="cm-card-row cm-card-done"><span>Crowley residence</span><span className="cm-card-check">✓</span></div>
+        </div>
+      </div>
+    );
+  }
+  if (kind === 'invoices') {
+    return (
+      <div className="cm-frame">
+        <div className="cm-bar"><span>Invoices · Drafts</span></div>
+        <div className="cm-list">
+          <div className="cm-list-row">
+            <div><strong>#1024</strong> · Heather Stahl</div>
+            <div className="cm-amt">$260</div>
+          </div>
+          <div className="cm-list-row">
+            <div><strong>#1023</strong> · Marcus Bell</div>
+            <div className="cm-amt">$195</div>
+          </div>
+          <div className="cm-list-row">
+            <div><strong>#1022</strong> · Dee Crowley</div>
+            <div className="cm-amt">$340</div>
+          </div>
+        </div>
+        <div className="cm-cta">Review &amp; send all</div>
+      </div>
+    );
+  }
+  if (kind === 'terms') {
+    return (
+      <div className="cm-frame">
+        <div className="cm-bar"><span>Settings · Terminology</span></div>
+        <div className="cm-field">
+          <div className="cm-field-label">Call your customers</div>
+          <div className="cm-select">Clients <span className="cm-caret">▾</span></div>
+        </div>
+        <div className="cm-field">
+          <div className="cm-field-label">Call your jobs</div>
+          <div className="cm-select">Visits <span className="cm-caret">▾</span></div>
+        </div>
+        <div className="cm-field">
+          <div className="cm-field-label">Call your invoices</div>
+          <div className="cm-select">Statements <span className="cm-caret">▾</span></div>
+        </div>
+      </div>
+    );
+  }
+  if (kind === 'dashboard') {
+    return (
+      <div className="cm-frame">
+        <div className="cm-bar"><span>Good morning, Bob</span></div>
+        <div className="cm-stats">
+          <div className="cm-stat"><span className="cm-stat-num">3</span><span className="cm-stat-lbl">Today</span></div>
+          <div className="cm-stat"><span className="cm-stat-num">12</span><span className="cm-stat-lbl">This week</span></div>
+          <div className="cm-stat"><span className="cm-stat-num">$640</span><span className="cm-stat-lbl">Outstanding</span></div>
+        </div>
+        <div className="cm-card">
+          <div className="cm-card-row"><span>Mow · Heather Stahl</span><span className="cm-card-time">8:00 AM</span></div>
+          <div className="cm-card-row"><span>Mow · Crowley residence</span><span className="cm-card-time">10:00 AM</span></div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 function LandingPricing() {
   return (
     <section className="ed-pricing" data-reveal>
@@ -3786,6 +4001,9 @@ function LandingPage() {
               Recurring jobs set themselves the day you create them. Day-view is the home screen — show up, hit complete, move on. Customers stay where you left them, with notes that don't disappear.
             </p>
           </div>
+          <div className="ed-chapter-mock">
+            <ChapterMock kind="calendar" />
+          </div>
         </article>
         <article className="ed-chapter" data-reveal>
           <div className="ed-chapter-num">02</div>
@@ -3795,6 +4013,9 @@ function LandingPage() {
             <p className="ed-chapter-prose">
               Mark a job complete. On the first of the month, a draft invoice is waiting for every recurring customer — totals tallied, line items in order. Review, send, get paid.
             </p>
+          </div>
+          <div className="ed-chapter-mock">
+            <ChapterMock kind="invoices" />
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
@@ -3806,6 +4027,9 @@ function LandingPage() {
               Call them <em>customers</em>, <em>clients</em>, <em>members</em>. The app follows your language. Export everything any time, cancel any time — we'd rather earn each month than weld the door shut.
             </p>
           </div>
+          <div className="ed-chapter-mock">
+            <ChapterMock kind="terms" />
+          </div>
         </article>
         <article className="ed-chapter" data-reveal>
           <div className="ed-chapter-num">04</div>
@@ -3815,6 +4039,9 @@ function LandingPage() {
             <p className="ed-chapter-prose">
               Big-fleet software wants you to onboard a dispatcher. We don't. Reports live on a single page, and only when you ask.
             </p>
+          </div>
+          <div className="ed-chapter-mock">
+            <ChapterMock kind="dashboard" />
           </div>
         </article>
       </section>
