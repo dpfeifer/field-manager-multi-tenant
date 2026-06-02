@@ -1771,6 +1771,7 @@
     @media (max-width: 600px) {
       .ed-nav { padding: 20px 20px; }
       .ed-nav-actions { gap: 12px; }
+      .ed-nav-pricing { display: none; }
     }
     .ed-brand {
       font-family: var(--serif); font-weight: 600;
@@ -4026,7 +4027,7 @@ function LandingPage() {
         <div className="ed-brand">Field Manager</div>
         <div className="ed-nav-actions">
           <button
-            className="ed-nav-link"
+            className="ed-nav-link ed-nav-pricing"
             onClick={() => {
               const el = document.getElementById('pricing');
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
