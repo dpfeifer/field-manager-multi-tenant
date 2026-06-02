@@ -1821,6 +1821,14 @@
       color: var(--accent);
       white-space: nowrap;
     }
+    .ed-hero-headline .cycle-word {
+      display: inline-block;
+      animation: cycleIn 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cycleIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
     .ed-hero-lede {
       font-size: 18px; line-height: 1.6;
       color: var(--text-muted); margin: 0 auto 36px;
@@ -3906,6 +3914,40 @@ function LandingPricing() {
   );
 }
 
+const INDUSTRIES = [
+  'lawn care business',
+  'cleaning business',
+  'handyman business',
+  'pet care business',
+  'barbershop',
+  'pool service business',
+  'photography business',
+  'landscaping business',
+  'painting business',
+  'plumbing business',
+  'tree care business',
+  'catering business',
+  'dog walking business',
+  'tutoring business',
+  'business',
+];
+
+function CyclingHeadline() {
+  const [idx, setIdx] = useState(0);
+  const reachedEnd = idx >= INDUSTRIES.length - 1;
+  useEffect(() => {
+    if (reachedEnd) return;
+    const t = setTimeout(() => setIdx(i => i + 1), 380);
+    return () => clearTimeout(t);
+  }, [idx, reachedEnd]);
+  return (
+    <h1 className="ed-hero-headline fade-in-delay-1">
+      Run your <em key={idx} className="cycle-word">{INDUSTRIES[idx]}</em>
+      <br />in one place.
+    </h1>
+  );
+}
+
 function LandingPage() {
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
@@ -3951,9 +3993,7 @@ function LandingPage() {
       <header className="ed-hero">
         <div className="ed-hero-text">
           <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-          <h1 className="ed-hero-headline fade-in-delay-1">
-            Built for the work, <em>not the boardroom.</em>
-          </h1>
+          <CyclingHeadline />
           <p className="ed-hero-lede fade-in-delay-2">
             For the one-person shops and family crews who run their week off a kitchen-counter notebook.
           </p>
