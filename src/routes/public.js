@@ -212,7 +212,8 @@ router.get('/invoices/:id', async (req, res, next) => {
          s.address AS company_address,
          s.phone AS company_phone,
          s.email AS company_email,
-         s.venmo_handle
+         s.venmo_handle,
+         s.payment_link_url
        FROM invoices i
        JOIN customers c ON c.id = i.customer_id
        JOIN organizations o ON o.id = i.organization_id

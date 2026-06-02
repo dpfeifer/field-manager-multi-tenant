@@ -3752,6 +3752,38 @@ function formatTimeRange(startTime, durationMinutes) {
   return `${start} – ${formatTimeOfDay(endTime)}`;
 }
 
+// Append the invoice amount to a generic Pay-now URL when we recognize
+// the provider's query-string convention. Falls back to the raw URL for
+// anything we don't know.
+function buildPayLink(rawUrl, total, invoiceNumber) {
+  if (!rawUrl) return rawUrl;
+  const amountUSD = (Math.round(total * 100) / 100).toFixed(2);
+  const amountCents = Math.round(total * 100);
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname.toLowerCase();
+    // Stripe Payment Links accept prefilled_amount (in the smallest currency
+    // unit, e.g. cents) when the link was created with "Customer chooses amount."
+    if (host === 'buy.stripe.com' || host.endsWith('.stripe.com')) {
+      u.searchParams.set('prefilled_amount', String(amountCents));
+      return u.toString();
+    }
+    // PayPal.me/USERNAME/AMOUNT pre-fills the amount in their flow.
+    if (host === 'paypal.me' || host === 'www.paypal.me') {
+      const parts = u.pathname.split('/').filter(Boolean);
+      // Only append if the URL is /handle (1 segment) with no amount yet.
+      if (parts.length === 1) {
+        u.pathname = `/${parts[0]}/${amountUSD}`;
+        return u.toString();
+      }
+    }
+    // Square invoice links and others — leave untouched.
+  } catch (e) {
+    // Not a valid URL — return as-is, the browser will error on click.
+  }
+  return rawUrl;
+}
+
 function formatPrice(p) {
   if (p === null || p === undefined || p === '') return '';
   const n = typeof p === 'string' ? parseFloat(p) : p;
@@ -8166,6 +8198,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         phone: data.phone || '',
         email: data.email || '',
         venmo_handle: data.venmo_handle || '',
+        payment_link_url: data.payment_link_url || '',
         resend_from_email: data.resend_from_email || '',
         cloudinary_folder: data.cloudinary_folder || '',
         customer_label: data.customer_label || 'Customer',
@@ -8612,6 +8645,19 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
 
         <div className="section-heading">Payments</div>
         <div className="form-grid">
+          <div className="full">
+            <label>Pay-now link <span className="hint">(optional — Stripe Payment Link, PayPal.me, Square invoice URL, anything)</span></label>
+            <input
+              type="url"
+              placeholder="https://buy.stripe.com/..."
+              value={form.payment_link_url}
+              onChange={(e) => setField('payment_link_url', e.target.value)}
+              disabled={!isAdmin}
+            />
+            <p className="hint" style={{ marginTop: 4 }}>
+              Shows a "Pay now" button on every invoice link. If you paste a Stripe Payment Link or PayPal.me URL, the invoice total is filled in for you.
+            </p>
+          </div>
           <div className="full">
             <label>Venmo handle <span className="hint">(without the @)</span></label>
             <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
@@ -11558,6 +11604,26 @@ function PublicInvoiceView({ id }) {
           )}
           <div className="invoice-total">Total {formatPrice(math.total)}</div>
         </div>
+
+        {invoice.status === 'sent' && invoice.payment_link_url && (
+          <div className="invoice-pay-cta no-print" style={{ marginTop: 24, textAlign: 'center' }}>
+            <a
+              href={buildPayLink(invoice.payment_link_url, math.total, invoice.invoice_number)}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'inline-block', padding: '14px 32px',
+                background: 'var(--primary)', color: 'white',
+                fontWeight: 600, fontSize: 16, borderRadius: 10,
+                textDecoration: 'none',
+              }}
+            >
+              Pay {formatPrice(math.total)}
+            </a>
+            <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+              Securely via your card processor.
+            </p>
+          </div>
+        )}
 
         {invoice.status === 'sent' && invoice.venmo_handle && (
           <div className="invoice-payment no-print">

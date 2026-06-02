@@ -6,7 +6,7 @@ const router = express.Router();
 
 const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',
-  'venmo_handle', 'resend_from_email', 'cloudinary_folder',
+  'venmo_handle', 'payment_link_url', 'resend_from_email', 'cloudinary_folder',
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
   'about', 'sms_templates', 'dashboard_widgets',
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
@@ -15,7 +15,7 @@ const FIELDS = [
 
 const SELECT = `
   SELECT company_name, logo_url, address, phone, email,
-         venmo_handle, resend_from_email, cloudinary_folder,
+         venmo_handle, payment_link_url, resend_from_email, cloudinary_folder,
          customer_label, customer_label_plural, job_label, job_label_plural,
          about, sms_templates, dashboard_widgets,
          auto_invoice_schedule, auto_invoice_day_of_month,
