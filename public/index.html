@@ -1791,13 +1791,12 @@
 
     .ed-hero {
       max-width: 1240px; margin: 0 auto;
-      padding: 60px 32px 24px;
+      padding: 80px 32px 96px;
+      display: grid; grid-template-columns: 1fr 1.05fr;
+      gap: 64px; align-items: center;
       position: relative;
     }
-    .ed-hero-text {
-      max-width: 920px; margin: 0 auto 64px;
-      text-align: center;
-    }
+    .ed-hero-text { max-width: 540px; }
     .ed-eyebrow {
       display: inline-block;
       font-size: 11px; font-weight: 600;
@@ -1808,10 +1807,9 @@
     }
     .ed-hero-headline {
       font-family: var(--serif); font-weight: 500;
-      font-size: clamp(40px, 6vw, 84px);
+      font-size: clamp(40px, 5.6vw, 72px);
       line-height: 1.02; letter-spacing: -0.035em;
-      margin: 0 auto 28px; color: var(--text);
-      max-width: 16ch;
+      margin: 0 0 28px; color: var(--text);
     }
     .ed-hero-headline em {
       font-style: italic; font-weight: 500;
@@ -1819,11 +1817,11 @@
     }
     .ed-hero-lede {
       font-size: 18px; line-height: 1.6;
-      color: var(--text-muted); margin: 0 auto 36px;
-      max-width: 560px;
+      color: var(--text-muted); margin: 0 0 36px;
+      max-width: 480px;
     }
     .ed-hero-actions {
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: center;
       gap: 24px; flex-wrap: wrap;
     }
     .ed-hero-actions .primary {
@@ -1845,13 +1843,15 @@
       text-align: left;
     }
 
-    /* Editorial collage: 9 sharp-edged photos in two overlapping rows. */
+    /* Editorial collage: 9 sharp-edged photos sharing a middle horizontal
+       seam. Within each row tiles touch left-to-right. Heights vary above
+       and below the seam, so outer top/bottom edges stagger. Rows can be
+       slightly offset so left/right edges stagger too. */
     .ed-collage {
       position: relative;
-      max-width: 1100px;
-      margin: 64px auto 0;
-      aspect-ratio: 2 / 1;
-      min-height: 360px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      min-height: 480px;
     }
     .ed-tile {
       position: absolute;
@@ -1862,55 +1862,65 @@
                   z-index 0s 0.4s;
     }
     .ed-tile:hover {
-      transform: scale(1.04);
+      transform: scale(1.03);
       z-index: 10;
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
                   z-index 0s;
     }
-    /* row 1 (top) — 5 tiles */
-    .ed-tile-1 { left: 9%;  top:  2%;  width: 12%; height: 30%;
+    /* row 1 — above the seam (50%). bottom: 50%, varied heights upward.
+       Horizontal: lefts and widths sum without gaps within the row. */
+    .ed-tile-1 { left:  0%; bottom: 50%; width: 18%; height: 32%;
       background-image: url('https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=600&q=80&auto=format&fit=crop');
     }
-    .ed-tile-2 { left: 21%; top:  0%;  width: 18%; height: 56%;
+    .ed-tile-2 { left: 18%; bottom: 50%; width: 22%; height: 50%;
       background-image: url('https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=700&q=80&auto=format&fit=crop');
     }
-    .ed-tile-3 { left: 39%; top:  8%;  width: 17%; height: 42%;
+    .ed-tile-3 { left: 40%; bottom: 50%; width: 20%; height: 38%;
       background-image: url('https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop');
     }
-    .ed-tile-4 { left: 56%; top:  4%;  width: 13%; height: 38%;
+    .ed-tile-4 { left: 60%; bottom: 50%; width: 18%; height: 30%;
       background-image: url('https://images.unsplash.com/photo-1593382067395-ace3045a1547?w=600&q=80&auto=format&fit=crop');
     }
-    .ed-tile-5 { left: 69%; top:  0%;  width: 14%; height: 54%;
+    .ed-tile-5 { left: 78%; bottom: 50%; width: 22%; height: 48%;
       background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop');
     }
-    /* row 2 (bottom) — 4 tiles, offset & overlapping into row 1 */
-    .ed-tile-6 { left: 14%; top: 48%;  width: 19%; height: 50%;
+    /* row 2 — below the seam. top: 50%, varied heights downward.
+       Lefts/widths sum within the row; row offset right of row 1 so the
+       outer edges stagger. */
+    .ed-tile-6 { left:  6%; top: 50%; width: 24%; height: 42%;
       background-image: url('https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=800&q=80&auto=format&fit=crop');
     }
-    .ed-tile-7 { left: 33%; top: 54%;  width: 17%; height: 44%;
+    .ed-tile-7 { left: 30%; top: 50%; width: 22%; height: 36%;
       background-image: url('https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=700&q=80&auto=format&fit=crop');
     }
-    .ed-tile-8 { left: 50%; top: 50%;  width: 20%; height: 48%;
+    .ed-tile-8 { left: 52%; top: 50%; width: 25%; height: 44%;
       background-image: url('https://images.unsplash.com/photo-1734079692160-fcbe4be6ab96?w=800&q=80&auto=format&fit=crop');
     }
-    .ed-tile-9 { left: 70%; top: 56%;  width: 15%; height: 42%;
+    .ed-tile-9 { left: 77%; top: 50%; width: 18%; height: 34%;
       background-image: url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600&q=80&auto=format&fit=crop');
     }
+    @media (max-width: 980px) {
+      .ed-hero {
+        grid-template-columns: 1fr; gap: 56px;
+        padding: 48px 24px 64px;
+      }
+      .ed-hero-text { max-width: 720px; margin: 0 auto; text-align: center; }
+      .ed-hero-headline { margin-left: auto; margin-right: auto; }
+      .ed-hero-lede { margin-left: auto; margin-right: auto; }
+      .ed-hero-actions { justify-content: center; }
+    }
     @media (max-width: 860px) {
-      .ed-hero { padding: 40px 20px 16px; }
-      .ed-hero-text { margin-bottom: 40px; }
       .ed-collage {
         aspect-ratio: auto;
         min-height: 0;
-        margin: 40px auto 0;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
+        gap: 0;
       }
       .ed-tile {
         position: static;
         width: auto !important; height: auto !important;
-        left: auto !important; top: auto !important;
+        left: auto !important; top: auto !important; bottom: auto !important;
         aspect-ratio: 1 / 1;
       }
       .ed-tile-2, .ed-tile-5, .ed-tile-6, .ed-tile-8 {
@@ -1918,7 +1928,7 @@
       }
     }
     @media (max-width: 520px) {
-      .ed-collage { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+      .ed-collage { grid-template-columns: repeat(2, 1fr); }
       .ed-tile-9 { display: none; }
     }
 
