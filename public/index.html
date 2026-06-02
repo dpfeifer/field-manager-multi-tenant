@@ -1926,44 +1926,45 @@
       background-image: url('https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=600&q=80&auto=format&fit=crop');
     }
     @media (max-width: 860px) {
-      .ed-hero { padding: 48px 0 56px; }
-      .ed-hero-text {
-        margin-bottom: 40px;
-        padding: 0 20px;
+      .ed-hero {
+        padding: 48px 20px 56px;
       }
-      /* Mobile collage: horizontal scroll-snap carousel. Tiles keep
-         varied aspect ratios so the strip reads as a magazine spread
-         rather than a uniform grid. Full-bleed on either side. */
+      .ed-hero-text { margin-bottom: 40px; }
+      /* Mobile collage: vertical mosaic with grid-template-areas.
+         Same touching-tiles feel as desktop, oriented for narrow screens.
+         A few tiles are hidden so the remaining six get room to breathe. */
       .ed-collage {
-        aspect-ratio: auto;
+        aspect-ratio: 3 / 4;
         min-height: 0;
-        height: 56vw; max-height: 320px;
-        display: flex; gap: 8px;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding: 0 20px;
-        scroll-padding-left: 20px;
+        max-width: 460px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        grid-template-areas:
+          "a a b"
+          "a a b"
+          "c d d"
+          "c e f";
+        gap: 0;
+        padding: 0;
+        overflow: visible;
       }
-      .ed-collage::-webkit-scrollbar { display: none; }
       .ed-tile {
         position: static !important;
-        flex-shrink: 0;
-        height: 100% !important;
-        width: auto !important;
+        width: auto !important; height: auto !important;
         left: auto !important; top: auto !important; bottom: auto !important;
-        scroll-snap-align: start;
+        aspect-ratio: auto !important;
       }
-      .ed-tile-1 { aspect-ratio: 4 / 3 !important; }
-      .ed-tile-2 { aspect-ratio: 3 / 4 !important; }
-      .ed-tile-3 { aspect-ratio: 4 / 3 !important; }
-      .ed-tile-4 { aspect-ratio: 1 / 1 !important; }
-      .ed-tile-5 { aspect-ratio: 3 / 4 !important; }
-      .ed-tile-6 { aspect-ratio: 5 / 4 !important; }
-      .ed-tile-7 { aspect-ratio: 4 / 3 !important; }
-      .ed-tile-8 { aspect-ratio: 5 / 4 !important; }
-      .ed-tile-9 { aspect-ratio: 4 / 3 !important; }
+      /* Map each tile to a mosaic slot. Big square anchor + two tall
+         portraits + a wide landscape + two small detail tiles. */
+      .ed-tile-6 { grid-area: a; }
+      .ed-tile-5 { grid-area: b; }
+      .ed-tile-2 { grid-area: c; }
+      .ed-tile-3 { grid-area: d; }
+      .ed-tile-1 { grid-area: e; }
+      .ed-tile-4 { grid-area: f; }
+      .ed-tile-7, .ed-tile-8, .ed-tile-9 { display: none; }
     }
 
     /* bridge & chapters */
