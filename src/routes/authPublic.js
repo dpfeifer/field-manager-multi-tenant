@@ -135,6 +135,7 @@ router.post('/reset-password', async (req, res, next) => {
        SET password_hash = $2,
            password_reset_token = NULL,
            password_reset_expires_at = NULL,
+           password_set_at = COALESCE(password_set_at, NOW()),
            updated_at = NOW()
        WHERE id = $1`,
       [rows[0].id, newHash]

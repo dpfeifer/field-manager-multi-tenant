@@ -76,8 +76,9 @@ router.post('/', async (req, res, next) => {
       const userRes = await client.query(
         `INSERT INTO users
            (organization_id, email, password_hash, name, role,
-            email_verification_token, email_verification_expires_at)
-         VALUES ($1, $2, $3, $4, 'admin', $5, NOW() + INTERVAL '24 hours')
+            email_verification_token, email_verification_expires_at,
+            password_set_at)
+         VALUES ($1, $2, $3, $4, 'admin', $5, NOW() + INTERVAL '24 hours', NOW())
          RETURNING id, email, name, role`,
         [org.id, userEmail, passwordHash, userName, hashToken(verificationToken)]
       );

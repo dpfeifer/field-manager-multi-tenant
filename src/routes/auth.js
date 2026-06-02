@@ -149,7 +149,10 @@ router.post('/users/:id/reset-password', requireAuth, requireRole('admin'), asyn
     const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
     const newHash = await bcrypt.hash(new_password, rounds);
     const { rowCount } = await query(
-      `UPDATE users SET password_hash = $3, updated_at = NOW()
+      `UPDATE users
+       SET password_hash = $3,
+           password_set_at = COALESCE(password_set_at, NOW()),
+           updated_at = NOW()
        WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`,
       [req.params.id, req.organization.id, newHash]
     );
@@ -162,7 +165,7 @@ router.get('/users', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT id, email, name, role, created_at,
-              password_reset_token IS NOT NULL AS invite_pending,
+              password_set_at IS NULL AS invite_pending,
               password_reset_expires_at AS invite_expires_at
        FROM users
        WHERE organization_id = $1 AND deleted_at IS NULL
@@ -207,7 +210,7 @@ router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, a
 
     // Is there already a row for this email in this org?
     const existing = await query(
-      `SELECT id, deleted_at, password_reset_token
+      `SELECT id, deleted_at, password_set_at
        FROM users
        WHERE organization_id = $1 AND email = $2
        LIMIT 1`,
@@ -217,7 +220,7 @@ router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, a
     let userRow;
     if (existing.rows.length > 0) {
       const e = existing.rows[0];
-      const neverAccepted = e.password_reset_token !== null;
+      const neverAccepted = e.password_set_at === null;
       const isDeleted = e.deleted_at !== null;
       if (!neverAccepted && !isDeleted) {
         // They have a working account in this org already.
