@@ -1978,19 +1978,14 @@
     }
     .ed-chapter {
       display: grid;
-      grid-template-columns: 56px minmax(0, 420px) minmax(0, 380px);
+      grid-template-columns: minmax(0, 460px) minmax(0, 380px);
       justify-content: center;
-      gap: 40px; padding: 56px 0;
+      gap: 64px; padding: 64px 0;
       align-items: center;
       border-top: 1px solid var(--border);
     }
     .ed-chapter:last-child { border-bottom: 1px solid var(--border); }
-    .ed-chapter-num {
-      font-family: var(--serif); font-weight: 500;
-      font-size: 36px; line-height: 0.9;
-      color: var(--accent); letter-spacing: -0.02em;
-    }
-    .ed-chapter-body-col { max-width: 420px; }
+    .ed-chapter-body-col { max-width: 460px; }
     .ed-chapter-mock { display: flex; justify-content: center; }
     .ed-chapter-kicker {
       font-size: 11px; font-weight: 700;
@@ -2012,19 +2007,15 @@
     }
     @media (max-width: 900px) {
       .ed-chapter {
-        grid-template-columns: 48px minmax(0, 1fr);
-        gap: 32px; padding: 48px 0;
+        grid-template-columns: 1fr;
+        gap: 28px; padding: 48px 0;
         align-items: start;
       }
-      .ed-chapter-mock { grid-column: 1 / -1; margin-top: 8px; }
     }
     @media (max-width: 600px) {
       .ed-chapter {
-        grid-template-columns: 1fr; gap: 16px;
-        padding: 36px 0;
+        gap: 20px; padding: 36px 0;
       }
-      .ed-chapter-num { font-size: 30px; }
-      .ed-chapter-mock { margin-top: 4px; }
     }
 
     /* FAQ */
@@ -3993,7 +3984,6 @@ function LandingPage() {
 
       <section className="ed-chapters">
         <article className="ed-chapter" data-reveal>
-          <div className="ed-chapter-num">01</div>
           <div className="ed-chapter-body-col">
             <p className="ed-chapter-kicker">The week, the way you think about it</p>
             <h2 className="ed-chapter-title">A calendar that doesn't fight you.</h2>
@@ -4006,7 +3996,6 @@ function LandingPage() {
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
-          <div className="ed-chapter-num">02</div>
           <div className="ed-chapter-body-col">
             <p className="ed-chapter-kicker">Money, on autopilot</p>
             <h2 className="ed-chapter-title">Invoices that bill themselves.</h2>
@@ -4019,7 +4008,6 @@ function LandingPage() {
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
-          <div className="ed-chapter-num">03</div>
           <div className="ed-chapter-body-col">
             <p className="ed-chapter-kicker">Yours, not ours</p>
             <h2 className="ed-chapter-title">Your terms. Your customers. Your data.</h2>
@@ -4032,7 +4020,6 @@ function LandingPage() {
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
-          <div className="ed-chapter-num">04</div>
           <div className="ed-chapter-body-col">
             <p className="ed-chapter-kicker">The dashboard is your day</p>
             <h2 className="ed-chapter-title">No managers. No dashboards-of-dashboards.</h2>
