@@ -7830,7 +7830,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/quick-text' ? 'quick-text'
     : path === '/settings/dashboard' ? 'dashboard'
     : path === '/settings/auto-invoice' ? 'auto-invoice'
-    : path === '/settings/install' ? 'install'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -7997,10 +7996,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'dashboard' ? 'active' : ''}`}
             onClick={() => navigate('/settings/dashboard')}
           >Dashboard</button>
-          <button
-            className={`chip ${subView === 'install' ? 'active' : ''}`}
-            onClick={() => navigate('/settings/install')}
-          >Install</button>
           {isAdmin && (
             <button
               className={`chip ${subView === 'auto-invoice' ? 'active' : ''}`}
@@ -8110,13 +8105,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           error={error}
           submit={submit}
         />
-      )}
-
-      {subView === 'install' && (
-        <div className="form-card">
-          <div className="section-heading" style={{ marginTop: 0 }}>Field Manager isn't an app.</div>
-          <InstallInstructions />
-        </div>
       )}
 
       {subView === 'dashboard' && (
@@ -8353,7 +8341,6 @@ const APP_ROUTES = {
   '/settings/quick-text': 'settings',
   '/settings/dashboard': 'settings',
   '/settings/auto-invoice': 'settings',
-  '/settings/install': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
@@ -9711,8 +9698,8 @@ function ReportsView({ session }) {
   );
 }
 
-// Shared install instructions content. Used in onboarding step 3 and
-// the Settings > Install panel.
+// Shared install instructions. Used in onboarding step 3 and the
+// user-menu Profile page (so non-admin teammates can find them too).
 function InstallInstructions() {
   return (
     <>
