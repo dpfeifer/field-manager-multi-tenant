@@ -10,7 +10,7 @@ const { validatePassword } = require('../utils/password');
 const requireProForTeam = requirePro('team');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
 const { sendEmail } = require('../utils/email');
-const { passwordResetTemplate } = require('../utils/emailTemplates');
+const { passwordResetTemplate, teamInviteTemplate } = require('../utils/emailTemplates');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -131,15 +131,13 @@ router.get('/users', requireAuth, async (req, res, next) => {
   }
 });
 
+// Invite a teammate. Admin enters email/name/role only — we generate an
+// un-usable random password, mint a 7-day setup token, and email the
+// invitee a link to set their own password.
 router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, async (req, res, next) => {
-  const { email, password, name, role } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
-  }
-
-  const passwordError = validatePassword(password);
-  if (passwordError) {
-    return res.status(400).json({ error: passwordError });
+  const { email, name, role } = req.body || {};
+  if (!email) {
+    return res.status(400).json({ error: 'email is required' });
   }
 
   const assignedRole = role || 'employee';
@@ -149,16 +147,48 @@ router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, a
 
   try {
     const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
-    const passwordHash = await bcrypt.hash(password, rounds);
+    // A random 48-char password the invitee never sees. They set their own
+    // through the setup token below.
+    const placeholderPassword = crypto.randomBytes(36).toString('hex');
+    const passwordHash = await bcrypt.hash(placeholderPassword, rounds);
+
+    // Setup token: same column as password reset, but expires in 7 days.
+    const setupToken = crypto.randomBytes(32).toString('hex');
+    const setupTokenHash = hashToken(setupToken);
+    const setupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const { rows } = await query(
-      `INSERT INTO users (organization_id, email, password_hash, name, role)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (
+         organization_id, email, password_hash, name, role,
+         password_reset_token, password_reset_expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, email, name, role`,
-      [req.organization.id, email.toLowerCase(), passwordHash, name || null, assignedRole]
+      [
+        req.organization.id, email.toLowerCase(), passwordHash, name || null,
+        assignedRole, setupTokenHash, setupExpiresAt,
+      ]
     );
+    const inserted = rows[0];
 
-    res.status(201).json(rows[0]);
+    // Fire off the invite email. Failure to send doesn't roll back the
+    // user — admin can use the resend / reset-password flow if needed.
+    try {
+      const base = process.env.APP_URL || 'https://fieldmgr.com';
+      const setupUrl = `${base}/reset-password?token=${setupToken}`;
+      const { subject, html, text } = teamInviteTemplate({
+        inviteeName: inserted.name,
+        inviterName: req.user.name || req.user.email,
+        orgName: req.organization.name,
+        setupUrl,
+        role: assignedRole,
+      });
+      await sendEmail({ to: inserted.email, subject, html, text });
+    } catch (mailErr) {
+      console.error('Team invite email failed:', mailErr);
+    }
+
+    res.status(201).json(inserted);
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Email already registered' });

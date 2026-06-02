@@ -135,6 +135,23 @@ function quoteTemplate({ quote, org, settings, total, recipientName }) {
   return { subject: `Quote from ${companyName} — ${moneyUSD(total)}`, html, text };
 }
 
+function teamInviteTemplate({ inviteeName, inviterName, orgName, setupUrl, role }) {
+  const greeting = inviteeName ? `Hi ${escapeHtml(inviteeName)},` : 'Hi there,';
+  const inviter = inviterName ? escapeHtml(inviterName) : 'A teammate';
+  const roleLabel = { admin: 'an admin', lead: 'a lead', employee: 'an employee' }[role] || 'a team member';
+  const bodyHtml = `
+    <p style="margin:0 0 12px; color:#6d6a64; font-size:14px;">${greeting}</p>
+    <p style="margin:0 0 12px; color:#6d6a64; font-size:14px;">${inviter} added you to <strong>${escapeHtml(orgName)}</strong> on Field Manager as ${roleLabel}.</p>
+    <p style="margin:0 0 24px; color:#6d6a64; font-size:14px;">Click below to set your password and sign in. The link expires in 7 days.</p>
+    <a href="${setupUrl}" style="display:inline-block; background:#4a5e7a; color:#ffffff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:600; font-size:14px;">Set your password</a>
+    <p style="margin:24px 0 0; color:#6d6a64; font-size:12px;">If you weren't expecting this invite, you can safely ignore this email.</p>
+  `;
+  const heading = `You're invited to ${orgName}`;
+  const html = shellHTML({ heading, bodyHtml });
+  const text = `${inviter} added you to ${orgName} on Field Manager as ${roleLabel}. Set your password (link expires in 7 days):\n\n${setupUrl}`;
+  return { subject: `You're invited to ${orgName} on Field Manager`, html, text };
+}
+
 function passwordResetTemplate({ user, orgSlug, resetUrl }) {
   const bodyHtml = `
     <p style="margin:0 0 12px; color:#6d6a64; font-size:14px;">Someone (hopefully you) requested a password reset for your Field Manager account.</p>
@@ -163,4 +180,4 @@ function renderEditableTemplate(template, vars, { ctaLabel, ctaUrl, heading }) {
   return { subject, html, text: introText };
 }
 
-module.exports = { invoiceTemplate, quoteTemplate, passwordResetTemplate, renderEditableTemplate };
+module.exports = { invoiceTemplate, quoteTemplate, passwordResetTemplate, teamInviteTemplate, renderEditableTemplate };

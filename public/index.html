@@ -9943,19 +9943,17 @@ function ProfileView({ session, onSessionUpdate }) {
 function InviteForm({ onSubmit, onCancel, busy }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
   const [role, setRole] = useState('employee');
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ email, name: name || null, password, role });
+    onSubmit({ email, name: name || null, role });
   }
 
   return (
     <form onSubmit={submit}>
       <p className="subtitle" style={{ marginBottom: 20 }}>
-        The teammate will sign in with this email and the temporary password you set.
-        They can change their name and (if admin) update password handling later.
+        We'll email this person a link to set their own password and sign in. The link expires in 7 days.
       </p>
       <div className="form-grid">
         <div className="full">
@@ -9974,14 +9972,10 @@ function InviteForm({ onSubmit, onCancel, busy }) {
             <option value="admin">Admin — full access</option>
           </select>
         </div>
-        <div className="full">
-          <label>Temporary password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Inviting...' : 'Add teammate'}
+          {busy ? 'Sending invite...' : 'Send invite'}
         </button>
         <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
       </div>
