@@ -84,6 +84,10 @@ async function firstAdminEmail(orgId) {
   return rows[0] && rows[0].email;
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => { console.error(err); process.exit(1); });
+module.exports = { main };
+
+if (require.main === module) {
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => { console.error(err); process.exit(1); });
+}

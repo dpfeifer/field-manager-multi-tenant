@@ -124,14 +124,19 @@ async function main() {
     await processMilestone(client, 'expired', 'trial_expired', 'trial_expired_email_sent_at');
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-main().then(() => {
-  console.log('Trial reminders run complete.');
-  process.exit(0);
-}).catch((err) => {
-  console.error('Trial reminders failed:', err);
-  process.exit(1);
-});
+module.exports = { main };
+
+if (require.main === module) {
+  main().then(async () => {
+    console.log('Trial reminders run complete.');
+    await pool.end();
+    process.exit(0);
+  }).catch(async (err) => {
+    console.error('Trial reminders failed:', err);
+    await pool.end().catch(() => {});
+    process.exit(1);
+  });
+}
