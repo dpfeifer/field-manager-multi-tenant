@@ -3924,26 +3924,26 @@ function LandingPricing() {
 }
 
 const INDUSTRIES = [
-  'lawn care business',
-  'cleaning business',
-  'handyman business',
-  'pet care business',
-  'barbershop',
-  'pool service business',
-  'photography business',
-  'landscaping business',
-  'painting business',
-  'plumbing business',
-  'tree care business',
-  'catering business',
-  'dog walking business',
-  'tutoring business',
+  'lawn care',
+  'house cleaning',
+  'handyman service',
+  'pet sitting',
+  'barber shop',
+  'pool service',
+  'photo studio',
+  'landscape crew',
+  'house painting',
+  'plumbing shop',
+  'tree care',
+  'catering crew',
+  'dog walking',
+  'tutoring service',
   'business',
 ];
 
 // Per-transition delays, in ms. Slot-wheel feel: warm-up, peak speed, decelerate, settle.
 // Length must be INDUSTRIES.length - 1 (one delay between each pair of words).
-const CYCLE_DELAYS = [330, 210, 140, 100, 85, 85, 100, 130, 170, 230, 320, 440, 600, 800];
+const CYCLE_DELAYS = [320, 230, 180, 150, 140, 140, 150, 180, 220, 280, 360, 470, 620, 820];
 
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
