@@ -1823,11 +1823,26 @@
     }
     .ed-hero-headline .cycle-word {
       display: inline-block;
-      animation: cycleIn 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: top center;
+      backface-visibility: hidden;
+      animation: cycleFlap 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
     }
-    @keyframes cycleIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
+    @keyframes cycleFlap {
+      0% {
+        transform: perspective(600px) rotateX(-95deg) translateY(-4px);
+        opacity: 0;
+        filter: blur(1px);
+      }
+      55% {
+        transform: perspective(600px) rotateX(8deg) translateY(0);
+        opacity: 1;
+        filter: blur(0);
+      }
+      100% {
+        transform: perspective(600px) rotateX(0) translateY(0);
+        opacity: 1;
+        filter: blur(0);
+      }
     }
     .ed-hero-lede {
       font-size: 18px; line-height: 1.6;
@@ -3937,13 +3952,14 @@ function CyclingHeadline() {
   const reachedEnd = idx >= INDUSTRIES.length - 1;
   useEffect(() => {
     if (reachedEnd) return;
-    const t = setTimeout(() => setIdx(i => i + 1), 380);
+    const t = setTimeout(() => setIdx(i => i + 1), 420);
     return () => clearTimeout(t);
   }, [idx, reachedEnd]);
   return (
     <h1 className="ed-hero-headline fade-in-delay-1">
-      Run your <em key={idx} className="cycle-word">{INDUSTRIES[idx]}</em>
-      <br />in one place.
+      Run your<br />
+      <em key={idx} className="cycle-word">{INDUSTRIES[idx]}</em><br />
+      in one place.
     </h1>
   );
 }
