@@ -9026,7 +9026,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
             )}
           </button>
         )}
-        {(isFree || features.invoices) && (
+        {['admin', 'lead'].includes(session.user.role) && (isFree || features.invoices) && (
           <button
             className={`${view === 'invoices' ? 'active' : ''}${isFree ? ' locked' : ''}`}
             onClick={() => navigate('/invoices')}
@@ -9035,7 +9035,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
             {isFree && <span className="nav-lock">Pro</span>}
           </button>
         )}
-        {features.quotes && (
+        {['admin', 'lead'].includes(session.user.role) && features.quotes && (
           <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}><Icon name="quotes" />Quotes</button>
         )}
         {session.user.role === 'admin' && (isFree || features.reports) && (
@@ -9059,17 +9059,19 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         {session.user.role === 'admin' && (
           <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}><Icon name="billing" />Billing</button>
         )}
-        <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
+        {session.user.role === 'admin' && (
+          <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
+        )}
       </div>
       <div className="content">
         {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && features.requests && <RequestsView session={session} />}
-        {view === 'invoices' && (isFree
+        {view === 'invoices' && ['admin', 'lead'].includes(session.user.role) && (isFree
           ? <LockedFeature feature="invoices" session={session} />
           : (features.invoices && <InvoicesView session={session} />))}
-        {view === 'quotes' && features.quotes && <QuotesView session={session} features={features} />}
+        {view === 'quotes' && ['admin', 'lead'].includes(session.user.role) && features.quotes && <QuotesView session={session} features={features} />}
         {view === 'reports' && (isFree
           ? <LockedFeature feature="reports" session={session} />
           : (features.reports && session.user.role === 'admin' && <ReportsView session={session} />))}
@@ -9077,7 +9079,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           ? <LockedFeature feature="team" session={session} />
           : (session.user.role === 'admin' && features.team && <TeamView session={session} />))}
         {view === 'billing' && session.user.role === 'admin' && <BillingView session={session} me={me} />}
-        {view === 'settings' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
+        {view === 'settings' && session.user.role === 'admin' && <SettingsView session={session} features={features} onFeaturesChange={reloadMe} />}
         {view === 'system' && session.user.is_system_admin && <SystemView session={session} />}
         {view === 'profile' && <ProfileView session={session} onSessionUpdate={onSessionUpdate} />}
       </div>
@@ -9461,6 +9463,14 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     ? me.dashboard_widgets
     : DEFAULT_DASHBOARD_WIDGETS;
 
+  // Employees don't see money widgets (stats, outstanding invoices, top customers
+  // by revenue, quick actions — most quick actions create things they can't).
+  const role = session.user.role;
+  const employeeAllowed = new Set([
+    'greeting', 'today', 'tomorrow', 'overdue', 'pending_requests',
+  ]);
+  const isVisibleForRole = (id) => role === 'employee' ? employeeAllowed.has(id) : true;
+
   return (
     <div>
       {error && <div className="error">{error}</div>}
@@ -9469,10 +9479,12 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
         <div className="list-empty">Loading...</div>
       ) : (
         <>
-          {widgets.filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id]).map((w) => {
-            const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
-            return <W key={w.id} ctx={ctx} />;
-          })}
+          {widgets
+            .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id))
+            .map((w) => {
+              const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
+              return <W key={w.id} ctx={ctx} />;
+            })}
         </>
       )}
     </div>
