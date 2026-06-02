@@ -7846,6 +7846,78 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
+function BookingFormFields({ cfg, setCfg, namespace = 'panel' }) {
+  return (
+    <>
+      <div className="section-heading" style={{ marginTop: 0 }}>Optional fields</div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+        <input type="checkbox" checked={cfg.show_phone !== false} onChange={(e) => setCfg('show_phone', e.target.checked)} />
+        <span>Show <strong>Phone</strong></span>
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+        <input type="checkbox" checked={cfg.show_address !== false} onChange={(e) => setCfg('show_address', e.target.checked)} />
+        <span>Show <strong>Address</strong></span>
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+        <input type="checkbox" checked={cfg.show_notes !== false} onChange={(e) => setCfg('show_notes', e.target.checked)} />
+        <span>Show <strong>Notes</strong></span>
+      </label>
+
+      <div className="section-heading">Preferred date and time</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[
+          { value: 'none',  label: "Don't ask",           desc: 'Skip the date/time fields entirely.' },
+          { value: 'one',   label: 'Ask for one',         desc: 'Let them pick a single preferred date and time of day.' },
+          { value: 'three', label: 'Ask for up to three', desc: 'Let them propose up to three options.' },
+        ].map((opt) => (
+          <label key={opt.value} style={{
+            display: 'flex', gap: 12, alignItems: 'flex-start',
+            padding: 12,
+            border: cfg.preferred_dates_mode === opt.value ? '1.5px solid var(--primary)' : '1px solid var(--border-strong)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            background: cfg.preferred_dates_mode === opt.value ? 'var(--tinted)' : 'var(--card)',
+            fontWeight: 'normal',
+            margin: 0,
+          }}>
+            <input
+              type="radio" name={`preferred_dates_mode_${namespace}`}
+              checked={cfg.preferred_dates_mode === opt.value}
+              onChange={() => setCfg('preferred_dates_mode', opt.value)}
+              style={{ marginTop: 2 }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{opt.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{opt.desc}</div>
+            </div>
+          </label>
+        ))}
+      </div>
+
+      <div className="section-heading">Placeholder text</div>
+      <label>"What do you need?" placeholder</label>
+      <input
+        value={cfg.service_placeholder || ''}
+        onChange={(e) => setCfg('service_placeholder', e.target.value)}
+        placeholder="Brief description of the service you'd like"
+      />
+      <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+        Leave blank to use the default. This is the gray hint text inside the input.
+      </p>
+
+      <label>"Notes" placeholder</label>
+      <input
+        value={cfg.notes_placeholder || ''}
+        onChange={(e) => setCfg('notes_placeholder', e.target.value)}
+        placeholder="Anything else they should know?"
+      />
+      <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+        Leave blank to use the default.
+      </p>
+    </>
+  );
+}
+
 function BookingFormPanel({ form, setField, busy, saved, error, submit }) {
   const cfg = form.booking_form_config || {};
   function setCfg(key, value) {
@@ -7861,71 +7933,7 @@ function BookingFormPanel({ form, setField, busy, saved, error, submit }) {
         <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
           Customize the public booking form. Name, email, and "What do you need?" are always required.
         </p>
-
-        <div className="section-heading" style={{ marginTop: 0 }}>Optional fields</div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
-          <input type="checkbox" checked={cfg.show_phone !== false} onChange={(e) => setCfg('show_phone', e.target.checked)} />
-          <span>Show <strong>Phone</strong></span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
-          <input type="checkbox" checked={cfg.show_address !== false} onChange={(e) => setCfg('show_address', e.target.checked)} />
-          <span>Show <strong>Address</strong></span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
-          <input type="checkbox" checked={cfg.show_notes !== false} onChange={(e) => setCfg('show_notes', e.target.checked)} />
-          <span>Show <strong>Notes</strong></span>
-        </label>
-
-        <div className="section-heading">Preferred date and time</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[
-            { value: 'none',  label: "Don't ask",        desc: 'Skip the date/time fields entirely.' },
-            { value: 'one',   label: 'Ask for one',      desc: 'Let them pick a single preferred date and time of day.' },
-            { value: 'three', label: 'Ask for up to three', desc: 'Let them propose up to three options. Useful when you want to coordinate around their availability.' },
-          ].map((opt) => (
-            <label key={opt.value} style={{
-              display: 'flex', gap: 12, alignItems: 'flex-start',
-              padding: 12,
-              border: cfg.preferred_dates_mode === opt.value ? '1.5px solid var(--primary)' : '1px solid var(--border-strong)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              background: cfg.preferred_dates_mode === opt.value ? 'var(--tinted)' : 'var(--card)',
-            }}>
-              <input
-                type="radio" name="preferred_dates_mode"
-                checked={cfg.preferred_dates_mode === opt.value}
-                onChange={() => setCfg('preferred_dates_mode', opt.value)}
-                style={{ marginTop: 2 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{opt.label}</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{opt.desc}</div>
-              </div>
-            </label>
-          ))}
-        </div>
-
-        <div className="section-heading">Placeholder text</div>
-        <label>"What do you need?" placeholder</label>
-        <input
-          value={cfg.service_placeholder || ''}
-          onChange={(e) => setCfg('service_placeholder', e.target.value)}
-          placeholder="Brief description of the service you'd like"
-        />
-        <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
-          Leave blank to use the default. This is the gray hint text inside the input.
-        </p>
-
-        <label>"Notes" placeholder</label>
-        <input
-          value={cfg.notes_placeholder || ''}
-          onChange={(e) => setCfg('notes_placeholder', e.target.value)}
-          placeholder="Anything else they should know?"
-        />
-        <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
-          Leave blank to use the default.
-        </p>
-
+        <BookingFormFields cfg={cfg} setCfg={setCfg} namespace="panel" />
         <div className="form-actions">
           <button type="submit" className="primary" disabled={busy}>
             {busy ? 'Saving...' : 'Save booking form'}
@@ -9888,8 +9896,32 @@ function OnboardingPage({ session, onDone }) {
     job_label: 'Job',
     job_label_plural: 'Jobs',
   });
+  const [bookingFormConfig, setBookingFormConfig] = useState({
+    show_phone: true,
+    show_address: true,
+    show_notes: true,
+    preferred_dates_mode: 'one',
+    service_placeholder: '',
+    notes_placeholder: '',
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+
+  // Dynamic step order — booking-form only appears if requests is enabled.
+  const stepOrder = ['modules', 'terminology'];
+  if (features.requests) stepOrder.push('booking-form');
+  stepOrder.push('install');
+  const stepIndex = stepOrder.indexOf(step);
+  const totalSteps = stepOrder.length;
+  const stepNum = stepIndex === -1 ? 1 : stepIndex + 1;
+  function goNext() {
+    const next = stepOrder[stepIndex + 1];
+    if (next) setStep(next);
+  }
+  function goBack() {
+    const prev = stepOrder[stepIndex - 1];
+    if (prev) setStep(prev);
+  }
 
   function toggle(key) {
     setFeatures((f) => ({ ...f, [key]: !f[key] }));
@@ -9899,12 +9931,20 @@ function OnboardingPage({ session, onDone }) {
     setTerminology((t) => ({ ...t, [key]: value }));
   }
 
+  function setBookingCfg(key, value) {
+    setBookingFormConfig((c) => ({ ...c, [key]: value }));
+  }
+
   async function submit() {
     setBusy(true); setError(null);
     try {
       await apiRequest('/api/onboarding/complete', {
         method: 'POST', slug: session.slug, token: session.token,
-        body: { features, terminology },
+        body: {
+          features,
+          terminology,
+          booking_form_config: features.requests ? bookingFormConfig : undefined,
+        },
       });
       await onDone();
     } catch (err) { setError(err.message); setBusy(false); }
@@ -9915,7 +9955,7 @@ function OnboardingPage({ session, onDone }) {
       <div className="auth-shell" style={{ maxWidth: 720 }}>
         <div className="card">
           <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Step 3 of 3
+            Step {stepNum} of {totalSteps}
           </p>
           <h1>Field Manager isn't an app.</h1>
           <InstallInstructions />
@@ -9923,9 +9963,36 @@ function OnboardingPage({ session, onDone }) {
           {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
 
           <div className="form-actions" style={{ marginTop: 24, justifyContent: 'space-between' }}>
-            <button className="secondary" disabled={busy} onClick={() => setStep('terminology')}>← Back</button>
+            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
             <button className="primary" disabled={busy} onClick={submit}>
               {busy ? 'Saving...' : 'Finish setup'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'booking-form') {
+    return (
+      <div className="auth-shell" style={{ maxWidth: 640 }}>
+        <div className="card">
+          <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            Step {stepNum} of {totalSteps}
+          </p>
+          <h1>Tune your booking form</h1>
+          <p className="subtitle" style={{ marginBottom: 20 }}>
+            Since you turned on Requests, you have a public booking page at <strong style={{ color: 'var(--text)' }}>/book/{session.organization.slug}</strong> where prospects can ask for service. Pick what they need to tell you. You can adjust this any time in Settings &rarr; Booking form.
+          </p>
+
+          <BookingFormFields cfg={bookingFormConfig} setCfg={setBookingCfg} namespace="onboarding" />
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="form-actions" style={{ marginTop: 8, justifyContent: 'space-between' }}>
+            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
+            <button className="primary" disabled={busy} onClick={goNext}>
+              Continue →
             </button>
           </div>
         </div>
@@ -9938,7 +10005,7 @@ function OnboardingPage({ session, onDone }) {
       <div className="auth-shell" style={{ maxWidth: 640 }}>
         <div className="card">
           <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Step 2 of 3
+            Step {stepNum} of {totalSteps}
           </p>
           <h1>What do you call your work?</h1>
           <p className="subtitle" style={{ marginBottom: 20 }}>
@@ -9971,8 +10038,8 @@ function OnboardingPage({ session, onDone }) {
           {error && <div className="error">{error}</div>}
 
           <div className="form-actions" style={{ marginTop: 24, justifyContent: 'space-between' }}>
-            <button className="secondary" disabled={busy} onClick={() => setStep('modules')}>← Back</button>
-            <button className="primary" disabled={busy} onClick={() => setStep('install')}>
+            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
+            <button className="primary" disabled={busy} onClick={goNext}>
               Continue →
             </button>
           </div>
@@ -9985,7 +10052,7 @@ function OnboardingPage({ session, onDone }) {
     <div className="auth-shell" style={{ maxWidth: 640 }}>
       <div className="card">
         <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-          Step 1 of 3
+          Step {stepNum} of {totalSteps}
         </p>
         <h1>Welcome to {session.organization.name}!</h1>
         <p className="subtitle" style={{ marginBottom: 16 }}>
@@ -10024,7 +10091,7 @@ function OnboardingPage({ session, onDone }) {
         />
 
         <div className="form-actions" style={{ marginTop: 24 }}>
-          <button className="primary" disabled={busy} onClick={() => setStep('terminology')}>
+          <button className="primary" disabled={busy} onClick={goNext}>
             Continue →
           </button>
         </div>
