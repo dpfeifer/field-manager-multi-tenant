@@ -18,6 +18,7 @@ router.get('/', async (req, res, next) => {
     const { rows } = await query(
       `SELECT id, requester_name, requester_email, requester_phone, requester_address,
               service_description, preferred_date, preferred_time_window, preferred_slots, notes,
+              referred_by,
               status, declined_reason,
               created_customer_id, created_job_id,
               created_at, accepted_at, declined_at

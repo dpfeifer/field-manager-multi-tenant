@@ -5304,6 +5304,9 @@ function RequestsView({ session }) {
                 {r.notes && (
                   <div className="secondary-meta">Notes: {r.notes}</div>
                 )}
+                {r.referred_by && (
+                  <div className="secondary-meta">Referred by: {r.referred_by}</div>
+                )}
                 <div className="secondary-meta" style={{ marginTop: 6, fontSize: 11 }}>
                   Received {new Date(r.created_at).toLocaleString()}
                 </div>
@@ -7862,6 +7865,10 @@ function BookingFormFields({ cfg, setCfg, namespace = 'panel' }) {
         <input type="checkbox" checked={cfg.show_notes !== false} onChange={(e) => setCfg('show_notes', e.target.checked)} />
         <span>Show <strong>Notes</strong></span>
       </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+        <input type="checkbox" checked={cfg.show_referred_by === true} onChange={(e) => setCfg('show_referred_by', e.target.checked)} />
+        <span>Show <strong>Referred by</strong></span>
+      </label>
 
       <div className="section-heading">Preferred date and time</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -8016,11 +8023,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               show_phone: data.booking_form_config.show_phone !== false,
               show_address: data.booking_form_config.show_address !== false,
               show_notes: data.booking_form_config.show_notes !== false,
+              show_referred_by: data.booking_form_config.show_referred_by === true,
               preferred_dates_mode: ['none', 'one', 'three'].includes(data.booking_form_config.preferred_dates_mode) ? data.booking_form_config.preferred_dates_mode : 'one',
               service_placeholder: data.booking_form_config.service_placeholder || '',
               notes_placeholder: data.booking_form_config.notes_placeholder || '',
             }
-          : { show_phone: true, show_address: true, show_notes: true, preferred_dates_mode: 'one', service_placeholder: '', notes_placeholder: '' },
+          : { show_phone: true, show_address: true, show_notes: true, show_referred_by: false, preferred_dates_mode: 'one', service_placeholder: '', notes_placeholder: '' },
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -9900,6 +9908,7 @@ function OnboardingPage({ session, onDone }) {
     show_phone: true,
     show_address: true,
     show_notes: true,
+    show_referred_by: false,
     preferred_dates_mode: 'one',
     service_placeholder: '',
     notes_placeholder: '',
@@ -11397,6 +11406,7 @@ function PublicBookingView({ slug }) {
     setSlots((arr) => arr.map((s, idx) => (idx === i ? { ...s, [key]: value } : s)));
   }
   const [notes, setNotes] = useState('');
+  const [referredBy, setReferredBy] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -11430,6 +11440,7 @@ function PublicBookingView({ slug }) {
           service_description: service,
           preferred_slots: visibleSlots,
           notes,
+          referred_by: referredBy,
           website,
         },
       });
@@ -11476,6 +11487,7 @@ function PublicBookingView({ slug }) {
   const showPhone = cfg.show_phone !== false;
   const showAddress = cfg.show_address !== false;
   const showNotes = cfg.show_notes !== false;
+  const showReferredBy = cfg.show_referred_by === true;
   const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
   const servicePlaceholder = cfg.service_placeholder || "Brief description of the service you'd like";
   const notesPlaceholder = cfg.notes_placeholder || 'Anything else they should know?';
@@ -11539,6 +11551,13 @@ function PublicBookingView({ slug }) {
             <>
               <label>Notes <span className="hint">(optional)</span></label>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={notesPlaceholder} />
+            </>
+          )}
+
+          {showReferredBy && (
+            <>
+              <label>Referred by <span className="hint">(optional)</span></label>
+              <input value={referredBy} onChange={(e) => setReferredBy(e.target.value)} placeholder="How did you hear about us?" />
             </>
           )}
 

@@ -74,6 +74,7 @@ function normalizeBookingFormConfig(value) {
     show_phone: v.show_phone !== false,
     show_address: v.show_address !== false,
     show_notes: v.show_notes !== false,
+    show_referred_by: v.show_referred_by === true,
     preferred_dates_mode: mode,
     service_placeholder: typeof v.service_placeholder === 'string' ? v.service_placeholder.slice(0, 200) : '',
     notes_placeholder: typeof v.notes_placeholder === 'string' ? v.notes_placeholder.slice(0, 200) : '',

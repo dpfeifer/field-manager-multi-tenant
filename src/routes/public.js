@@ -38,6 +38,7 @@ router.get('/orgs/:slug', async (req, res, next) => {
         show_phone: cfg.show_phone !== false,
         show_address: cfg.show_address !== false,
         show_notes: cfg.show_notes !== false,
+        show_referred_by: cfg.show_referred_by === true,
         preferred_dates_mode: ['none', 'one', 'three'].includes(cfg.preferred_dates_mode) ? cfg.preferred_dates_mode : 'one',
         service_placeholder: typeof cfg.service_placeholder === 'string' ? cfg.service_placeholder : '',
         notes_placeholder: typeof cfg.notes_placeholder === 'string' ? cfg.notes_placeholder : '',
@@ -107,6 +108,7 @@ router.post('/book/:slug', async (req, res, next) => {
   const preferred_date = preferred_slots[0] ? preferred_slots[0].date : null;
   const preferred_time_window = preferred_slots[0] ? preferred_slots[0].window : 'anytime';
   const notes = (b.notes || '').trim() || null;
+  const referred_by = (b.referred_by || '').trim().slice(0, 200) || null;
 
   if (!requester_name) return res.status(400).json({ error: 'Name is required' });
   if (!requester_email && !requester_phone) {
@@ -130,11 +132,11 @@ router.post('/book/:slug', async (req, res, next) => {
     const inserted = await query(
       `INSERT INTO booking_requests
         (organization_id, requester_name, requester_email, requester_phone, requester_address,
-         service_description, preferred_date, preferred_time_window, notes, preferred_slots)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+         service_description, preferred_date, preferred_time_window, notes, preferred_slots, referred_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
        RETURNING id, created_at`,
       [org.id, requester_name, requester_email, requester_phone, requester_address,
-       service_description, preferred_date, preferred_time_window, notes, JSON.stringify(preferred_slots)]
+       service_description, preferred_date, preferred_time_window, notes, JSON.stringify(preferred_slots), referred_by]
     );
 
     let notifyTo = org.settings_email;
@@ -159,6 +161,7 @@ router.post('/book/:slug', async (req, res, next) => {
           ? `<p style="margin:12px 0 0;"><strong>Preferred ${preferred_slots.length > 1 ? 'dates' : 'date'}:</strong><br/>${preferred_slots.map((s) => `${escapeHtml(s.date)} (${escapeHtml(s.window)})`).join('<br/>')}</p>`
           : '',
         notes ? `<p style="margin:12px 0 0;">Notes:<br/>${escapeHtml(notes).replace(/\n/g, '<br/>')}</p>` : '',
+        referred_by ? `<p style="margin:12px 0 0;">Referred by: ${escapeHtml(referred_by)}</p>` : '',
       ].filter(Boolean).join('');
       const html = `
         <!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif; padding:24px; max-width:600px;">
