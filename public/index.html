@@ -2124,6 +2124,7 @@
       max-width: 920px; margin: 0 auto;
       padding: 80px 32px;
       text-align: center;
+      scroll-margin-top: 24px;
     }
     .ed-pricing .ed-eyebrow { margin-bottom: 22px; }
     .ed-pricing-headline {
@@ -3869,7 +3870,7 @@ function ChapterMock({ kind }) {
 
 function LandingPricing() {
   return (
-    <section className="ed-pricing" data-reveal>
+    <section id="pricing" className="ed-pricing" data-reveal>
       <p className="ed-eyebrow">The pricing page</p>
       <h2 className="ed-pricing-headline">
         Free to start.<br /><em>Pro when you grow.</em>
@@ -3948,6 +3949,21 @@ const INDUSTRIES = [
 // Length must be INDUSTRIES.length - 1 (one delay between each pair of words).
 const CYCLE_DELAYS = [820, 580, 400, 270, 195, 165, 150, 150, 150, 150, 150, 165, 195, 270, 400, 580, 820];
 
+function StaticHeadline() {
+  return (
+    <h1 className="ed-hero-headline fade-in-delay-1">
+      Built for the work,<br />
+      <em>not the boardroom.</em>
+    </h1>
+  );
+}
+
+function HeroHeadline() {
+  const variant = (typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('v') === 'b') ? 'b' : 'a';
+  return variant === 'b' ? <StaticHeadline /> : <CyclingHeadline />;
+}
+
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
   const reachedEnd = idx >= INDUSTRIES.length - 1;
@@ -4009,6 +4025,13 @@ function LandingPage() {
       <nav className="ed-nav">
         <div className="ed-brand">Field Manager</div>
         <div className="ed-nav-actions">
+          <button
+            className="ed-nav-link"
+            onClick={() => {
+              const el = document.getElementById('pricing');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >Pricing</button>
           <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
           <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
         </div>
@@ -4017,7 +4040,7 @@ function LandingPage() {
       <header className="ed-hero">
         <div className="ed-hero-text">
           <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-          <CyclingHeadline />
+          <HeroHeadline />
           <p className="ed-hero-lede fade-in-delay-2">
             For the one-person shops and family crews who run their week off a kitchen-counter notebook.
           </p>
