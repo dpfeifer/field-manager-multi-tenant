@@ -3929,19 +3929,25 @@ const INDUSTRIES = [
   'handyman',
   'pet care',
   'painting',
+  'mobile detailing',
   'barber shop',
   'pool service',
+  'snow removal',
+  'power washing',
   'photography',
+  'electrical',
   'plumbing',
+  'roofing',
   'catering',
   'tutoring',
+  'HVAC',
   'construction',
   'business',
 ];
 
 // Per-transition delays, in ms. Slot-wheel feel: warm-up, peak speed, decelerate, settle.
 // Length must be INDUSTRIES.length - 1 (one delay between each pair of words).
-const CYCLE_DELAYS = [680, 450, 300, 220, 175, 150, 150, 175, 220, 300, 450, 750];
+const CYCLE_DELAYS = [680, 450, 300, 220, 175, 150, 150, 150, 150, 150, 150, 150, 150, 175, 220, 300, 450, 750];
 
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
