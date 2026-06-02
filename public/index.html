@@ -3941,18 +3941,29 @@ const INDUSTRIES = [
   'business',
 ];
 
+// Per-transition delays, in ms. Slot-wheel feel: warm-up, peak speed, decelerate, settle.
+// Length must be INDUSTRIES.length - 1 (one delay between each pair of words).
+const CYCLE_DELAYS = [330, 210, 140, 100, 85, 85, 100, 130, 170, 230, 320, 440, 600, 800];
+
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
   const reachedEnd = idx >= INDUSTRIES.length - 1;
   useEffect(() => {
     if (reachedEnd) return;
-    const t = setTimeout(() => setIdx(i => i + 1), 460);
+    const delay = CYCLE_DELAYS[idx] || 460;
+    const t = setTimeout(() => setIdx(i => i + 1), delay);
     return () => clearTimeout(t);
   }, [idx, reachedEnd]);
+  // Match animation duration to the cycle delay so the slide stays continuous.
+  const animDuration = reachedEnd ? null : `${CYCLE_DELAYS[idx] || 460}ms`;
   return (
     <h1 className="ed-hero-headline fade-in-delay-1">
       Run your<br />
-      <em key={idx} className={`cycle-word${reachedEnd ? ' cycle-settled' : ''}`}>{INDUSTRIES[idx]}</em><br />
+      <em
+        key={idx}
+        className={`cycle-word${reachedEnd ? ' cycle-settled' : ''}`}
+        style={animDuration ? { animationDuration: animDuration } : undefined}
+      >{INDUSTRIES[idx]}</em><br />
       in one place.
     </h1>
   );
