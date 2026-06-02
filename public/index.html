@@ -7282,7 +7282,10 @@ function InvoicesView({ session }) {
                 {canMutate && (
                   <div className="actions">
                     {/* Primary actions first so they land on the first row when
-                        the cluster wraps on mobile: Mark paid/unpaid + Copy link. */}
+                        the cluster wraps on mobile. */}
+                    {inv.status === 'draft' && (
+                      <button className="primary" onClick={() => transition(inv.id, 'send')}>Mark as sent</button>
+                    )}
                     {inv.status === 'sent' && (
                       <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
                     )}
