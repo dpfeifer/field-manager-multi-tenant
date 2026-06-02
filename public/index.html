@@ -2152,10 +2152,18 @@
       font-family: var(--serif); font-weight: 500;
       font-size: clamp(28px, 3.8vw, 44px);
       line-height: 1.1; letter-spacing: -0.025em;
-      margin: 0 0 48px; color: var(--text);
+      margin: 0 0 24px; color: var(--text);
     }
     .ed-pricing-headline em {
       font-style: italic; color: var(--accent);
+    }
+    .ed-pricing-context {
+      max-width: 540px; margin: 0 auto 40px;
+      font-size: 15px; line-height: 1.6;
+      color: var(--text-muted);
+    }
+    .ed-pricing-context strong {
+      color: var(--text); font-weight: 600;
     }
     .ed-pricing-grid {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -3896,6 +3904,9 @@ function LandingPricing() {
       <h2 className="ed-pricing-headline">
         Free to start.<br /><em>Pro when you grow.</em>
       </h2>
+      <p className="ed-pricing-context">
+        Most field-service software starts at <strong>$69/mo</strong> or higher, charges <strong>per seat</strong>, or hides its pricing behind a <strong>sales call</strong>. Field Manager doesn't.
+      </p>
       <div className="ed-pricing-grid">
         <div className="ed-plan">
           <div className="ed-plan-name">Free</div>
