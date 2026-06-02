@@ -8657,6 +8657,9 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             <p className="hint" style={{ marginTop: 4 }}>
               Shows a "Pay now" button on every invoice link. If you paste a Stripe Payment Link or PayPal.me URL, the invoice total is filled in for you.
             </p>
+            <p className="hint" style={{ marginTop: 4, color: 'var(--text)' }}>
+              <strong>Heads up:</strong> Field Manager doesn't talk to your payment processor — you'll need to click <em>Mark paid</em> on the invoice once the money lands.
+            </p>
           </div>
           <div className="full">
             <label>Venmo handle <span className="hint">(without the @)</span></label>
@@ -11620,7 +11623,7 @@ function PublicInvoiceView({ id }) {
               Pay {formatPrice(math.total)}
             </a>
             <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-              Securely via your card processor.
+              Once you pay, {invoice.company_name || invoice.organization_name} will mark this invoice as paid in their records — it may take a few hours to update here.
             </p>
           </div>
         )}
@@ -11632,6 +11635,11 @@ function PublicInvoiceView({ id }) {
             <a href={`https://venmo.com/${invoice.venmo_handle}?txn=pay&amount=${math.total.toFixed(2)}&note=Invoice%20%23${invoice.invoice_number}`} target="_blank" rel="noopener noreferrer">
               Open Venmo
             </a>
+            {!invoice.payment_link_url && (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                After payment, {invoice.company_name || invoice.organization_name} will mark this invoice as paid in their records.
+              </p>
+            )}
           </div>
         )}
 
