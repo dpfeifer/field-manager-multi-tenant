@@ -1761,6 +1761,349 @@
       .narrative-cinematic .beat.flip .beat-visual { order: 2; }
     }
 
+    /* === Editorial landing === */
+    .landing-editorial { background: var(--bg); color: var(--text); }
+    .ed-nav {
+      max-width: 1240px; margin: 0 auto;
+      padding: 28px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ed-brand {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 20px; letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .ed-nav-actions { display: flex; align-items: center; gap: 18px; }
+    .ed-nav-link {
+      background: none; border: none; cursor: pointer;
+      font-size: 14px; color: var(--text-muted);
+      font-family: inherit; padding: 6px 4px;
+    }
+    .ed-nav-link:hover { color: var(--text); }
+    .ed-nav-cta {
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: 999px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .ed-nav-cta:hover { transform: translateY(-1px); opacity: 0.92; }
+
+    .ed-hero {
+      max-width: 1240px; margin: 0 auto;
+      padding: 80px 32px 120px;
+      display: grid; grid-template-columns: 1.05fr 0.95fr;
+      gap: 72px; align-items: center;
+      position: relative;
+    }
+    .ed-hero-text { max-width: 560px; }
+    .ed-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.22em;
+      color: var(--text-muted); margin-bottom: 28px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ed-hero-headline {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(40px, 5.8vw, 76px);
+      line-height: 1.02; letter-spacing: -0.035em;
+      margin: 0 0 28px; color: var(--text);
+    }
+    .ed-hero-headline em {
+      font-style: italic; font-weight: 500;
+      color: var(--accent);
+    }
+    .ed-hero-lede {
+      font-size: 18px; line-height: 1.6;
+      color: var(--text-muted); margin: 0 0 36px;
+      max-width: 480px;
+    }
+    .ed-hero-actions {
+      display: flex; align-items: center; gap: 24px;
+      flex-wrap: wrap;
+    }
+    .ed-hero-actions .primary {
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: 999px;
+      padding: 16px 28px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 10px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.2s ease;
+    }
+    .ed-hero-actions .primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+    }
+    .ed-hero-note {
+      font-size: 13px; color: var(--text-muted);
+      line-height: 1.5; max-width: 280px;
+    }
+
+    /* hero collage: 4 polaroid-style tiles in an asymmetric grid */
+    .ed-hero-collage {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 22px;
+      min-height: 560px;
+    }
+    .ed-photo {
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      padding: 14px 14px 18px;
+      box-shadow: 0 18px 50px -22px rgba(40, 30, 20, 0.35);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.5s ease;
+    }
+    .ed-photo:hover {
+      transform: translateY(-4px) rotate(0deg) !important;
+      box-shadow: 0 28px 64px -22px rgba(40, 30, 20, 0.5);
+      z-index: 2;
+    }
+    .ed-photo-1 { transform: rotate(-3.2deg); margin-top: 18px; }
+    .ed-photo-2 { transform: rotate(2.4deg); margin-top: 0; }
+    .ed-photo-3 { transform: rotate(1.6deg); margin-top: -10px; }
+    .ed-photo-4 { transform: rotate(-2.0deg); margin-top: 24px; }
+    .ed-photo-frame {
+      aspect-ratio: 4 / 3;
+      border-radius: 2px;
+      background-size: cover;
+      background-position: center;
+      background-color: var(--tinted);
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* TODO: swap these background-image values with real service-work photos */
+    .ed-photo-mow {
+      background-image:
+        linear-gradient(135deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 50%),
+        linear-gradient(180deg, #8aa46a 0%, #4f6e3a 60%, #2f4422 100%);
+    }
+    .ed-photo-mow::after {
+      content: ''; position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.04) 0 6px,
+        rgba(0,0,0,0.04) 6px 12px
+      );
+    }
+    .ed-photo-clean {
+      background-image:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.5) 0%, transparent 35%),
+        linear-gradient(160deg, #e8e0d4 0%, #c8bdaa 100%);
+    }
+    .ed-photo-truck {
+      background-image:
+        linear-gradient(180deg, #d8c3a2 0%, #a08560 60%, #5e4a30 100%);
+    }
+    .ed-photo-truck::after {
+      content: ''; position: absolute;
+      left: 18%; right: 18%; bottom: 22%;
+      height: 32%;
+      background: #2a2018; border-radius: 4px 4px 2px 2px;
+      box-shadow: 0 4px 0 -1px #1a1410;
+    }
+    .ed-photo-tools {
+      background-image:
+        linear-gradient(135deg, #3a3530 0%, #1f1c19 100%);
+    }
+    .ed-photo-tools::after {
+      content: ''; position: absolute;
+      top: 30%; left: 12%; right: 12%; height: 6%;
+      background: linear-gradient(90deg, #c0a070, #d8b889, #c0a070);
+      border-radius: 2px;
+      box-shadow: 0 30px 0 -2px #b89060;
+    }
+    .ed-photo-tag {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .ed-photo-caption {
+      font-family: var(--serif); font-style: italic;
+      font-size: 14px; color: var(--text);
+      line-height: 1.35;
+    }
+    @media (max-width: 980px) {
+      .ed-hero {
+        grid-template-columns: 1fr; gap: 56px;
+        padding: 48px 24px 80px;
+      }
+      .ed-hero-collage { min-height: 420px; }
+    }
+    @media (max-width: 600px) {
+      .ed-hero-collage { gap: 16px; min-height: 360px; }
+      .ed-photo { padding: 10px 10px 14px; }
+      .ed-photo-caption { font-size: 12px; }
+    }
+
+    /* bridge & chapters */
+    .ed-bridge {
+      max-width: 720px; margin: 0 auto;
+      padding: 80px 32px;
+      text-align: center;
+    }
+    .ed-bridge-rule {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.24em;
+      color: var(--accent); margin: 0 0 28px;
+    }
+    .ed-bridge-body {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(22px, 2.6vw, 30px);
+      line-height: 1.45; letter-spacing: -0.015em;
+      color: var(--text); margin: 0;
+    }
+
+    .ed-chapters {
+      max-width: 1080px; margin: 0 auto;
+      padding: 40px 32px 96px;
+    }
+    .ed-chapter {
+      display: grid; grid-template-columns: 120px 1fr;
+      gap: 48px; padding: 56px 0;
+      border-top: 1px solid var(--border);
+    }
+    .ed-chapter:last-child { border-bottom: 1px solid var(--border); }
+    .ed-chapter-num {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 64px; line-height: 0.9;
+      color: var(--accent); letter-spacing: -0.03em;
+    }
+    .ed-chapter-body-col { max-width: 640px; }
+    .ed-chapter-kicker {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--text-muted); margin: 8px 0 14px;
+    }
+    .ed-chapter-title {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1.1; letter-spacing: -0.025em;
+      margin: 0 0 16px; color: var(--text);
+    }
+    .ed-chapter-prose {
+      font-size: 17px; line-height: 1.65;
+      color: var(--text-muted); margin: 0;
+    }
+    .ed-chapter-prose em {
+      font-style: italic; color: var(--text);
+    }
+    @media (max-width: 720px) {
+      .ed-chapter {
+        grid-template-columns: 1fr; gap: 16px;
+        padding: 40px 0;
+      }
+      .ed-chapter-num { font-size: 48px; }
+    }
+
+    /* FAQ */
+    .ed-faq {
+      max-width: 880px; margin: 0 auto;
+      padding: 80px 32px;
+    }
+    .ed-faq-header {
+      text-align: center; margin-bottom: 48px;
+    }
+    .ed-faq-title {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(28px, 3.6vw, 44px);
+      letter-spacing: -0.025em; margin: 14px 0 0;
+      color: var(--text);
+    }
+    .ed-faq-list {
+      border-top: 1px solid var(--border);
+    }
+    .ed-faq-item {
+      border-bottom: 1px solid var(--border);
+    }
+    .ed-faq-item summary {
+      list-style: none; cursor: pointer;
+      padding: 28px 0;
+      display: grid; grid-template-columns: 56px 1fr 32px;
+      align-items: center; gap: 20px;
+      transition: opacity 0.2s ease;
+    }
+    .ed-faq-item summary::-webkit-details-marker { display: none; }
+    .ed-faq-item summary:hover { opacity: 0.7; }
+    .ed-faq-num {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 22px; color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+    .ed-faq-q {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(18px, 2vw, 22px);
+      letter-spacing: -0.015em;
+      color: var(--text);
+    }
+    .ed-faq-toggle {
+      font-size: 22px; font-weight: 300;
+      color: var(--text-muted); text-align: right;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ed-faq-item[open] .ed-faq-toggle {
+      transform: rotate(45deg);
+    }
+    .ed-faq-a {
+      padding: 0 0 28px 76px;
+      font-size: 16px; line-height: 1.65;
+      color: var(--text-muted);
+      max-width: 660px;
+    }
+    @media (max-width: 600px) {
+      .ed-faq-item summary {
+        grid-template-columns: 36px 1fr 24px;
+        gap: 12px; padding: 22px 0;
+      }
+      .ed-faq-num { font-size: 16px; }
+      .ed-faq-a { padding-left: 48px; }
+    }
+
+    /* close */
+    .ed-close {
+      max-width: 760px; margin: 0 auto;
+      padding: 120px 32px 80px;
+      text-align: center;
+    }
+    .ed-close-rule {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.24em;
+      color: var(--accent); margin: 0 0 28px;
+    }
+    .ed-close-headline {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(32px, 4.8vw, 56px);
+      line-height: 1.1; letter-spacing: -0.03em;
+      margin: 0 0 40px; color: var(--text);
+    }
+    .ed-close-headline em {
+      font-style: italic; color: var(--accent);
+    }
+    .ed-close .primary {
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: 999px;
+      padding: 16px 32px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 10px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.2s ease;
+    }
+    .ed-close .primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+    }
+    .ed-close-note {
+      margin: 24px 0 0; font-size: 13px;
+      color: var(--text-muted);
+    }
+
     /* === Process flow section === */
     .flow-section {
       padding: 120px 24px 80px;
@@ -3138,228 +3481,6 @@ function LoginForm({ onSuccess }) {
   );
 }
 
-const INDUSTRIES = [
-  'lawn care business',
-  'cleaning business',
-  'handyman business',
-  'pet care business',
-  'barber business',
-  'pool service business',
-  'photography business',
-  'landscaping business',
-  'painting business',
-  'plumbing business',
-  'tree care business',
-  'catering business',
-  'dog walking business',
-  'tutoring business',
-  'business',
-];
-
-function CyclingHeadline() {
-  const [idx, setIdx] = useState(0);
-  const reachedEnd = idx >= INDUSTRIES.length - 1;
-
-  useEffect(() => {
-    if (reachedEnd) return;
-    const t = setTimeout(() => setIdx(i => i + 1), 380);
-    return () => clearTimeout(t);
-  }, [idx, reachedEnd]);
-
-  return (
-    <h1 className="fade-in-delay-1 hero-stacked">
-      <span className="hero-line">Run your</span>
-      <span className="hero-cycle-line">
-        <span className={`cycle-word${reachedEnd ? ' settled' : ''}`} key={idx}>{INDUSTRIES[idx]}</span>
-      </span>
-      <span className="hero-line">in one place.</span>
-    </h1>
-  );
-}
-
-const NARRATIVE_BEATS = [
-  {
-    eyebrow: 'In one place',
-    headline: 'Customers, jobs, invoices — all together.',
-    body: "Stop juggling spreadsheets, calendar apps, and text threads. Field Manager keeps the entire workflow connected — quote becomes customer, customer becomes job, job becomes invoice — without you copy-pasting between five tools.",
-    kind: 'workflow',
-  },
-  {
-    eyebrow: 'Quick start',
-    headline: 'Up and running in 60 seconds.',
-    body: "Email and password. Done. No demo gates, no credit card, no sales calls. Start free — you can have up to 5 customers and 20 jobs before you ever pay a cent. Upgrade when you outgrow it.",
-    kind: 'signup',
-  },
-  {
-    eyebrow: 'Honest pricing',
-    headline: 'Free to start. $29/mo when you scale.',
-    body: 'Run a small operation? Free forever — 5 customers, 20 jobs, no card on file. Outgrew that? Pro is a flat $29/mo. Jobber starts at $69. ServiceTitan is enterprise-only. Housecall Pro hides its price behind sales calls. We do not.',
-    kind: 'price',
-  },
-  {
-    eyebrow: 'Your kit, your choice',
-    headline: "Only the features you actually use.",
-    body: "Don't need invoices? Turn them off. Don't quote? Drop quotes from the nav. We won't bloat your dashboard with features you'll never touch. Opt-in modules — nothing forced.",
-    kind: 'modules',
-  },
-];
-
-function ScrnFrame({ url, children, className }) {
-  return (
-    <div className={`scrn-frame ${className || ''}`} aria-hidden="true">
-      <div className="scrn-bar">
-        <div className="scrn-dots"><span /><span /><span /></div>
-        <div className="scrn-url">{url || 'app.fieldmgr.com'}</div>
-      </div>
-      <div className="scrn-body">{children}</div>
-    </div>
-  );
-}
-
-function ScrnApp({ activeNav, children }) {
-  return (
-    <div className="scrn-app">
-      <div className="scrn-topbar">
-        <span className="scrn-brand">Bob's Lawn Care</span>
-        <span className="scrn-userpill">B</span>
-      </div>
-      <div className="scrn-nav">
-        {['Dashboard','Schedule','Customers','Invoices','Quotes'].map((n) => (
-          <span key={n} className={`scrn-tab ${n === activeNav ? 'on' : ''}`}>{n}</span>
-        ))}
-      </div>
-      <div className="scrn-page">{children}</div>
-    </div>
-  );
-}
-
-function BeatVisual({ kind }) {
-  if (kind === 'workflow') {
-    return (
-      <ScrnFrame url="app.fieldmgr.com/customers/heather-stahl" className="">
-        <ScrnApp activeNav="Customers">
-          <div className="scrn-pageheader">
-            <h4>Heather Stahl</h4>
-            <span className="scrn-pill scrn-pill-good">Weekly · since Apr 2026</span>
-          </div>
-          <div className="scrn-detail-row">
-            <div className="scrn-detail-cell"><span>Phone</span><strong>(216) 555-0142</strong></div>
-            <div className="scrn-detail-cell"><span>Where</span><strong>412 Maple Ave</strong></div>
-          </div>
-          <div className="scrn-card">
-            <div className="scrn-card-label">Upcoming visits</div>
-            <div className="scrn-row"><span>Fri Jun 12 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
-            <div className="scrn-row"><span>Fri Jun 19 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
-            <div className="scrn-row"><span>Fri Jun 26 · 8:00 AM <em>mow + trim</em></span><span className="scrn-amt">$65</span></div>
-          </div>
-          <div className="scrn-card scrn-card-tight">
-            <div className="scrn-card-label">Recent invoices</div>
-            <div className="scrn-row"><span>#1024 · May 31</span><span className="scrn-tag scrn-tag-paid">Paid · $260</span></div>
-            <div className="scrn-row"><span>#1019 · Apr 30</span><span className="scrn-tag scrn-tag-paid">Paid · $260</span></div>
-          </div>
-          <div className="scrn-note">
-            <span className="scrn-note-label">Note · Jun 4</span>
-            <span>Watch for the dog around back. Owner home most Fridays.</span>
-          </div>
-        </ScrnApp>
-      </ScrnFrame>
-    );
-  }
-  if (kind === 'signup') {
-    return (
-      <ScrnFrame url="fieldmgr.com/signup" className="">
-        <div className="scrn-signup">
-          <div className="scrn-brand-row">Field Manager</div>
-          <h4 className="scrn-signup-h">Create your account</h4>
-          <p className="scrn-signup-sub">Free forever for small operations.</p>
-          <div className="scrn-field">
-            <span className="scrn-label">Business name</span>
-            <span className="scrn-input">Bob's Lawn Care</span>
-          </div>
-          <div className="scrn-field">
-            <span className="scrn-label">Email</span>
-            <span className="scrn-input">bob@lawncare.com</span>
-          </div>
-          <div className="scrn-field">
-            <span className="scrn-label">Password</span>
-            <span className="scrn-input">••••••••••</span>
-          </div>
-          <div className="scrn-cta">Start free</div>
-          <div className="scrn-fineprint">No credit card · ~60 seconds</div>
-        </div>
-      </ScrnFrame>
-    );
-  }
-  if (kind === 'price') {
-    const rows = [
-      { name: 'Field Manager Free', price: '$0',          highlight: 'free' },
-      { name: 'Field Manager Pro',  price: '$29/mo',      highlight: 'pro' },
-      { name: 'Jobber',             price: '$69+/mo',     dim: true },
-      { name: 'ServiceTitan',       price: 'Call sales',  dim: true },
-      { name: 'Housecall Pro',      price: 'Call sales',  dim: true },
-    ];
-    return (
-      <div className="visual visual-price" aria-hidden="true">
-        {rows.map((r) => (
-          <div key={r.name} className={`vp-row ${r.highlight ? 'vp-highlight vp-' + r.highlight : ''} ${r.dim ? 'vp-dim' : ''}`}>
-            <span className="vp-name">{r.name}</span>
-            <span className="vp-price">{r.price}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (kind === 'modules') {
-    return (
-      <ScrnFrame url="app.fieldmgr.com/settings/modules" className="">
-        <ScrnApp activeNav="Settings">
-          <div className="scrn-subnav">
-            <span>Company</span><span>Terminology</span><span className="on">Modules</span>
-          </div>
-          <div className="scrn-mod-row">
-            <span className="scrn-mod-toggle on"><span className="scrn-mod-knob" /></span>
-            <div className="scrn-mod-text">
-              <div className="scrn-mod-label">Invoices</div>
-              <div className="scrn-mod-sub">Bill customers, accept payments via public link.</div>
-            </div>
-          </div>
-          <div className="scrn-mod-row">
-            <span className="scrn-mod-toggle"><span className="scrn-mod-knob" /></span>
-            <div className="scrn-mod-text">
-              <div className="scrn-mod-label">Quotes <span className="scrn-mod-off-pill">off</span></div>
-              <div className="scrn-mod-sub">Prospect estimates that convert to customers.</div>
-            </div>
-          </div>
-          <div className="scrn-mod-row">
-            <span className="scrn-mod-toggle on"><span className="scrn-mod-knob" /></span>
-            <div className="scrn-mod-text">
-              <div className="scrn-mod-label">Reports</div>
-              <div className="scrn-mod-sub">Revenue dashboard, projected income, top customers.</div>
-            </div>
-          </div>
-        </ScrnApp>
-      </ScrnFrame>
-    );
-  }
-  return null;
-}
-
-function Narrative() {
-  return (
-    <div className="narrative narrative-cinematic">
-      {NARRATIVE_BEATS.map((beat, i) => (
-        <section key={i} className={`beat ${i % 2 === 1 ? 'flip' : ''}`} data-reveal>
-          <div className="beat-text">
-            <div className="beat-eyebrow">{beat.eyebrow}</div>
-            <h2 className="beat-headline">{beat.headline}</h2>
-            <p className="beat-body">{beat.body}</p>
-          </div>
-          <div className="beat-visual"><BeatVisual kind={beat.kind} /></div>
-        </section>
-      ))}
-    </div>
-  );
-}
 
 function ProcessFlowSection() {
   const steps = [
@@ -3501,52 +3622,133 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="landing">
-      <nav className="landing-nav">
-        <div className="brand">Field Manager</div>
-        <div className="nav-actions">
-          <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
-          <button className="primary" onClick={() => navigate('/signup')}>Get started</button>
+    <div className="landing landing-editorial">
+      <nav className="ed-nav">
+        <div className="ed-brand">Field Manager</div>
+        <div className="ed-nav-actions">
+          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
         </div>
       </nav>
 
-      <header className="landing-hero">
-        <span className="hero-orb orb-a" aria-hidden="true" />
-        <span className="hero-orb orb-b" aria-hidden="true" />
-        <span className="hero-orb orb-c" aria-hidden="true" />
-
-        <span className="eyebrow fade-in">For small service teams</span>
-        <CyclingHeadline />
-        <p className="lede fade-in-delay-2">
-          Customers, recurring schedules, invoices, and quotes — built for the small teams that show up on time, do the work, and deserve to get paid promptly.
-        </p>
-        <div className="cta-row fade-in-delay-3">
-          <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-          <button className="secondary" onClick={() => navigate('/signin')}>Sign in</button>
+      <header className="ed-hero">
+        <div className="ed-hero-text">
+          <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
+          <h1 className="ed-hero-headline fade-in-delay-1">
+            Software is everywhere. <em>Service that shows up</em> — that's rarer.
+          </h1>
+          <p className="ed-hero-lede fade-in-delay-2">
+            For the one-person shops and family crews who run their week off a kitchen-counter notebook. We're the rail underneath, not another app to learn.
+          </p>
+          <div className="ed-hero-actions fade-in-delay-3">
+            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+            <span className="ed-hero-note">No card · Five customers on the house · $29/mo when you scale</span>
+          </div>
         </div>
-        <p className="fade-in-delay-3" style={{ marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
-          <strong style={{ color: 'var(--text)' }}>Free forever</strong> for small operations · <strong style={{ color: 'var(--text)' }}>$29/mo</strong> when you scale · No credit card
-        </p>
-
-        <div className="hero-marquee" aria-hidden="true">
-          <div className="marquee-track">
-            {['Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service','Lawn care','House cleaning','Handyman','Pet care','Barber','Photography','Landscaping','Painting','Plumbing','Tree care','Catering','Dog walking','Tutoring','Pool service'].map((s, i) => (
-              <span key={i} className="marquee-item">{s}<span className="marquee-dot">●</span></span>
-            ))}
+        <div className="ed-hero-collage" aria-hidden="true">
+          <div className="ed-photo ed-photo-1">
+            <div className="ed-photo-frame ed-photo-mow" />
+            <div className="ed-photo-tag">Tuesday · 7:12 AM</div>
+            <div className="ed-photo-caption">First mow of the morning</div>
+          </div>
+          <div className="ed-photo ed-photo-2">
+            <div className="ed-photo-frame ed-photo-clean" />
+            <div className="ed-photo-tag">Apt 4B · Wells building</div>
+            <div className="ed-photo-caption">Cleaned. Keys back under the mat.</div>
+          </div>
+          <div className="ed-photo ed-photo-3">
+            <div className="ed-photo-frame ed-photo-truck" />
+            <div className="ed-photo-tag">Trip log · Friday</div>
+            <div className="ed-photo-caption">Six stops · 47 miles · all paid</div>
+          </div>
+          <div className="ed-photo ed-photo-4">
+            <div className="ed-photo-frame ed-photo-tools" />
+            <div className="ed-photo-tag">Crowley residence</div>
+            <div className="ed-photo-caption">Hedge trim — done in 38 min.</div>
           </div>
         </div>
       </header>
 
-      <Narrative />
+      <section className="ed-bridge" data-reveal>
+        <p className="ed-bridge-rule">— Welcome to the small operation —</p>
+        <p className="ed-bridge-body">
+          We didn't build for empire-sized fleets or franchisees. We built for the person who answers their own phone, drives their own truck, and remembers the dog's name at every account they service.
+        </p>
+      </section>
+
+      <section className="ed-chapters">
+        <article className="ed-chapter" data-reveal>
+          <div className="ed-chapter-num">01</div>
+          <div className="ed-chapter-body-col">
+            <p className="ed-chapter-kicker">The week, the way you think about it</p>
+            <h2 className="ed-chapter-title">A calendar that doesn't fight you.</h2>
+            <p className="ed-chapter-prose">
+              Monday through Sunday in a single view. Recurring routes set themselves the day they're created. The day-view is the operating mode — show up, hit complete, and move to the next address. Customers stay where you left them, with notes that don't disappear.
+            </p>
+          </div>
+        </article>
+        <article className="ed-chapter" data-reveal>
+          <div className="ed-chapter-num">02</div>
+          <div className="ed-chapter-body-col">
+            <p className="ed-chapter-kicker">Money, on autopilot</p>
+            <h2 className="ed-chapter-title">Invoices that bill themselves.</h2>
+            <p className="ed-chapter-prose">
+              Mark a job complete. On the first of the month, a draft invoice is waiting for every recurring customer — totals tallied, line items in order. Review, send, get paid. You don't manage spreadsheets. You don't even open them.
+            </p>
+          </div>
+        </article>
+        <article className="ed-chapter" data-reveal>
+          <div className="ed-chapter-num">03</div>
+          <div className="ed-chapter-body-col">
+            <p className="ed-chapter-kicker">Yours, not ours</p>
+            <h2 className="ed-chapter-title">Your terms. Your customers. Your data.</h2>
+            <p className="ed-chapter-prose">
+              Call them <em>customers</em>, <em>clients</em>, <em>members</em>, whatever fits your trade — the app follows your language, not the other way around. Export everything any time. Cancel any time. We've made it easy to leave because we'd rather earn each month.
+            </p>
+          </div>
+        </article>
+        <article className="ed-chapter" data-reveal>
+          <div className="ed-chapter-num">04</div>
+          <div className="ed-chapter-body-col">
+            <p className="ed-chapter-kicker">Built for the route, not the boardroom</p>
+            <h2 className="ed-chapter-title">No managers. No dashboards-of-dashboards.</h2>
+            <p className="ed-chapter-prose">
+              Big-fleet software wants you to onboard a dispatcher. We don't. The home screen is your day. The week is your week. Reports exist if you want them, and they're a single page when you do.
+            </p>
+          </div>
+        </article>
+      </section>
+
       <ProcessFlowSection />
+
+      <section className="ed-faq" data-reveal>
+        <div className="ed-faq-header">
+          <p className="ed-eyebrow">Field notes</p>
+          <h2 className="ed-faq-title">For the curious and the cautious.</h2>
+        </div>
+        <div className="ed-faq-list">
+          {EDITORIAL_FAQ.map((item, i) => (
+            <details key={i} className="ed-faq-item">
+              <summary>
+                <span className="ed-faq-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="ed-faq-q">{item.q}</span>
+                <span className="ed-faq-toggle" aria-hidden="true">+</span>
+              </summary>
+              <div className="ed-faq-a">{item.a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
       <LandingPricing />
 
-      <section className="landing-section">
-        <div className="cta-band" data-reveal>
-          <h2>Start free. Grow at your pace.</h2>
-          <p>No credit card. Five customers and twenty jobs on the house. Upgrade to Pro when you're ready for more.</p>
-          <button className="primary" style={{ padding: '14px 28px', fontSize: 15 }} onClick={() => navigate('/signup')}>Create your free account</button>
-        </div>
+      <section className="ed-close" data-reveal>
+        <p className="ed-close-rule">— The work is the work —</p>
+        <h2 className="ed-close-headline">
+          Field Manager is the rail underneath. <em>You're the operator.</em>
+        </h2>
+        <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+        <p className="ed-close-note">Free forever for five customers · $29/mo when you scale · No card</p>
       </section>
 
       <footer className="landing-footer">
@@ -3560,6 +3762,29 @@ function LandingPage() {
     </div>
   );
 }
+
+const EDITORIAL_FAQ = [
+  {
+    q: 'Will it work for a one-person operation?',
+    a: 'Especially then. The whole product was sketched around a single person running their own week — the team layer is optional and stays out of the way until you grow into it.',
+  },
+  {
+    q: "What if I'm coming from a notebook or a spreadsheet?",
+    a: "Import your customers from CSV in about a minute, then add jobs as they come. Most people are running their week through Field Manager by day two. You don't have to migrate years of history to start.",
+  },
+  {
+    q: 'Do my customers see the same app I do?',
+    a: "Not yet. We're building a customer portal next. Today, customers receive invoices and quotes by email and can pay you online — that's the interaction surface.",
+  },
+  {
+    q: 'How does the pricing actually work?',
+    a: "Free forever if you have five customers or fewer and twenty jobs total. Pro is $29 a month, no per-seat fees, no per-customer fees, no surprise overages. When you grow past Free, we'll let you know — we won't lock you out.",
+  },
+  {
+    q: 'What if I want to leave?',
+    a: 'Export every customer, every job, every invoice as CSV any time, and cancel from your billing tab. We made it easy to leave on purpose. We\'d rather you stay because the product is the best fit, not because the door is welded shut.',
+  },
+];
 
 function AuthShell({ onSession }) {
   const path = useLocation();
