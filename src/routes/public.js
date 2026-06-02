@@ -16,7 +16,8 @@ router.get('/orgs/:slug', async (req, res, next) => {
       `SELECT o.id, o.name AS organization_name,
               s.company_name, s.logo_url,
               s.customer_label, s.customer_label_plural,
-              s.job_label, s.job_label_plural
+              s.job_label, s.job_label_plural,
+              s.booking_form_config
        FROM organizations o
        LEFT JOIN organization_settings s ON s.organization_id = o.id
        WHERE o.slug = $1 AND o.deleted_at IS NULL LIMIT 1`,
@@ -24,6 +25,7 @@ router.get('/orgs/:slug', async (req, res, next) => {
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     const row = rows[0];
+    const cfg = row.booking_form_config || {};
     res.json({
       id: row.id,
       name: row.company_name || row.organization_name,
@@ -32,6 +34,14 @@ router.get('/orgs/:slug', async (req, res, next) => {
       customer_label_plural: row.customer_label_plural || 'Customers',
       job_label: row.job_label || 'Job',
       job_label_plural: row.job_label_plural || 'Jobs',
+      booking_form_config: {
+        show_phone: cfg.show_phone !== false,
+        show_address: cfg.show_address !== false,
+        show_notes: cfg.show_notes !== false,
+        preferred_dates_mode: ['none', 'one', 'three'].includes(cfg.preferred_dates_mode) ? cfg.preferred_dates_mode : 'one',
+        service_placeholder: typeof cfg.service_placeholder === 'string' ? cfg.service_placeholder : '',
+        notes_placeholder: typeof cfg.notes_placeholder === 'string' ? cfg.notes_placeholder : '',
+      },
     });
   } catch (err) { next(err); }
 });
@@ -78,8 +88,24 @@ router.post('/book/:slug', async (req, res, next) => {
   const requester_phone = (b.requester_phone || '').trim() || null;
   const requester_address = (b.requester_address || '').trim() || null;
   const service_description = (b.service_description || '').trim();
-  const preferred_date = b.preferred_date || null;
-  const preferred_time_window = TIME_WINDOWS.has(b.preferred_time_window) ? b.preferred_time_window : 'anytime';
+  // Accept up to 3 (date, window) slots. Back-compat: if caller sent the
+  // legacy single preferred_date/preferred_time_window, treat that as one slot.
+  let slotsRaw = Array.isArray(b.preferred_slots) ? b.preferred_slots.slice(0, 3) : [];
+  if (slotsRaw.length === 0 && b.preferred_date) {
+    slotsRaw = [{ date: b.preferred_date, window: b.preferred_time_window }];
+  }
+  const preferred_slots = slotsRaw
+    .map((s) => {
+      if (!s || typeof s !== 'object') return null;
+      const date = typeof s.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.date) ? s.date : null;
+      if (!date) return null;
+      const window = TIME_WINDOWS.has(s.window) ? s.window : 'anytime';
+      return { date, window };
+    })
+    .filter(Boolean);
+  // Mirror the first slot into the legacy columns so older readers stay sane.
+  const preferred_date = preferred_slots[0] ? preferred_slots[0].date : null;
+  const preferred_time_window = preferred_slots[0] ? preferred_slots[0].window : 'anytime';
   const notes = (b.notes || '').trim() || null;
 
   if (!requester_name) return res.status(400).json({ error: 'Name is required' });
@@ -104,11 +130,11 @@ router.post('/book/:slug', async (req, res, next) => {
     const inserted = await query(
       `INSERT INTO booking_requests
         (organization_id, requester_name, requester_email, requester_phone, requester_address,
-         service_description, preferred_date, preferred_time_window, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         service_description, preferred_date, preferred_time_window, notes, preferred_slots)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
        RETURNING id, created_at`,
       [org.id, requester_name, requester_email, requester_phone, requester_address,
-       service_description, preferred_date, preferred_time_window, notes]
+       service_description, preferred_date, preferred_time_window, notes, JSON.stringify(preferred_slots)]
     );
 
     let notifyTo = org.settings_email;
@@ -129,7 +155,9 @@ router.post('/book/:slug', async (req, res, next) => {
         requester_phone ? `<p style="margin:0 0 6px;">Phone: ${escapeHtml(requester_phone)}</p>` : '',
         requester_address ? `<p style="margin:0 0 6px;">Address: ${escapeHtml(requester_address)}</p>` : '',
         `<p style="margin:12px 0 0;"><strong>What they need:</strong><br/>${escapeHtml(service_description).replace(/\n/g, '<br/>')}</p>`,
-        preferred_date ? `<p style="margin:12px 0 0;">Preferred date: ${escapeHtml(preferred_date)} (${escapeHtml(preferred_time_window)})</p>` : '',
+        preferred_slots.length > 0
+          ? `<p style="margin:12px 0 0;"><strong>Preferred ${preferred_slots.length > 1 ? 'dates' : 'date'}:</strong><br/>${preferred_slots.map((s) => `${escapeHtml(s.date)} (${escapeHtml(s.window)})`).join('<br/>')}</p>`
+          : '',
         notes ? `<p style="margin:12px 0 0;">Notes:<br/>${escapeHtml(notes).replace(/\n/g, '<br/>')}</p>` : '',
       ].filter(Boolean).join('');
       const html = `
@@ -139,7 +167,10 @@ router.post('/book/:slug', async (req, res, next) => {
           <p style="margin:24px 0 0;"><a href="${appUrl}/requests" style="display:inline-block; background:#4a5e7a; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none;">Review in Field Manager</a></p>
         </body></html>
       `;
-      const text = `New booking request for ${orgDisplayName}\n\n${requester_name}\n${requester_email || ''}\n${requester_phone || ''}\n\n${service_description}\n${preferred_date ? `\nPreferred: ${preferred_date} (${preferred_time_window})` : ''}\n\nReview: ${appUrl}/requests`;
+      const slotsText = preferred_slots.length > 0
+        ? `\nPreferred: ${preferred_slots.map((s) => `${s.date} (${s.window})`).join(', ')}`
+        : '';
+      const text = `New booking request for ${orgDisplayName}\n\n${requester_name}\n${requester_email || ''}\n${requester_phone || ''}\n\n${service_description}${slotsText}\n\nReview: ${appUrl}/requests`;
       sendEmail({
         to: notifyTo,
         subject: `New booking request from ${requester_name}`,

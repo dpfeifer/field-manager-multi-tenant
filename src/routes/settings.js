@@ -10,6 +10,7 @@ const FIELDS = [
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
   'about', 'sms_templates', 'dashboard_widgets',
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
+  'booking_form_config',
 ];
 
 const SELECT = `
@@ -19,6 +20,7 @@ const SELECT = `
          about, sms_templates, dashboard_widgets,
          auto_invoice_schedule, auto_invoice_day_of_month,
          auto_invoice_day_of_week, auto_invoice_last_run_at,
+         booking_form_config,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -65,6 +67,19 @@ function normalizeDashboardWidgets(value) {
   return out;
 }
 
+function normalizeBookingFormConfig(value) {
+  const v = (value && typeof value === 'object') ? value : {};
+  const mode = ['none', 'one', 'three'].includes(v.preferred_dates_mode) ? v.preferred_dates_mode : 'one';
+  return {
+    show_phone: v.show_phone !== false,
+    show_address: v.show_address !== false,
+    show_notes: v.show_notes !== false,
+    preferred_dates_mode: mode,
+    service_placeholder: typeof v.service_placeholder === 'string' ? v.service_placeholder.slice(0, 200) : '',
+    notes_placeholder: typeof v.notes_placeholder === 'string' ? v.notes_placeholder.slice(0, 200) : '',
+  };
+}
+
 function normalizeSmsTemplates(value) {
   if (!Array.isArray(value)) return [];
   return value
@@ -99,6 +114,7 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
       if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
       if (f === 'dashboard_widgets') v = JSON.stringify(normalizeDashboardWidgets(v));
+      if (f === 'booking_form_config') v = JSON.stringify(normalizeBookingFormConfig(v));
       values.push(v);
       setClauses.push(`${f} = $${values.length}`);
     }

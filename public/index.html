@@ -5270,7 +5270,6 @@ function RequestsView({ session }) {
                   {r.requester_email && <>{r.requester_email}</>}
                   {r.requester_email && r.requester_phone && ' · '}
                   {r.requester_phone}
-                  {r.preferred_date && <> · Wants {r.preferred_date} ({r.preferred_time_window})</>}
                 </div>
                 <div className="secondary-meta" style={{ marginTop: 6, color: 'var(--text)' }}>
                   {r.service_description}
@@ -5278,6 +5277,22 @@ function RequestsView({ session }) {
                 {r.requester_address && (
                   <div className="secondary-meta">📍 {r.requester_address}</div>
                 )}
+                {(() => {
+                  const slots = Array.isArray(r.preferred_slots) && r.preferred_slots.length > 0
+                    ? r.preferred_slots
+                    : (r.preferred_date ? [{ date: r.preferred_date, window: r.preferred_time_window || 'anytime' }] : []);
+                  if (slots.length === 0) return null;
+                  return (
+                    <div className="secondary-meta">
+                      Wants: {slots.map((s, i) => (
+                        <span key={i}>
+                          {i > 0 && ', '}
+                          {s.date} ({s.window})
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {r.notes && (
                   <div className="secondary-meta">Notes: {r.notes}</div>
                 )}
@@ -7823,6 +7838,96 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
+function BookingFormPanel({ form, setField, busy, saved, error, submit }) {
+  const cfg = form.booking_form_config || {};
+  function setCfg(key, value) {
+    setField('booking_form_config', { ...cfg, [key]: value });
+  }
+  return (
+    <>
+      {error && <div className="error">{error}</div>}
+      {saved && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+      )}
+      <form onSubmit={submit} className="form-card">
+        <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+          Customize the public booking form. Name, email, and "What do you need?" are always required.
+        </p>
+
+        <div className="section-heading" style={{ marginTop: 0 }}>Optional fields</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+          <input type="checkbox" checked={cfg.show_phone !== false} onChange={(e) => setCfg('show_phone', e.target.checked)} />
+          <span>Show <strong>Phone</strong></span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+          <input type="checkbox" checked={cfg.show_address !== false} onChange={(e) => setCfg('show_address', e.target.checked)} />
+          <span>Show <strong>Address</strong></span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+          <input type="checkbox" checked={cfg.show_notes !== false} onChange={(e) => setCfg('show_notes', e.target.checked)} />
+          <span>Show <strong>Notes</strong></span>
+        </label>
+
+        <div className="section-heading">Preferred date and time</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { value: 'none',  label: "Don't ask",        desc: 'Skip the date/time fields entirely.' },
+            { value: 'one',   label: 'Ask for one',      desc: 'Let them pick a single preferred date and time of day.' },
+            { value: 'three', label: 'Ask for up to three', desc: 'Let them propose up to three options. Useful when you want to coordinate around their availability.' },
+          ].map((opt) => (
+            <label key={opt.value} style={{
+              display: 'flex', gap: 12, alignItems: 'flex-start',
+              padding: 12,
+              border: cfg.preferred_dates_mode === opt.value ? '1.5px solid var(--primary)' : '1px solid var(--border-strong)',
+              borderRadius: 8,
+              cursor: 'pointer',
+              background: cfg.preferred_dates_mode === opt.value ? 'var(--tinted)' : 'var(--card)',
+            }}>
+              <input
+                type="radio" name="preferred_dates_mode"
+                checked={cfg.preferred_dates_mode === opt.value}
+                onChange={() => setCfg('preferred_dates_mode', opt.value)}
+                style={{ marginTop: 2 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{opt.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{opt.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <div className="section-heading">Placeholder text</div>
+        <label>"What do you need?" placeholder</label>
+        <input
+          value={cfg.service_placeholder || ''}
+          onChange={(e) => setCfg('service_placeholder', e.target.value)}
+          placeholder="Brief description of the service you'd like"
+        />
+        <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+          Leave blank to use the default. This is the gray hint text inside the input.
+        </p>
+
+        <label>"Notes" placeholder</label>
+        <input
+          value={cfg.notes_placeholder || ''}
+          onChange={(e) => setCfg('notes_placeholder', e.target.value)}
+          placeholder="Anything else they should know?"
+        />
+        <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+          Leave blank to use the default.
+        </p>
+
+        <div className="form-actions">
+          <button type="submit" className="primary" disabled={busy}>
+            {busy ? 'Saving...' : 'Save booking form'}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
 function SettingsView({ session, features = { invoices: true, quotes: true, reports: true, team: true, requests: true }, onFeaturesChange }) {
   const path = useLocation();
   const subView = path === '/settings/modules' ? 'modules'
@@ -7830,6 +7935,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/quick-text' ? 'quick-text'
     : path === '/settings/dashboard' ? 'dashboard'
     : path === '/settings/auto-invoice' ? 'auto-invoice'
+    : path === '/settings/booking-form' ? 'booking-form'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -7889,6 +7995,16 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_day_of_month: data.auto_invoice_day_of_month || 1,
         auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
+        booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')
+          ? {
+              show_phone: data.booking_form_config.show_phone !== false,
+              show_address: data.booking_form_config.show_address !== false,
+              show_notes: data.booking_form_config.show_notes !== false,
+              preferred_dates_mode: ['none', 'one', 'three'].includes(data.booking_form_config.preferred_dates_mode) ? data.booking_form_config.preferred_dates_mode : 'one',
+              service_placeholder: data.booking_form_config.service_placeholder || '',
+              notes_placeholder: data.booking_form_config.notes_placeholder || '',
+            }
+          : { show_phone: true, show_address: true, show_notes: true, preferred_dates_mode: 'one', service_placeholder: '', notes_placeholder: '' },
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -7963,7 +8079,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice')) {
+  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -7996,6 +8112,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'dashboard' ? 'active' : ''}`}
             onClick={() => navigate('/settings/dashboard')}
           >Dashboard</button>
+          {isAdmin && features.requests && (
+            <button
+              className={`chip ${subView === 'booking-form' ? 'active' : ''}`}
+              onClick={() => navigate('/settings/booking-form')}
+            >Booking form</button>
+          )}
           {isAdmin && (
             <button
               className={`chip ${subView === 'auto-invoice' ? 'active' : ''}`}
@@ -8100,6 +8222,17 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           form={form}
           setField={setField}
           isAdmin={isAdmin}
+          busy={busy}
+          saved={saved}
+          error={error}
+          submit={submit}
+        />
+      )}
+
+      {subView === 'booking-form' && isAdmin && (
+        <BookingFormPanel
+          form={form}
+          setField={setField}
           busy={busy}
           saved={saved}
           error={error}
@@ -8341,6 +8474,7 @@ const APP_ROUTES = {
   '/settings/quick-text': 'settings',
   '/settings/dashboard': 'settings',
   '/settings/auto-invoice': 'settings',
+  '/settings/booking-form': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
@@ -11177,8 +11311,16 @@ function PublicBookingView({ slug }) {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [service, setService] = useState('');
-  const [date, setDate] = useState('');
-  const [window_, setWindow] = useState('anytime');
+  // Up to 3 (date, window) slot pairs. We always keep 3 in state and only
+  // render / submit as many as the org's config allows.
+  const [slots, setSlots] = useState([
+    { date: '', window: 'anytime' },
+    { date: '', window: 'anytime' },
+    { date: '', window: 'anytime' },
+  ]);
+  function updateSlot(i, key, value) {
+    setSlots((arr) => arr.map((s, idx) => (idx === i ? { ...s, [key]: value } : s)));
+  }
   const [notes, setNotes] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
   const [busy, setBusy] = useState(false);
@@ -11200,6 +11342,9 @@ function PublicBookingView({ slug }) {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
+      const cfg = (org && org.booking_form_config) || {};
+      const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
+      const visibleSlots = slots.slice(0, slotCount).filter((s) => s.date);
       await apiRequest(`/api/public/book/${slug}`, {
         method: 'POST',
         body: {
@@ -11208,8 +11353,7 @@ function PublicBookingView({ slug }) {
           requester_phone: phone,
           requester_address: address,
           service_description: service,
-          preferred_date: date || null,
-          preferred_time_window: window_,
+          preferred_slots: visibleSlots,
           notes,
           website,
         },
@@ -11253,6 +11397,13 @@ function PublicBookingView({ slug }) {
 
   const customer = org.customer_label || 'Customer';
   const job = (org.job_label || 'Job').toLowerCase();
+  const cfg = org.booking_form_config || {};
+  const showPhone = cfg.show_phone !== false;
+  const showAddress = cfg.show_address !== false;
+  const showNotes = cfg.show_notes !== false;
+  const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
+  const servicePlaceholder = cfg.service_placeholder || "Brief description of the service you'd like";
+  const notesPlaceholder = cfg.notes_placeholder || 'Anything else they should know?';
 
   return (
     <div className="auth-shell" style={{ maxWidth: 560 }}>
@@ -11265,35 +11416,56 @@ function PublicBookingView({ slug }) {
           <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
 
           <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required={!showPhone} />
 
-          <label>Phone <span className="hint">(at least one of email or phone)</span></label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" />
+          {showPhone && (
+            <>
+              <label>Phone <span className="hint">(optional)</span></label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" />
+            </>
+          )}
 
-          <label>Address <span className="hint">(where the work happens, optional)</span></label>
-          <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+          {showAddress && (
+            <>
+              <label>Address <span className="hint">(where the work happens, optional)</span></label>
+              <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+            </>
+          )}
 
           <label>What do you need?</label>
-          <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder="Brief description of the service you'd like" />
+          <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder={servicePlaceholder} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <label>Preferred date <span className="hint">(optional)</span></label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '100%' }} />
+          {slotCount > 0 && (
+            <div style={{ marginTop: 4 }}>
+              {Array.from({ length: slotCount }, (_, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: i < slotCount - 1 ? 12 : 0 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label>
+                      {slotCount === 1 ? 'Preferred date' : `Option ${i + 1} — date`}{' '}
+                      <span className="hint">(optional)</span>
+                    </label>
+                    <input type="date" value={slots[i].date} onChange={(e) => updateSlot(i, 'date', e.target.value)} style={{ width: '100%' }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <label>{slotCount === 1 ? 'Time of day' : 'Time'}</label>
+                    <select value={slots[i].window} onChange={(e) => updateSlot(i, 'window', e.target.value)} style={{ width: '100%' }}>
+                      <option value="anytime">Anytime</option>
+                      <option value="morning">Morning</option>
+                      <option value="afternoon">Afternoon</option>
+                      <option value="evening">Evening</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <label>Time of day</label>
-              <select value={window_} onChange={(e) => setWindow(e.target.value)} style={{ width: '100%' }}>
-                <option value="anytime">Anytime</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
-              </select>
-            </div>
-          </div>
+          )}
 
-          <label>Notes <span className="hint">(optional)</span></label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Anything else they should know?" />
+          {showNotes && (
+            <>
+              <label>Notes <span className="hint">(optional)</span></label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={notesPlaceholder} />
+            </>
+          )}
 
           <input
             type="text" name="website" value={website}
