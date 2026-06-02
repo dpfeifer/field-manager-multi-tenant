@@ -2229,6 +2229,47 @@
       .ed-plan { padding: 28px 24px; }
     }
 
+    /* === Legal pages === */
+    .legal-page {
+      max-width: 720px; margin: 0 auto;
+      padding: 56px 32px 96px;
+    }
+    .legal-head {
+      text-align: center; margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .legal-title {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.05; letter-spacing: -0.03em;
+      margin: 14px 0 16px; color: var(--text);
+    }
+    .legal-updated {
+      font-size: 13px; color: var(--text-muted);
+      margin: 0;
+    }
+    .legal-body { color: var(--text); }
+    .legal-body p {
+      font-size: 16px; line-height: 1.7;
+      color: var(--text-muted); margin: 0 0 18px;
+    }
+    .legal-body h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 22px; letter-spacing: -0.015em;
+      color: var(--text); margin: 40px 0 14px;
+    }
+    .legal-body a {
+      color: var(--accent); text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .legal-body a:hover { opacity: 0.8; }
+    @media (max-width: 600px) {
+      .legal-page { padding: 32px 20px 64px; }
+      .legal-head { margin-bottom: 40px; padding-bottom: 32px; }
+      .legal-body h2 { margin: 32px 0 12px; }
+    }
+
     /* === Process flow section (editorial style) === */
     .flow-section {
       max-width: 1080px; margin: 0 auto;
@@ -3794,6 +3835,10 @@ function LandingPage() {
         <div>
           <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
           <span style={{ margin: '0 12px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
+          <span style={{ margin: '0 12px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+          <span style={{ margin: '0 12px' }}>·</span>
           <a href="/staff">Staff</a>
         </div>
         <div style={{ marginTop: 16 }}>© Field Manager</div>
@@ -3824,6 +3869,178 @@ const EDITORIAL_FAQ = [
     a: "Export everything as CSV and cancel from the Billing tab. We made it easy to leave on purpose.",
   },
 ];
+
+function LegalShell({ title, eyebrow, updated, children }) {
+  return (
+    <div className="landing landing-editorial">
+      <nav className="ed-nav">
+        <button className="ed-brand" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Field Manager</button>
+        <div className="ed-nav-actions">
+          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+        </div>
+      </nav>
+      <article className="legal-page">
+        <header className="legal-head">
+          <p className="ed-eyebrow">{eyebrow}</p>
+          <h1 className="legal-title">{title}</h1>
+          <p className="legal-updated">Last updated {updated}</p>
+        </header>
+        <div className="legal-body">{children}</div>
+      </article>
+      <footer className="landing-footer">
+        <div>
+          <button className="link-button" onClick={() => navigate('/')}>Home</button>
+          <span style={{ margin: '0 12px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
+          <span style={{ margin: '0 12px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+        </div>
+        <div style={{ marginTop: 16 }}>© Field Manager</div>
+      </footer>
+    </div>
+  );
+}
+
+function TermsPage() {
+  return (
+    <LegalShell title="Terms of Service" eyebrow="The fine print" updated="June 1, 2026">
+      <p>
+        These Terms of Service ("Terms") govern your access to and use of Field Manager (the "Service"), operated by Drexler LLC ("we," "us," or "our"). By creating an account or using the Service, you agree to these Terms.
+      </p>
+
+      <h2>1. Your account</h2>
+      <p>
+        You must provide accurate registration information and keep it current. You are responsible for all activity that occurs under your account and for keeping your credentials confidential. If you create an organization, you are the administrator of that organization unless you assign that role to someone else.
+      </p>
+
+      <h2>2. The Service</h2>
+      <p>
+        Field Manager helps small service businesses manage customers, jobs, invoices, and quotes. The Service is provided "as is." Features may change, be added, or be removed. We will give reasonable notice of material changes that affect your use of paid features.
+      </p>
+
+      <h2>3. Acceptable use</h2>
+      <p>
+        You agree not to use the Service to send unsolicited commercial messages, store unlawful content, attempt to circumvent rate limits or security controls, or interfere with other customers' use of the Service. We may suspend accounts that we reasonably believe violate this section.
+      </p>
+
+      <h2>4. Subscriptions and billing</h2>
+      <p>
+        Free accounts have usage limits documented on the pricing page. Pro subscriptions are billed monthly in advance via Stripe. You may cancel a Pro subscription at any time from the Billing tab; cancellation takes effect at the end of the current billing period. We do not issue refunds for partial months. If a payment fails, we will attempt to collect again and notify you; persistent payment failure may result in the account dropping to the Free plan.
+      </p>
+
+      <h2>5. Your data</h2>
+      <p>
+        Your customer records, jobs, invoices, and notes are yours. You retain all rights to that data. We process it on your behalf to provide the Service. You can export your data as CSV at any time from within the app. If you cancel your account, you may request deletion at any time; otherwise we will retain your data for thirty days in case you reactivate, after which it is permanently deleted.
+      </p>
+
+      <h2>6. Our content</h2>
+      <p>
+        The Field Manager name, logo, software, and content are owned by Drexler LLC. We grant you a non-exclusive, non-transferable license to use the Service in accordance with these Terms. You may not copy, modify, reverse-engineer, or resell the Service.
+      </p>
+
+      <h2>7. Third-party services</h2>
+      <p>
+        The Service relies on third parties — including Stripe (payments), Resend (transactional email), and Railway (hosting). Your use of those services is governed by their respective terms. We are not responsible for outages or actions of third-party providers, though we will work to restore service in good faith.
+      </p>
+
+      <h2>8. Disclaimers</h2>
+      <p>
+        THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED OR ERROR-FREE.
+      </p>
+
+      <h2>9. Limitation of liability</h2>
+      <p>
+        TO THE FULLEST EXTENT PERMITTED BY LAW, DREXLER LLC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, ARISING OUT OF YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY IS LIMITED TO THE AMOUNT YOU HAVE PAID US IN THE TWELVE MONTHS PRECEDING THE CLAIM.
+      </p>
+
+      <h2>10. Termination</h2>
+      <p>
+        You may terminate your account at any time. We may terminate or suspend your account for material breach of these Terms, with reasonable notice except in cases of urgent security, legal, or abuse issues.
+      </p>
+
+      <h2>11. Changes to these Terms</h2>
+      <p>
+        We may update these Terms. We will post the updated version with a new "Last updated" date and, for material changes, notify active accounts by email. Continued use of the Service after the effective date constitutes acceptance.
+      </p>
+
+      <h2>12. Governing law</h2>
+      <p>
+        These Terms are governed by the laws of the State of Ohio, without regard to its conflict of laws principles. Any dispute will be resolved in the state or federal courts located in Cuyahoga County, Ohio.
+      </p>
+
+      <h2>13. Contact</h2>
+      <p>
+        Questions about these Terms? Email <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>.
+      </p>
+    </LegalShell>
+  );
+}
+
+function PrivacyPage() {
+  return (
+    <LegalShell title="Privacy Policy" eyebrow="What we collect, and why" updated="June 1, 2026">
+      <p>
+        This Privacy Policy explains how Drexler LLC ("we," "us," or "our") collects, uses, and shares information when you use Field Manager (the "Service"). We aim to collect only what we need to run the Service and serve you well.
+      </p>
+
+      <h2>1. Information you provide</h2>
+      <p>
+        When you create an account, we collect your name, email address, password (stored hashed, not in plain text), and the name of your business. As you use the Service, we store the customer records, jobs, invoices, quotes, and notes you create. If you subscribe to Pro, Stripe collects and stores your payment details — we do not see or store your card number.
+      </p>
+
+      <h2>2. Information collected automatically</h2>
+      <p>
+        We log basic technical information when you use the Service: IP address, browser type, pages visited, and timestamps. This helps us debug issues and protect the Service from abuse. We do not use third-party advertising trackers.
+      </p>
+
+      <h2>3. How we use information</h2>
+      <p>
+        We use the information you provide to operate the Service, provide customer support, send transactional emails (account, billing, invoices), and improve the product. We do not sell your personal information or your customers' data to third parties.
+      </p>
+
+      <h2>4. Who we share information with</h2>
+      <p>
+        We share information with the providers that make the Service work: Stripe (payment processing), Resend (transactional email), Railway (hosting and database). Each operates under its own privacy policy and processes data on our behalf. We do not share your customer records with anyone outside this list, except as required by law.
+      </p>
+
+      <h2>5. Your rights</h2>
+      <p>
+        You can access, correct, export, or delete your data at any time from within the app, or by emailing <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>. If you are in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA respectively — including the right to lodge a complaint with a supervisory authority.
+      </p>
+
+      <h2>6. Data retention</h2>
+      <p>
+        We retain your data for as long as your account is active. If you cancel, we retain your data for thirty days in case you reactivate, then permanently delete it. We may retain aggregated, anonymized statistics indefinitely.
+      </p>
+
+      <h2>7. Security</h2>
+      <p>
+        We use industry-standard practices to protect your data: encrypted connections (HTTPS), hashed passwords, scoped database access, and signed authentication tokens. No system is perfectly secure, but we take this seriously. If we ever discover a breach that affects your data, we will notify you promptly.
+      </p>
+
+      <h2>8. Children</h2>
+      <p>
+        The Service is not directed to children under 16. We do not knowingly collect information from children. If you believe we have, please contact us so we can delete it.
+      </p>
+
+      <h2>9. International transfers</h2>
+      <p>
+        Our infrastructure is located in the United States. If you access the Service from outside the US, your data will be transferred to and processed in the US.
+      </p>
+
+      <h2>10. Changes to this Policy</h2>
+      <p>
+        We may update this Policy. We will post the updated version with a new "Last updated" date and, for material changes, notify active accounts by email.
+      </p>
+
+      <h2>11. Contact</h2>
+      <p>
+        Questions about your data or this Policy? Email <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>.
+      </p>
+    </LegalShell>
+  );
+}
 
 function AuthShell({ onSession }) {
   const path = useLocation();
@@ -10745,6 +10962,8 @@ function App() {
   if (path.startsWith('/system') && !session && loadStaffSession()) return <StaffApp />;
   if (path === '/reset-password') return <ResetPasswordPage />;
   if (path === '/verify-email') return <VerifyEmailPage />;
+  if (path === '/terms') return <TermsPage />;
+  if (path === '/privacy') return <PrivacyPage />;
 
   function handleLogout() { clearSession(); setSession(null); navigate('/'); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
