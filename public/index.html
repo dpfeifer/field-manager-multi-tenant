@@ -2080,51 +2080,110 @@
       .ed-faq-a { padding-left: 48px; }
     }
 
-    /* pricing (editorial) */
+    /* pricing (editorial cards) */
     .ed-pricing {
-      max-width: 720px; margin: 0 auto;
+      max-width: 920px; margin: 0 auto;
       padding: 80px 32px;
       text-align: center;
     }
-    .ed-pricing .ed-eyebrow {
-      margin-bottom: 22px;
-    }
+    .ed-pricing .ed-eyebrow { margin-bottom: 22px; }
     .ed-pricing-headline {
       font-family: var(--serif); font-weight: 500;
       font-size: clamp(28px, 3.8vw, 44px);
       line-height: 1.1; letter-spacing: -0.025em;
-      margin: 0 0 32px; color: var(--text);
+      margin: 0 0 48px; color: var(--text);
     }
     .ed-pricing-headline em {
       font-style: italic; color: var(--accent);
     }
-    .ed-pricing-prose {
-      max-width: 540px; margin: 0 auto;
+    .ed-pricing-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border);
       text-align: left;
     }
-    .ed-pricing-prose p {
-      font-size: 16px; line-height: 1.7;
-      color: var(--text-muted); margin: 0 0 18px;
+    .ed-plan {
+      padding: 36px 32px;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: relative;
     }
-    .ed-pricing-prose p:last-child { margin-bottom: 0; }
-    .ed-pricing-prose strong {
-      color: var(--text); font-weight: 600;
+    .ed-plan:last-child { border-right: none; }
+    .ed-plan-pro { background: var(--tinted); }
+    .ed-plan-tag {
+      position: absolute; top: 16px; right: 24px;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--accent);
     }
-    .ed-pricing-cta {
-      margin-top: 40px;
+    .ed-plan-name {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--text-muted); margin-bottom: 14px;
     }
-    .ed-pricing-cta .primary {
-      background: var(--text); color: var(--bg);
-      border: none; border-radius: 999px;
-      padding: 16px 32px; font-size: 15px; font-weight: 600;
+    .ed-plan-pro .ed-plan-name { color: var(--accent); }
+    .ed-plan-price {
+      display: flex; align-items: baseline; gap: 6px;
+      margin-bottom: 12px;
+    }
+    .ed-plan-amt {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 48px; letter-spacing: -0.03em; line-height: 1;
+      color: var(--text);
+    }
+    .ed-plan-suf {
+      font-size: 14px; color: var(--text-muted);
+    }
+    .ed-plan-blurb {
+      font-size: 14px; line-height: 1.5;
+      color: var(--text-muted); margin: 0 0 20px;
+    }
+    .ed-plan-list {
+      list-style: none; padding: 0; margin: 0 0 12px;
+    }
+    .ed-plan-list li {
+      font-size: 14px; line-height: 1.5;
+      color: var(--text); padding: 5px 0;
+      border-bottom: 1px dashed transparent;
+    }
+    .ed-plan-list-excluded {
+      margin-top: 4px;
+    }
+    .ed-plan-list-excluded li {
+      color: var(--text-muted);
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .ed-plan-cta {
+      margin-top: auto;
+      background: transparent;
+      border: 1px solid var(--text);
+      color: var(--text);
+      padding: 12px 20px; font-size: 13px; font-weight: 600;
       cursor: pointer; font-family: inherit;
-      display: inline-flex; align-items: center; gap: 10px;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                  box-shadow 0.2s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.2s ease, color 0.2s ease;
     }
-    .ed-pricing-cta .primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+    .ed-plan-cta:hover {
+      background: var(--text); color: var(--bg);
+    }
+    .ed-plan-cta-pro {
+      background: var(--text); color: var(--bg);
+    }
+    .ed-plan-cta-pro:hover {
+      opacity: 0.88;
+    }
+    .ed-pricing-fine {
+      font-size: 13px; color: var(--text-muted);
+      margin: 28px auto 0; max-width: 540px;
+      line-height: 1.55;
+    }
+    @media (max-width: 720px) {
+      .ed-pricing-grid { grid-template-columns: 1fr; }
+      .ed-plan {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .ed-plan:last-child { border-bottom: none; }
     }
 
     /* close */
@@ -2167,6 +2226,7 @@
     @media (max-width: 600px) {
       .ed-close { padding: 64px 20px 48px; }
       .ed-pricing { padding: 56px 20px; }
+      .ed-plan { padding: 28px 24px; }
     }
 
     /* === Process flow section (editorial style) === */
@@ -2186,8 +2246,7 @@
     }
     .flow-grid {
       display: grid; grid-template-columns: repeat(4, 1fr);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+      border: 1px solid var(--border);
     }
     .flow-step {
       padding: 40px 24px;
@@ -3531,20 +3590,51 @@ function LandingPricing() {
       <h2 className="ed-pricing-headline">
         Free until you outgrow it. <em>$29 when you do.</em>
       </h2>
-      <div className="ed-pricing-prose">
-        <p>
-          <strong>Free, forever</strong> — if you have five customers or fewer and twenty jobs total. No card, no trial timer, no upgrade nags. Most small operations stay here a long time.
-        </p>
-        <p>
-          <strong>Pro is $29 a month, flat.</strong> No per-seat fees. No per-customer fees. No surprise overages. Unlimited customers, jobs, invoices, team members, and reports. New accounts get fourteen days of Pro to try the full thing.
-        </p>
-        <p>
-          You can export everything as CSV any time and cancel from your Billing tab. We made it easy to leave on purpose.
-        </p>
+      <div className="ed-pricing-grid">
+        <div className="ed-plan">
+          <div className="ed-plan-name">Free</div>
+          <div className="ed-plan-price">
+            <span className="ed-plan-amt">$0</span>
+            <span className="ed-plan-suf">forever</span>
+          </div>
+          <p className="ed-plan-blurb">Run a small operation, no card required.</p>
+          <ul className="ed-plan-list">
+            <li>Up to 5 customers</li>
+            <li>Up to 20 jobs (lifetime)</li>
+            <li>Recurring schedules</li>
+            <li>Quotes for prospects</li>
+            <li>Public booking link</li>
+            <li>CSV import + export</li>
+          </ul>
+          <ul className="ed-plan-list ed-plan-list-excluded">
+            <li>Invoicing</li>
+            <li>Reports</li>
+            <li>Team members</li>
+          </ul>
+          <button className="ed-plan-cta" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+        </div>
+        <div className="ed-plan ed-plan-pro">
+          <div className="ed-plan-tag">Most chosen</div>
+          <div className="ed-plan-name">Pro</div>
+          <div className="ed-plan-price">
+            <span className="ed-plan-amt">$29</span>
+            <span className="ed-plan-suf">/mo</span>
+          </div>
+          <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
+          <ul className="ed-plan-list">
+            <li>Everything in Free</li>
+            <li>Unlimited customers + jobs</li>
+            <li>Invoicing with public links</li>
+            <li>Reports + projections</li>
+            <li>Unlimited teammates</li>
+            <li>Priority email support</li>
+          </ul>
+          <button className="ed-plan-cta ed-plan-cta-pro" onClick={() => navigate('/signup')}>Try Pro free for 14 days<Icon name="arrow" /></button>
+        </div>
       </div>
-      <div className="ed-pricing-cta">
-        <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-      </div>
+      <p className="ed-pricing-fine">
+        New accounts start with a 14-day Pro trial. When it ends, keep Pro or drop to Free — your data stays put either way.
+      </p>
     </section>
   );
 }
