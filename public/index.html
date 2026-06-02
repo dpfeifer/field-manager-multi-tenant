@@ -10033,6 +10033,11 @@ function ProfileView({ session, onSessionUpdate }) {
           <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')}>Dark</button>
         </div>
       </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Install on your home screen</div>
+        <InstallInstructions />
+      </div>
     </div>
   );
 }
