@@ -12,7 +12,8 @@ const BASE_SELECT = `
     j.date, j.start_date, j.end_date, j.recurrence_pattern, j.default_price,
     j.start_time::text AS start_time, j.duration_minutes,
     j.status, j.completed_dates, j.skipped_dates, j.rescheduled_dates,
-    j.deleted_dates, j.completion_notes, j.created_at, j.updated_at,
+    j.deleted_dates, j.completion_notes, j.billed_dates,
+    j.created_at, j.updated_at,
     c.first_name AS customer_first_name,
     c.last_name AS customer_last_name,
     c.business_name AS customer_business_name,
@@ -512,6 +513,18 @@ router.post('/:id/generate-invoice', requireRole('admin', 'lead'), async (req, r
           JSON.stringify(lineItems),
         ]
       );
+
+      // Mark these completion dates as billed so auto-invoice (now or
+      // later) doesn't roll them up again.
+      const billedDates = Array.from(new Set([
+        ...(Array.isArray(job.billed_dates) ? job.billed_dates : []),
+        ...completed,
+      ])).sort();
+      await client.query(
+        `UPDATE jobs SET billed_dates = $2::jsonb, updated_at = NOW() WHERE id = $1`,
+        [job.id, JSON.stringify(billedDates)]
+      );
+
       return inserted.rows[0].id;
     });
 
