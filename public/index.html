@@ -1669,8 +1669,22 @@
       .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
       .page-header h2 { font-size: 18px; }
       .row, .occurrence-row, .compact-row { flex-wrap: wrap; }
-      .row .actions, .occurrence-row .actions { flex-wrap: wrap; width: 100%; margin-top: 8px; }
+      .row .actions, .occurrence-row .actions {
+        flex-wrap: nowrap; width: 100%; margin-top: 8px;
+        min-width: 0;
+      }
       .occurrence-row .date { min-width: 70px; }
+      /* Tighten the action cluster so SMS + Mark complete + Open stay on one row */
+      .occurrence-row .actions .row-sms,
+      .row .actions .row-sms {
+        max-width: 92px; padding: 6px 8px; font-size: 12px;
+      }
+      .occurrence-row .actions button.primary {
+        padding: 9px 12px; font-size: 13px;
+      }
+      .occurrence-row .actions button.secondary {
+        padding: 8px 12px; font-size: 13px;
+      }
       .filter-bar { flex-direction: column; align-items: stretch; }
       .filter-bar .toggle-group { align-self: flex-start; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
