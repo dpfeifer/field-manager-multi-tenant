@@ -1,0 +1,46 @@
+# Field Manager
+
+> Field Manager is a multi-tenant SaaS that helps small service businesses run their week — customers, recurring schedules, quotes, and invoices — without the bloat of enterprise field-service software.
+
+Field Manager is built by Drexler LLC and operated at https://fieldmgr.com. It targets one-person shops and family crews in service trades: lawn care, cleaning, handyman, pet care, painting, barber shops, pool service, photography, plumbing, catering, tutoring, construction, snow removal, mobile detailing, and similar.
+
+## Positioning
+
+- Built for the work, not the boardroom. No App Store, no download, no version mismatch across a team.
+- Customers, jobs, quotes, invoices, and team management — all in one web app that works on any device.
+- Designed around the assumption that the operator answers their own phone, drives their own truck, and runs the business from a kitchen-counter notebook today.
+
+## Pricing
+
+- **Free, forever**: up to 5 customers and 20 jobs (lifetime). No card required.
+- **Pro**: $29 per month, flat. Unlimited customers, jobs, invoices, team members, and reports. No per-seat fees. No per-customer fees. No surprise overages.
+- New accounts start with a 14-day Pro trial. Customers can export all data as CSV any time and cancel from the Billing tab.
+
+Comparison context: most field-service software (Jobber, ServiceTitan, Housecall Pro) starts at $69/month or higher, charges per seat, or hides pricing behind a sales call.
+
+## Key features
+
+- **Recurring schedules**: weekly, biweekly, monthly. Set once, runs forever.
+- **Day view**: the operating screen — show up, hit complete, move on. Notes and totals roll up automatically.
+- **Auto-invoice**: on the 1st of the month (or weekly), a draft invoice is generated per customer for all completed work. Review, send, get paid.
+- **Stripe-based payments** via public invoice link, Venmo, or your own bank.
+- **Custom terminology**: call them customers, clients, members — the app follows your language, not the other way around.
+- **Public booking page**: per-org URL where prospects can request appointments. Configurable fields, optional referral tracking.
+- **Quotes / estimates** that convert to customers, jobs, or invoices in one click.
+- **Reports**: revenue, projected income, top customers, monthly trends.
+- **Team roles**: admin, lead, employee — with role-based access. Bring-your-own-Twilio SMS integration coming.
+- **Optional modules**: invoices, quotes, reports, team, requests — opt-in, not forced.
+
+## Important pages
+
+- Home / pricing: https://fieldmgr.com
+- Terms of Service: https://fieldmgr.com/terms
+- Privacy Policy: https://fieldmgr.com/privacy
+- Sign up: https://fieldmgr.com/signup
+- Sign in: https://fieldmgr.com/signin
+
+## What Field Manager is NOT
+
+- Not enterprise field-service software. No dispatch desk, no map routing optimization, no parts inventory, no fleet GPS.
+- Not a CRM in the marketing-funnel sense. No campaign automation, no lead scoring.
+- Not an accounting system. Invoices and payments live here; bookkeeping lives in your accountant's tool.

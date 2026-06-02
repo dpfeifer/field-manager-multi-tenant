@@ -3,7 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Field Manager</title>
+  <title>Field Manager — Run your service business in one place</title>
+  <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Free forever for five customers; $29/month flat when you grow. No App Store, no per-seat fees, no surprise overages." />
+  <meta name="theme-color" content="#f7f4ec" />
+  <link rel="canonical" href="https://fieldmgr.com/" />
+
+  <!-- Open Graph (for Slack, iMessage, Facebook, LinkedIn link previews) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://fieldmgr.com/" />
+  <meta property="og:site_name" content="Field Manager" />
+  <meta property="og:title" content="Field Manager — Run your service business in one place" />
+  <meta property="og:description" content="Customers, schedules, quotes, and invoices for small service businesses. Free for five customers; $29/month flat when you grow." />
+  <meta property="og:image" content="https://fieldmgr.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Field Manager — Run your service business in one place" />
+  <meta name="twitter:description" content="Customers, schedules, quotes, and invoices for small service businesses. $29/mo flat." />
+  <meta name="twitter:image" content="https://fieldmgr.com/og-image.png" />
+
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- Structured data: tells search engines this is a SaaS product with pricing -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Field Manager",
+    "url": "https://fieldmgr.com",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android (PWA)",
+    "description": "Customers, schedules, quotes, and invoices for small service businesses. Built for the work, not the boardroom.",
+    "offers": [
+      { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "Pro", "price": "29", "priceCurrency": "USD",
+        "priceSpecification": { "@type": "UnitPriceSpecification", "price": "29", "priceCurrency": "USD", "billingDuration": "P1M" }
+      }
+    ],
+    "provider": { "@type": "Organization", "name": "Drexler LLC" }
+  }
+  </script>
+
+  <!-- FAQ structured data for Google rich results + LLM-friendly Q&A -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Will Field Manager work for a one-person operation?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Especially then. The whole product was sketched around a single person running their own week. The team layer is optional and stays hidden until you grow into it." }
+      },
+      {
+        "@type": "Question",
+        "name": "What if I'm coming from a notebook or a spreadsheet?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Import customers from CSV in about a minute, then add jobs as they come. Most people are running their week through Field Manager by day two." }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Field Manager pricing work?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Free forever for five customers or fewer and twenty jobs total. Pro is $29 a month, flat. No per-seat fees, no per-customer fees, no surprise overages." }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Field Manager compare to Jobber or ServiceTitan?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Most field-service software starts at $69 per month or higher, charges per seat, or hides pricing behind a sales call. Field Manager is $29 a month flat with no per-seat or per-customer fees, and the pricing is on the public website." }
+      },
+      {
+        "@type": "Question",
+        "name": "What if I want to leave Field Manager?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Export all customers, jobs, invoices, and quotes as CSV any time and cancel from the Billing tab. Field Manager makes it easy to leave on purpose." }
+      }
+    ]
+  }
+  </script>
+
   <script>
     (function () {
       try {
