@@ -113,6 +113,39 @@ router.post('/', async (req, res, next) => {
       console.error('signup: send verification email failed', err);
     }
 
+    // Notify platform staff about the new signup (best-effort).
+    try {
+      const staffList = (process.env.SYSTEM_ADMIN_EMAILS || '')
+        .split(',').map((s) => s.trim()).filter(Boolean);
+      if (staffList.length > 0) {
+        const base = process.env.APP_URL || 'https://fieldmgr.com';
+        const orgDisplay = result.organization.name;
+        const userDisplay = result.user.name
+          ? `${result.user.name} <${result.user.email}>`
+          : result.user.email;
+        const escapeHtml = (s) => String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const html = `
+          <!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif; padding:24px; max-width:600px;">
+            <h2 style="margin:0 0 16px;">New Field Manager signup</h2>
+            <p style="margin:0 0 6px;"><strong>${escapeHtml(orgDisplay)}</strong> (<code>${escapeHtml(result.organization.slug)}</code>)</p>
+            <p style="margin:0 0 6px;">${escapeHtml(userDisplay)}</p>
+            <p style="margin:16px 0 0;"><a href="${base}/staff" style="display:inline-block; background:#4a5e7a; color:#fff; padding:9px 14px; border-radius:8px; text-decoration:none;">Open staff console</a></p>
+          </body></html>
+        `;
+        const text = `New Field Manager signup\n\n${orgDisplay} (${result.organization.slug})\n${userDisplay}\n\nStaff console: ${base}/staff`;
+        sendEmail({
+          to: staffList,
+          subject: `New signup: ${orgDisplay}`,
+          html,
+          text,
+        }).catch((err) => console.error('signup: staff notification failed', err));
+      }
+    } catch (err) {
+      console.error('signup: staff notification crashed', err);
+    }
+
     const is_system_admin = isSystemAdminEmail(result.user.email);
 
     const token = jwt.sign(
