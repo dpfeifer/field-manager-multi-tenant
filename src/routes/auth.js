@@ -98,6 +98,47 @@ router.put('/me', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Resend the invite to a teammate whose account is still pending.
+// Refreshes the setup token (7 days) and re-fires the email.
+router.post('/users/:id/resend-invite', requireAuth, requireRole('admin'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, email, name, role FROM users
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.params.id, req.organization.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const user = rows[0];
+
+    const setupToken = crypto.randomBytes(32).toString('hex');
+    const setupTokenHash = hashToken(setupToken);
+    const setupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await query(
+      `UPDATE users SET password_reset_token = $2, password_reset_expires_at = $3, updated_at = NOW()
+       WHERE id = $1`,
+      [user.id, setupTokenHash, setupExpiresAt]
+    );
+
+    try {
+      const base = process.env.APP_URL || 'https://fieldmgr.com';
+      const setupUrl = `${base}/reset-password?token=${setupToken}`;
+      const { subject, html, text } = teamInviteTemplate({
+        inviteeName: user.name,
+        inviterName: req.user.name || req.user.email,
+        orgName: req.organization.name,
+        setupUrl,
+        role: user.role,
+      });
+      await sendEmail({ to: user.email, subject, html, text });
+    } catch (mailErr) {
+      console.error('Resend invite email failed:', mailErr);
+      return res.status(500).json({ error: 'Could not send email. Try again in a minute.' });
+    }
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 router.post('/users/:id/reset-password', requireAuth, requireRole('admin'), async (req, res, next) => {
   const { new_password } = req.body || {};
   if (!new_password) return res.status(400).json({ error: 'new_password is required' });
@@ -120,7 +161,10 @@ router.post('/users/:id/reset-password', requireAuth, requireRole('admin'), asyn
 router.get('/users', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, email, name, role, created_at FROM users
+      `SELECT id, email, name, role, created_at,
+              password_reset_token IS NOT NULL AS invite_pending,
+              password_reset_expires_at AS invite_expires_at
+       FROM users
        WHERE organization_id = $1 AND deleted_at IS NULL
        ORDER BY name NULLS LAST, email`,
       [req.organization.id]

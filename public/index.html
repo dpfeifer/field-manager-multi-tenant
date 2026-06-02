@@ -320,6 +320,17 @@
       background: #f4ddd0; color: #8c4e30; font-size: 11px;
       font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
     }
+    .status-pill {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; vertical-align: middle;
+    }
+    .status-pending {
+      background: #fbecd8; color: #8c5d20;
+    }
+    :root[data-theme="dark"] .status-pending {
+      background: #3a2e1c; color: #e0b878;
+    }
 
     /* App shell */
     .topbar {
@@ -9993,6 +10004,8 @@ function TeamView({ session }) {
   const [resettingId, setResettingId] = useState(null);
   const [resetPassword, setResetPassword] = useState('');
   const [resetSuccess, setResetSuccess] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
+  const [resendSuccess, setResendSuccess] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -10039,6 +10052,19 @@ function TeamView({ session }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function resendInvite(userId, displayName) {
+    setError(null); setResetSuccess(null); setResendSuccess(null);
+    setResendingId(userId);
+    try {
+      await apiRequest(`/api/auth/users/${userId}/resend-invite`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setResendSuccess(`Invite resent to ${displayName}.`);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setResendingId(null); }
+  }
+
   async function submitResetPassword(userId) {
     setError(null); setResetSuccess(null);
     try {
@@ -10077,6 +10103,9 @@ function TeamView({ session }) {
       {resetSuccess && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>{resetSuccess}</div>
       )}
+      {resendSuccess && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>{resendSuccess}</div>
+      )}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -10092,6 +10121,9 @@ function TeamView({ session }) {
                 <div className="info">
                   <div className="name">
                     {displayName}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}
+                    {u.invite_pending && (
+                      <span className="status-pill status-pending" style={{ marginLeft: 10 }}>Invite pending</span>
+                    )}
                   </div>
                   <div className="meta">{u.email}</div>
                   {isResetting && (
@@ -10127,6 +10159,15 @@ function TeamView({ session }) {
                   )}
                   {!isMe && editingRoleId !== u.id && !isResetting && (
                     <>
+                      {u.invite_pending && (
+                        <button
+                          className="secondary"
+                          disabled={resendingId === u.id}
+                          onClick={() => resendInvite(u.id, displayName)}
+                        >
+                          {resendingId === u.id ? 'Sending...' : 'Resend invite'}
+                        </button>
+                      )}
                       <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
                       <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
                       <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
