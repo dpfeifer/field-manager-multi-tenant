@@ -800,14 +800,11 @@
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-    /* Invoice utility buttons (View / Edit / Delete) each take a full
-       width row on desktop so they don't crowd the primary action cluster.
-       Mobile overrides this further below to keep them on a shared row. */
+    /* Invoice utility buttons (View / Edit / Delete) each on their own
+       line at natural width. Right-aligned on desktop (follows the row's
+       justify-content), left-aligned on mobile (override below). */
     .row .actions .inv-util-break {
       display: block; flex-basis: 100%; height: 0; margin: 0;
-    }
-    .row .actions .inv-util {
-      flex-basis: 100%; max-width: 200px; text-align: center;
     }
 
     /* Forms in app shell */
@@ -1766,12 +1763,9 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
-      /* On mobile, keep View / Edit / Delete inline on a shared row
-         below the primary actions instead of each taking a full-width
-         line — desktop behavior is set up top. */
-      .row .actions .inv-util {
-        flex-basis: auto; max-width: none; width: auto;
-      }
+      /* On mobile, left-align the action cluster so each util button
+         sits at the left edge instead of pulling to the right. */
+      .row .actions { justify-content: flex-start; }
       /* Drop the trailing "to <customer>" so the Email button is short
          enough to stay inline with Mark paid + Copy link. */
       .hide-on-mobile { display: none; }
@@ -7310,11 +7304,15 @@ function InvoicesView({ session }) {
                         Email<span className="hide-on-mobile"> to {terms.customerLower}</span>
                       </button>
                     )}
-                    <div className="inv-util-break" aria-hidden="true" />
                     {(inv.status === 'sent' || inv.status === 'paid') && (
-                      <button className="secondary inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                      <>
+                        <div className="inv-util-break" aria-hidden="true" />
+                        <button className="secondary inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                      </>
                     )}
+                    <div className="inv-util-break" aria-hidden="true" />
                     <button className="secondary inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
+                    <div className="inv-util-break" aria-hidden="true" />
                     <button className="danger inv-util" onClick={() => deleteInvoice(inv.id)}>Delete</button>
                   </div>
                 )}
