@@ -134,6 +134,11 @@ router.get('/users', requireAuth, async (req, res, next) => {
 // Invite a teammate. Admin enters email/name/role only — we generate an
 // un-usable random password, mint a 7-day setup token, and email the
 // invitee a link to set their own password.
+//
+// Re-invite behavior: if a record for this email already exists in the org
+// AND the user hasn't accepted yet (still has a pending setup token, or
+// was soft-deleted), we refresh the token + resend the email rather than
+// erroring. Active, password-set users return a clear 409.
 router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, async (req, res, next) => {
   const { email, name, role } = req.body || {};
   if (!email) {
@@ -145,50 +150,86 @@ router.post('/register', requireAuth, requireRole('admin'), requireProForTeam, a
     return res.status(400).json({ error: 'role must be admin, lead, or employee' });
   }
 
+  const normalizedEmail = email.toLowerCase();
+
   try {
     const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
-    // A random 48-char password the invitee never sees. They set their own
-    // through the setup token below.
     const placeholderPassword = crypto.randomBytes(36).toString('hex');
     const passwordHash = await bcrypt.hash(placeholderPassword, rounds);
 
-    // Setup token: same column as password reset, but expires in 7 days.
     const setupToken = crypto.randomBytes(32).toString('hex');
     const setupTokenHash = hashToken(setupToken);
     const setupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const { rows } = await query(
-      `INSERT INTO users (
-         organization_id, email, password_hash, name, role,
-         password_reset_token, password_reset_expires_at
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, email, name, role`,
-      [
-        req.organization.id, email.toLowerCase(), passwordHash, name || null,
-        assignedRole, setupTokenHash, setupExpiresAt,
-      ]
+    // Is there already a row for this email in this org?
+    const existing = await query(
+      `SELECT id, deleted_at, password_reset_token
+       FROM users
+       WHERE organization_id = $1 AND email = $2
+       LIMIT 1`,
+      [req.organization.id, normalizedEmail]
     );
-    const inserted = rows[0];
+
+    let userRow;
+    if (existing.rows.length > 0) {
+      const e = existing.rows[0];
+      const neverAccepted = e.password_reset_token !== null;
+      const isDeleted = e.deleted_at !== null;
+      if (!neverAccepted && !isDeleted) {
+        // They have a working account in this org already.
+        return res.status(409).json({
+          error: 'This email already has an active account in your team. Ask them to sign in, or use Reset password on their row.',
+        });
+      }
+      // Re-issue the invite: refresh the password hash, the token, and the role/name.
+      const { rows } = await query(
+        `UPDATE users
+         SET password_hash = $2,
+             name = COALESCE($3, name),
+             role = $4,
+             password_reset_token = $5,
+             password_reset_expires_at = $6,
+             deleted_at = NULL,
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, email, name, role`,
+        [e.id, passwordHash, name || null, assignedRole, setupTokenHash, setupExpiresAt]
+      );
+      userRow = rows[0];
+    } else {
+      const { rows } = await query(
+        `INSERT INTO users (
+           organization_id, email, password_hash, name, role,
+           password_reset_token, password_reset_expires_at
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, email, name, role`,
+        [
+          req.organization.id, normalizedEmail, passwordHash, name || null,
+          assignedRole, setupTokenHash, setupExpiresAt,
+        ]
+      );
+      userRow = rows[0];
+    }
 
     // Fire off the invite email. Failure to send doesn't roll back the
-    // user — admin can use the resend / reset-password flow if needed.
+    // user — admin can use the per-row Reset password flow to retry.
     try {
       const base = process.env.APP_URL || 'https://fieldmgr.com';
       const setupUrl = `${base}/reset-password?token=${setupToken}`;
       const { subject, html, text } = teamInviteTemplate({
-        inviteeName: inserted.name,
+        inviteeName: userRow.name,
         inviterName: req.user.name || req.user.email,
         orgName: req.organization.name,
         setupUrl,
         role: assignedRole,
       });
-      await sendEmail({ to: inserted.email, subject, html, text });
+      await sendEmail({ to: userRow.email, subject, html, text });
     } catch (mailErr) {
       console.error('Team invite email failed:', mailErr);
     }
 
-    res.status(201).json(inserted);
+    res.status(201).json(userRow);
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Email already registered' });
