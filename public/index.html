@@ -1823,26 +1823,20 @@
     }
     .ed-hero-headline .cycle-word {
       display: inline-block;
-      transform-origin: top center;
-      backface-visibility: hidden;
-      animation: cycleFlap 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
+      animation: cycleSlide 0.46s cubic-bezier(0.45, 0, 0.55, 1);
     }
-    @keyframes cycleFlap {
-      0% {
-        transform: perspective(600px) rotateX(-95deg) translateY(-4px);
-        opacity: 0;
-        filter: blur(1px);
-      }
-      55% {
-        transform: perspective(600px) rotateX(8deg) translateY(0);
-        opacity: 1;
-        filter: blur(0);
-      }
-      100% {
-        transform: perspective(600px) rotateX(0) translateY(0);
-        opacity: 1;
-        filter: blur(0);
-      }
+    .ed-hero-headline .cycle-settled {
+      animation: cycleSettle 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes cycleSlide {
+      0%   { transform: translateY(0.45em); opacity: 0; }
+      22%  { transform: translateY(0);      opacity: 1; }
+      78%  { transform: translateY(0);      opacity: 1; }
+      100% { transform: translateY(-0.45em); opacity: 0; }
+    }
+    @keyframes cycleSettle {
+      0%   { transform: translateY(0.45em); opacity: 0; }
+      100% { transform: translateY(0);       opacity: 1; }
     }
     .ed-hero-lede {
       font-size: 18px; line-height: 1.6;
@@ -3952,13 +3946,13 @@ function CyclingHeadline() {
   const reachedEnd = idx >= INDUSTRIES.length - 1;
   useEffect(() => {
     if (reachedEnd) return;
-    const t = setTimeout(() => setIdx(i => i + 1), 420);
+    const t = setTimeout(() => setIdx(i => i + 1), 460);
     return () => clearTimeout(t);
   }, [idx, reachedEnd]);
   return (
     <h1 className="ed-hero-headline fade-in-delay-1">
       Run your<br />
-      <em key={idx} className="cycle-word">{INDUSTRIES[idx]}</em><br />
+      <em key={idx} className={`cycle-word${reachedEnd ? ' cycle-settled' : ''}`}>{INDUSTRIES[idx]}</em><br />
       in one place.
     </h1>
   );
