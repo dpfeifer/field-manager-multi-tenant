@@ -11210,14 +11210,14 @@ function PublicBookingView({ slug }) {
           <label>What do you need?</label>
           <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder="Brief description of the service you'd like" />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
               <label>Preferred date <span className="hint">(optional)</span></label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '100%' }} />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <label>Time of day</label>
-              <select value={window_} onChange={(e) => setWindow(e.target.value)}>
+              <select value={window_} onChange={(e) => setWindow(e.target.value)} style={{ width: '100%' }}>
                 <option value="anytime">Anytime</option>
                 <option value="morning">Morning</option>
                 <option value="afternoon">Afternoon</option>
