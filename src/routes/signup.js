@@ -113,6 +113,60 @@ router.post('/', async (req, res, next) => {
       console.error('signup: send verification email failed', err);
     }
 
+    const escapeHtml = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    // Friendly welcome email — separate from the functional verification one.
+    // Best-effort. Fires once at signup, not on subsequent logins.
+    try {
+      const base = process.env.APP_URL || 'https://fieldmgr.com';
+      const firstName = (result.user.name || '').split(' ')[0] || '';
+      const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,';
+      const orgName = escapeHtml(result.organization.name);
+      const html = `
+<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding:24px; max-width:600px; color:#2d2a26; line-height:1.6;">
+  <h1 style="font-size:22px; margin:0 0 14px; letter-spacing:-0.01em;">Welcome to Field Manager</h1>
+  <p style="margin:0 0 12px; color:#555;">${greeting}</p>
+  <p style="margin:0 0 12px; color:#555;">Glad to have you. You just set up <strong style="color:#2d2a26;">${orgName}</strong>, so here's the quickest path to running your week from here:</p>
+  <ol style="padding-left:22px; margin:0 0 18px; color:#555;">
+    <li style="margin-bottom:6px;"><strong>Add your first customer</strong> — by hand or import a CSV.</li>
+    <li style="margin-bottom:6px;"><strong>Schedule a job</strong> — one-off or set it up as a weekly recurring visit.</li>
+    <li style="margin-bottom:6px;"><strong>Mark complete</strong> when you finish — notes and totals roll up automatically.</li>
+    <li style="margin-bottom:6px;"><strong>Send the invoice</strong> from the same page. Customer gets a public link to pay.</li>
+  </ol>
+  <p style="margin:0 0 24px;">
+    <a href="${base}/dashboard" style="display:inline-block; background:#2c3e57; color:#fff; padding:11px 22px; border-radius:8px; text-decoration:none; font-weight:600;">Open Field Manager</a>
+  </p>
+  <p style="margin:0 0 8px; color:#555; font-size:14px;">If anything's confusing or broken, hit reply to this email or use the <strong>Help &amp; support</strong> item in the user menu — it goes straight to me.</p>
+  <p style="margin:0; color:#6d6a64; font-size:13px;">— Dustin, Field Manager</p>
+</body></html>`;
+      const text = `Welcome to Field Manager
+
+${greeting}
+
+Glad to have you. You just set up ${result.organization.name}. Here's the quickest path to running your week:
+
+  1. Add your first customer (by hand or import CSV)
+  2. Schedule a job (one-off or recurring)
+  3. Mark complete when you finish
+  4. Send the invoice from the same page
+
+Open Field Manager: ${base}/dashboard
+
+If anything's confusing or broken, hit reply or use Help & support in the user menu.
+
+— Dustin, Field Manager`;
+      sendEmail({
+        to: result.user.email,
+        subject: 'Welcome to Field Manager',
+        html,
+        text,
+      }).catch((mailErr) => console.error('signup: welcome email failed', mailErr));
+    } catch (err) {
+      console.error('signup: welcome email crashed', err);
+    }
+
     // Notify platform staff about the new signup (best-effort).
     try {
       const staffList = (process.env.SYSTEM_ADMIN_EMAILS || '')
@@ -123,9 +177,6 @@ router.post('/', async (req, res, next) => {
         const userDisplay = result.user.name
           ? `${result.user.name} <${result.user.email}>`
           : result.user.email;
-        const escapeHtml = (s) => String(s == null ? '' : s)
-          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         const html = `
           <!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif; padding:24px; max-width:600px;">
             <h2 style="margin:0 0 16px;">New Field Manager signup</h2>

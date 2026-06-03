@@ -6366,7 +6366,7 @@ function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDa
   );
 }
 
-function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule }) {
+function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule, canMutate = true }) {
   const [editing, setEditing] = useState(false);
   const [newDate, setNewDate] = useState(occurrence.date);
 
@@ -6405,13 +6405,17 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
         <button className="primary" disabled={busy} onClick={() => onMarkComplete(occurrence.date)}>
           Mark complete
         </button>
-        <button className="secondary" disabled={busy} onClick={() => onSkip(occurrence.date)}>Skip</button>
-        {occurrence.rescheduledFrom ? (
-          <button className="secondary" disabled={busy} onClick={() => onCancelReschedule(occurrence.rescheduledFrom)}>
-            Undo reschedule
-          </button>
-        ) : (
-          <button className="secondary" disabled={busy} onClick={() => setEditing(true)}>Reschedule</button>
+        {canMutate && (
+          <>
+            <button className="secondary" disabled={busy} onClick={() => onSkip(occurrence.date)}>Skip</button>
+            {occurrence.rescheduledFrom ? (
+              <button className="secondary" disabled={busy} onClick={() => onCancelReschedule(occurrence.rescheduledFrom)}>
+                Undo reschedule
+              </button>
+            ) : (
+              <button className="secondary" disabled={busy} onClick={() => setEditing(true)}>Reschedule</button>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -6571,6 +6575,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
               key={o.date}
               occurrence={o}
               busy={busy}
+              canMutate={canMutate}
               onMarkComplete={onMarkComplete}
               onSkip={skip}
               onReschedule={reschedule}
@@ -9811,13 +9816,19 @@ function DashboardWidgetStats({ ctx }) {
 }
 
 function DashboardWidgetToday({ ctx }) {
-  const { terms, todayOccurrences, onMarkComplete } = ctx;
+  const { terms, todayOccurrences, onMarkComplete, session } = ctx;
+  const canMutate = session && ['admin', 'lead'].includes(session.user.role);
   return (
     <>
       <div className="section-heading">Today</div>
       <div className="list">
         {todayOccurrences.length === 0 ? (
-          <div className="list-empty">No {terms.jobsLower} scheduled today.</div>
+          <div className="list-empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <span>Nothing on the calendar today — enjoy the breather.</span>
+            {canMutate && (
+              <button className="secondary" onClick={() => navigate('/jobs')}>+ Schedule one</button>
+            )}
+          </div>
         ) : (
           todayOccurrences.map((o, i) => (
             <OccurrenceRow
