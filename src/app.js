@@ -100,6 +100,10 @@ let cachedIndexHtml = buildIndexHtml();
 function serveIndex(req, res) {
   const html = process.env.NODE_ENV === 'production' ? cachedIndexHtml : buildIndexHtml();
   res.set('Content-Type', 'text/html; charset=utf-8');
+  // Always revalidate so deploys reach users on their next visit instead of
+  // sitting behind a stale browser cache. Asset files in /public still get
+  // the normal express.static caching.
+  res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);
 }
 
