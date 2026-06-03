@@ -8154,6 +8154,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/dashboard' ? 'dashboard'
     : path === '/settings/auto-invoice' ? 'auto-invoice'
     : path === '/settings/booking-form' ? 'booking-form'
+    : path === '/settings/payments' ? 'payments'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -8299,7 +8300,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form')) {
+  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -8320,6 +8321,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             className={`chip ${subView === 'company' ? 'active' : ''}`}
             onClick={() => navigate('/settings')}
           >Company</button>
+          <button
+            className={`chip ${subView === 'payments' ? 'active' : ''}`}
+            onClick={() => navigate('/settings/payments')}
+          >Payments</button>
           <button
             className={`chip ${subView === 'terminology' ? 'active' : ''}`}
             onClick={() => navigate('/settings/terminology')}
@@ -8643,43 +8648,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         </div>
 
-        <div className="section-heading">Payments</div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: 16 }}>
-          Add the ways customers can pay you — buttons appear on every invoice link.
-          Field Manager doesn't talk to your payment processor, so you'll click <em>Mark paid</em> on the invoice once the money lands.
-        </p>
-        <div className="form-grid">
-          <div className="full">
-            <label>Pay-now link <span className="hint">(optional)</span></label>
-            <input
-              type="url"
-              placeholder="https://buy.stripe.com/..."
-              value={form.payment_link_url}
-              onChange={(e) => setField('payment_link_url', e.target.value)}
-              disabled={!isAdmin}
-            />
-            <p className="hint" style={{ marginTop: 4 }}>
-              Stripe Payment Link, PayPal.me, Square invoice URL, anything. Amount is pre-filled for Stripe and PayPal.
-            </p>
-          </div>
-          <div className="full">
-            <label>Venmo handle <span className="hint">(optional, without the @)</span></label>
-            <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
-          </div>
-        </div>
-
-        <div className="section-heading">Integrations</div>
-        <div className="form-grid">
-          <div>
-            <label>Resend "from" email</label>
-            <input type="email" value={form.resend_from_email} onChange={(e) => setField('resend_from_email', e.target.value)} placeholder="hello@yourdomain.com" disabled={!isAdmin} />
-          </div>
-          <div>
-            <label>Cloudinary folder</label>
-            <input value={form.cloudinary_folder} onChange={(e) => setField('cloudinary_folder', e.target.value)} placeholder="my-org/completions" disabled={!isAdmin} />
-          </div>
-        </div>
-
         {isAdmin && (
           <div className="form-actions">
             <button type="submit" className="primary" disabled={busy}>
@@ -8688,6 +8656,47 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         )}
       </form>
+        </>
+      )}
+
+      {subView === 'payments' && (
+        <>
+          {error && <div className="error">{error}</div>}
+          {saved && (
+            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+          )}
+          <form onSubmit={submit} className="form-card">
+            <p className="hint" style={{ marginTop: 0, marginBottom: 18 }}>
+              Add the ways customers can pay you — buttons appear on every invoice link.
+              Field Manager doesn't talk to your payment processor, so you'll click <em>Mark paid</em> on the invoice once the money lands.
+            </p>
+            <div className="form-grid">
+              <div className="full">
+                <label>Pay-now link <span className="hint">(optional)</span></label>
+                <input
+                  type="url"
+                  placeholder="https://buy.stripe.com/..."
+                  value={form.payment_link_url || ''}
+                  onChange={(e) => setField('payment_link_url', e.target.value)}
+                  disabled={!isAdmin}
+                />
+                <p className="hint" style={{ marginTop: 4 }}>
+                  Stripe Payment Link, PayPal.me, Square invoice URL, anything. Amount is pre-filled for Stripe and PayPal.
+                </p>
+              </div>
+              <div className="full">
+                <label>Venmo handle <span className="hint">(optional, without the @)</span></label>
+                <input value={form.venmo_handle || ''} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
+              </div>
+            </div>
+            {isAdmin && (
+              <div className="form-actions">
+                <button type="submit" className="primary" disabled={busy}>
+                  {busy ? 'Saving...' : 'Save payments'}
+                </button>
+              </div>
+            )}
+          </form>
         </>
       )}
     </div>
@@ -8712,6 +8721,7 @@ const APP_ROUTES = {
   '/settings/dashboard': 'settings',
   '/settings/auto-invoice': 'settings',
   '/settings/booking-form': 'settings',
+  '/settings/payments': 'settings',
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
