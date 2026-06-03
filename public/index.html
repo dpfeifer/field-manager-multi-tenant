@@ -1426,6 +1426,63 @@
       .stats-grid.row-fixed-3,
       .stats-grid.row-fixed-2 { grid-template-columns: 1fr; }
     }
+    /* Getting Started checklist (admin-only dashboard guide) */
+    .gs-card {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-radius: 12px; padding: 18px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+    .gs-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; margin-bottom: 14px;
+    }
+    .gs-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: 17px; color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .gs-sub {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .gs-list { display: flex; flex-direction: column; gap: 6px; }
+    .gs-item {
+      display: grid;
+      grid-template-columns: 22px 1fr 18px;
+      gap: 12px; align-items: center;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer; text-align: left;
+      font-family: inherit;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .gs-item:hover { background: var(--row-hover); border-color: var(--border-strong); }
+    .gs-item.done { opacity: 0.6; }
+    .gs-item.done:hover { opacity: 0.85; }
+    .gs-check {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid var(--border-strong);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      background: var(--card);
+    }
+    .gs-check.done {
+      background: #2f6b46; border-color: #2f6b46; color: #fff;
+    }
+    .gs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .gs-label {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .gs-item.done .gs-label { text-decoration: line-through; }
+    .gs-hint { font-size: 12px; color: var(--text-muted); }
+    .gs-arrow {
+      font-size: 16px; color: var(--text-muted);
+    }
+    .gs-item:hover .gs-arrow { color: var(--text); }
+
     .stat-card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; padding: 18px;
@@ -9739,6 +9796,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [completing, setCompleting] = useState(null);
@@ -9747,14 +9805,16 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [jobsData, invoicesData, customersData] = await Promise.all([
+      const [jobsData, invoicesData, customersData, settingsData] = await Promise.all([
         apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
         apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
         apiRequest('/api/customers', { slug: session.slug, token: session.token }),
+        apiRequest('/api/settings', { slug: session.slug, token: session.token }).catch(() => null),
       ]);
       setJobs(jobsData);
       setInvoices(invoicesData);
       setCustomers(customersData);
+      setSettings(settingsData);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [session.slug, session.token]);
@@ -9865,6 +9925,15 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
         <div className="list-empty">Loading...</div>
       ) : (
         <>
+          {role === 'admin' && (
+            <GettingStartedChecklist
+              session={session}
+              features={features}
+              settings={settings}
+              customers={customers}
+              jobs={jobs}
+            />
+          )}
           {widgets
             .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id))
             .map((w) => {
@@ -9873,6 +9942,100 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
             })}
         </>
       )}
+    </div>
+  );
+}
+
+function GettingStartedChecklist({ session, features, settings, customers, jobs }) {
+  const terms = useTerms();
+  const orgId = session.organization && session.organization.id;
+  const storageKey = `fm_getting_started_dismissed_${orgId}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(storageKey) === '1'; } catch (e) { return false; }
+  });
+
+  function dismiss() {
+    try { localStorage.setItem(storageKey, '1'); } catch (e) {}
+    setDismissed(true);
+  }
+
+  const s = settings || {};
+  const companyDone = !!(s.company_name && (s.logo_url || s.address || s.phone || s.email));
+  const paymentsDone = !!(s.payment_link_url || s.venmo_handle);
+  const customerDone = (customers || []).length > 0;
+  const jobDone = (jobs || []).length > 0;
+
+  const items = [
+    {
+      id: 'company',
+      label: 'Add your company info and logo',
+      hint: 'Shows up on every invoice and your public booking page.',
+      done: companyDone,
+      to: '/settings',
+    },
+  ];
+  if (features.invoices) {
+    items.push({
+      id: 'payments',
+      label: 'Set up how customers pay you',
+      hint: 'Pay-now link (Stripe / PayPal / Square) or Venmo handle.',
+      done: paymentsDone,
+      to: '/settings/payments',
+    });
+  }
+  items.push({
+    id: 'customer',
+    label: `Add your first ${terms.customerLower}`,
+    hint: 'Or import a list from CSV.',
+    done: customerDone,
+    to: '/customers',
+  });
+  items.push({
+    id: 'job',
+    label: `Schedule your first ${terms.jobLower}`,
+    hint: 'One-off or recurring — pick a day, hit save.',
+    done: jobDone,
+    to: '/jobs',
+  });
+
+  const allDone = items.every((i) => i.done);
+  if (dismissed || allDone) return null;
+
+  const doneCount = items.filter((i) => i.done).length;
+
+  return (
+    <div className="gs-card">
+      <div className="gs-head">
+        <div>
+          <div className="gs-title">Get set up</div>
+          <div className="gs-sub">{doneCount} of {items.length} done · {items.length - doneCount} to go</div>
+        </div>
+        <button
+          className="link-button"
+          onClick={dismiss}
+          aria-label="Hide getting started checklist"
+          style={{ fontSize: 12 }}
+        >Hide</button>
+      </div>
+      <div className="gs-list">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            className={`gs-item${item.done ? ' done' : ''}`}
+            onClick={() => navigate(item.to)}
+            type="button"
+          >
+            <span className={`gs-check${item.done ? ' done' : ''}`} aria-hidden="true">
+              {item.done ? '✓' : ''}
+            </span>
+            <span className="gs-body">
+              <span className="gs-label">{item.label}</span>
+              <span className="gs-hint">{item.hint}</span>
+            </span>
+            <span className="gs-arrow" aria-hidden="true">→</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
