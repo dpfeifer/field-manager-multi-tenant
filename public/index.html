@@ -1136,8 +1136,14 @@
       .day-block-bottom {
         flex-direction: column; align-items: flex-start;
       }
-      .day-block-actions { flex-wrap: wrap; justify-content: flex-start; }
-      .day-block-actions .day-block-sms { max-width: none; }
+      .day-block-actions {
+        flex-wrap: nowrap; justify-content: flex-start;
+        width: 100%; gap: 6px;
+      }
+      .day-block-actions .day-block-sms {
+        max-width: 100px; flex-shrink: 1;
+      }
+      .day-block-complete { flex-shrink: 0; }
     }
     .day-block-complete {
       background: rgba(255,255,255,0.18); color: white;
@@ -1962,6 +1968,14 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
+      /* Schedule rows (Mark complete / Skip / Reschedule) — keep inline.
+         Tighter button padding so all three fit on one line. */
+      .row .actions.schedule-actions {
+        flex-wrap: nowrap;
+      }
+      .row .actions.schedule-actions button {
+        padding: 9px 12px; font-size: 13px;
+      }
       /* On mobile, left-align the action cluster so each util button
          sits at the left edge instead of pulling to the right. */
       .row .actions { justify-content: flex-start; }
@@ -6338,7 +6352,7 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
           <div className="meta">Rescheduled from {formatDateString(occurrence.rescheduledFrom)}</div>
         )}
       </div>
-      <div className="actions">
+      <div className="actions schedule-actions">
         <button className="primary" disabled={busy} onClick={() => onMarkComplete(occurrence.date)}>
           Mark complete
         </button>
