@@ -2491,42 +2491,6 @@
       .ed-tile-2, .ed-tile-8, .ed-tile-9 { display: none; }
     }
 
-    /* Cinema hero: standard-flow section (no pinning). Image planes are
-       born inside a headline-sized region at the viewport center and
-       travel outward off the edges of the screen. */
-    .ed-hero-cinema {
-      position: relative;
-      height: 100vh; min-height: 600px;
-      overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .ed-cinema-stage {
-      position: absolute; inset: 0;
-      pointer-events: none;
-    }
-    .ed-cinema-tile {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: 22vmin; height: auto;
-      max-height: 38vmin;
-      display: block;
-      object-fit: contain;
-      transform-origin: center center;
-      will-change: transform, opacity;
-      box-shadow: 0 8px 22px -12px rgba(0,0,0,0.18);
-      border-radius: 1px;
-    }
-    .ed-cinema-text {
-      position: relative; z-index: 1000;
-      max-width: 760px; padding: 0 32px;
-      text-align: center;
-    }
-    .ed-cinema-text .ed-eyebrow { margin-bottom: 28px; }
-    @media (max-width: 720px) {
-      .ed-hero-cinema { min-height: 540px; }
-      .ed-cinema-tile { width: 30vmin; max-height: 46vmin; }
-    }
-
     /* bridge & chapters */
     .ed-bridge {
       max-width: 720px; margin: 0 auto;
@@ -4599,145 +4563,6 @@ function CyclingHeadline() {
   );
 }
 
-const CINEMA_IMAGE_IDS = [
-  // original 9
-  '1623161551727-54c918bdcec1', '1728706613021-e447801e1ea6', '1740657254989-42fe9c3b8cce',
-  '1641199788912-9a7385a35c82', '1628847115161-d6793dc59c7f', '1734303023491-db8037a21f09',
-  '1530700131180-d43d9b8cc41f', '1503951914875-452162b0f3f1', '1613844044163-1ad2f2d0b152',
-  // landscaping
-  '1676496046182-356a6a0ed002', '1734079692160-fcbe4be6ab96', '1597201278257-3687be27d954',
-  '1664299231556-57f570023f87', '1605117882932-f9e32b03fea9', '1668120089662-42642838cfef',
-  '1734079692079-aae7e24a7035', '1458245201577-fc8a130b8829', '1734079692079-172d8243ebd3',
-  '1700689807667-82630348b301', '1632161293871-cf2083474e34', '1663185777390-d44a6f4724b9',
-  '1617850687395-620757feb1f3', '1669829646756-083a328c0abb', '1689728318937-17d24bc0a65c',
-  '1629575063988-881596e38d31', '1592595896616-c37162298647',
-  // cleaning service
-  '1663011218145-c1d0c3ba3542', '1686178827149-6d55c72d81df', '1627905646269-7f034dcc5738',
-  '1683141112334-d7d404f6e716', '1563453392212-326f5e854473', '1603712725038-e9334ae8f39f',
-  '1585421514284-efb74c2b69ba', '1678304224523-d25b4117558f', '1669101602108-fa5ba89507ee',
-  '1628177142898-93e36e4e3a50', '1642505172378-a6f5e5b15580', '1684407616442-87bf0d69e8b4',
-  '1580256081112-e49377338b7f', '1581578731548-c64695cc6952', '1646980241033-cd7abda2ee88',
-  '1663047397245-2ddad26c5dd7', '1618038483079-bfe64dcb17f1', '1647381518264-97ff1835026f',
-];
-const CINEMA_IMAGES = CINEMA_IMAGE_IDS.map(
-  (id) => `https://images.unsplash.com/photo-${id}?w=900&q=80&auto=format`
-);
-
-// Every tile spawns at the viewport center, gets a fully-random
-// outward direction, and shares the same speed (set in CinemaHero).
-// Phases use the golden ratio so they're maximally spread out in time
-// without looking mechanical.
-const PHI = (1 + Math.sqrt(5)) / 2;
-function generateCinemaTiles() {
-  return CINEMA_IMAGES.map((src, i) => {
-    const angle = Math.random() * Math.PI * 2;
-    return {
-      src,
-      dx: Math.cos(angle),
-      dy: Math.sin(angle),
-      reach: 85 + Math.random() * 25,        // vmax — total outward travel (exits viewport)
-      phase: (i * PHI) % 1,
-      baseScale: 0.7 + Math.random() * 0.4,
-    };
-  });
-}
-
-function CinemaHero() {
-  const heroRef = useRef(null);
-  const tilesRef = useRef([]);
-  const [tiles] = useState(() => generateCinemaTiles());
-
-  useEffect(() => {
-    const BASE_RATE = 0.32;                         // cycles per second — same for every tile
-    let raf = 0;
-    let clock = 0;
-    let scrollBoost = 0;
-    let lastScrollY = window.scrollY;
-    let lastScrollAt = performance.now();
-    let last = performance.now();
-
-    function onScroll() {
-      const now = performance.now();
-      const dt = Math.max(1, now - lastScrollAt);
-      const dy = Math.abs(window.scrollY - lastScrollY);
-      const velocity = dy / dt;
-      scrollBoost = Math.min(1.8, scrollBoost + velocity * 0.025);
-      lastScrollY = window.scrollY;
-      lastScrollAt = now;
-    }
-
-    function tick(now) {
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      scrollBoost *= Math.pow(0.04, dt);
-      const rate = BASE_RATE * (1 + scrollBoost);
-      clock += dt * rate;
-
-      const nodes = tilesRef.current;
-      for (let i = 0; i < tiles.length; i++) {
-        const node = nodes[i];
-        if (!node) continue;
-        const t = tiles[i];
-        let local = (clock + t.phase) % 1;
-        if (local < 0) local += 1;
-        // Cubic ease — tiles linger near center (small/close to origin)
-        // for most of the loop, then accelerate outward toward the edge.
-        const ease = local * local * local;
-        // Born at the viewport center, travels outward to off-screen.
-        const tx = t.dx * t.reach * ease;
-        const ty = t.dy * t.reach * ease;
-        // Scale grows modestly; never returns to zero.
-        const scale = (0.32 + ease * 1.15) * t.baseScale;
-        // Quick fade-in at birth (so the reset is invisible), then a
-        // gentle climb that ties opacity to size — small tiles are
-        // softly visible, edge tiles are fully solid.
-        const fadeIn = Math.min(1, local / 0.04);
-        const opacity = fadeIn * (0.42 + ease * 0.58);
-        node.style.transform = `translate(-50%, -50%) translate(${tx}vmax, ${ty}vmax) scale(${scale})`;
-        node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
-        // Capped at 8 so the headline (z-index 1000) always stays on top.
-        node.style.zIndex = String(Math.round(ease * 8));
-      }
-      raf = requestAnimationFrame(tick);
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    raf = requestAnimationFrame(tick);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, [tiles]);
-
-  return (
-    <header className="ed-hero-cinema" ref={heroRef}>
-      <div className="ed-cinema-stage" aria-hidden="true">
-        {tiles.map((t, i) => (
-          <img
-            key={i}
-            ref={(el) => { tilesRef.current[i] = el; }}
-            src={t.src}
-            alt=""
-            className="ed-cinema-tile"
-            style={{ opacity: 0 }}
-          />
-        ))}
-      </div>
-      <div className="ed-cinema-text">
-        <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-        <HeroHeadline />
-        <p className="ed-hero-lede fade-in-delay-2">
-          No more juggling a notebook, a calendar, and three text threads.
-        </p>
-        <div className="ed-hero-actions fade-in-delay-3">
-          <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-          <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function LandingPage() {
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
@@ -4787,7 +4612,30 @@ function LandingPage() {
         </div>
       </nav>
 
-      <CinemaHero />
+      <header className="ed-hero">
+        <div className="ed-hero-text">
+          <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
+          <HeroHeadline />
+          <p className="ed-hero-lede fade-in-delay-2">
+            No more juggling a notebook, a calendar, and three text threads.
+          </p>
+          <div className="ed-hero-actions fade-in-delay-3">
+            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+            <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
+          </div>
+        </div>
+        <div className="ed-collage" aria-hidden="true">
+          <div className="ed-tile ed-tile-1" />
+          <div className="ed-tile ed-tile-2" />
+          <div className="ed-tile ed-tile-3" />
+          <div className="ed-tile ed-tile-4" />
+          <div className="ed-tile ed-tile-5" />
+          <div className="ed-tile ed-tile-6" />
+          <div className="ed-tile ed-tile-7" />
+          <div className="ed-tile ed-tile-8" />
+          <div className="ed-tile ed-tile-9" />
+        </div>
+      </header>
 
       <section className="ed-bridge" data-reveal>
         <p className="ed-bridge-rule">— Welcome to the small operation —</p>
