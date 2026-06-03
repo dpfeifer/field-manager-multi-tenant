@@ -2523,7 +2523,7 @@
     .ed-cinema-tile.wide { width: 26vmin; height: 18vmin; }
     .ed-cinema-tile.tall { width: 16vmin; height: 26vmin; }
     .ed-cinema-text {
-      position: relative; z-index: 10;
+      position: relative; z-index: 1000;
       max-width: 760px; padding: 0 32px;
       text-align: center;
     }
@@ -4621,21 +4621,22 @@ const CINEMA_IMAGES = [
 const CINEMA_SHAPES = ['', 'wide', 'tall'];
 const CINEMA_TILE_COUNT = 28;
 
-// Generate a random tile field. Each tile has a fixed (x,y) position
-// somewhere across the viewport and its own phase + lifespan. The rAF
-// loop walks each tile through scale-up + fade, so they appear as a
-// continuous stream of images drifting toward the camera at random
-// points across the whole hero.
+// Generate a random tile field. Every tile is "born" at the viewport
+// center and travels outward along its own random direction at its own
+// random speed. The rAF loop walks each through scale-up + outward
+// translate (no opacity fade-out — tiles simply exit the screen).
 function generateCinemaTiles(count) {
   const tiles = [];
   for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
     tiles.push({
       src: CINEMA_IMAGES[i % CINEMA_IMAGES.length],
-      x: (Math.random() - 0.5) * 90,   // -45vw to +45vw
-      y: (Math.random() - 0.5) * 80,   // -40vh to +40vh
-      phase: Math.random(),            // offset in the loop
-      baseScale: 0.55 + Math.random() * 0.55,
-      duration: 0.85 + Math.random() * 0.5,
+      dx: Math.cos(angle),                  // unit direction
+      dy: Math.sin(angle),
+      reach: 80 + Math.random() * 35,       // peak distance in vmax
+      phase: Math.random(),                 // offset in the loop
+      baseScale: 0.6 + Math.random() * 0.5,
+      duration: 0.9 + Math.random() * 0.6,
       shape: CINEMA_SHAPES[Math.floor(Math.random() * CINEMA_SHAPES.length)],
     });
   }
@@ -4677,18 +4678,22 @@ function CinemaHero() {
         // Each tile's life cycle progresses at its own duration.
         let local = ((clock / t.duration) + t.phase) % 1;
         if (local < 0) local += 1;
-        // Cubic ease — accelerates as the tile approaches the camera.
+        // Cubic ease — accelerates as the tile travels away from origin.
         const ease = local * local * local;
-        // Scale from tiny/distant to ~2.5x base size; not viewport-filling.
-        const scale = (0.18 + ease * 2.4) * t.baseScale;
-        // Distant tiles are transparent, near tiles solid, exit fades.
-        const distanceFade = Math.min(1, ease * 2.6);
-        const exitFade = local > 0.82 ? Math.max(0, (1 - local) / 0.18) : 1;
-        const opacity = distanceFade * exitFade;
-        node.style.transform = `translate(-50%, -50%) translate(${t.x}vw, ${t.y}vh) scale(${scale})`;
+        // All tiles are born at viewport center and fly outward along
+        // their direction vector; reach is large enough to exit the screen.
+        const tx = t.dx * t.reach * ease;
+        const ty = t.dy * t.reach * ease;
+        // Moderate scale-up. Tiles do not fill the viewport.
+        const scale = (0.05 + ease * 1.5) * t.baseScale;
+        // Fade in over the first 12% of the loop; no fade-out — the
+        // tile exits the viewport while fully opaque.
+        const opacity = local < 0.12 ? local / 0.12 : 1;
+        node.style.transform = `translate(-50%, -50%) translate(${tx}vmax, ${ty}vmax) scale(${scale})`;
         node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
-        // Near tiles paint over far tiles.
-        node.style.zIndex = String(Math.round(ease * 100));
+        // Near tiles paint over far tiles. Capped at 8 so the headline
+        // (z-index 1000) is always on top.
+        node.style.zIndex = String(Math.round(ease * 8));
       }
       raf = requestAnimationFrame(tick);
     }
