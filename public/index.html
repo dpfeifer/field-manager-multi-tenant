@@ -10273,8 +10273,12 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
               jobs={jobs}
             />
           )}
+          {/* Always render team notes outside the configurable widget loop
+              so existing users (whose saved dashboard_widgets array predates
+              the widget) still see it. */}
+          <DashboardWidgetTeamNotes ctx={ctx} />
           {widgets
-            .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id))
+            .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id) && w.id !== 'team_notes')
             .map((w) => {
               const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
               return <W key={w.id} ctx={ctx} />;
