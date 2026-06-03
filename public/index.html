@@ -1235,8 +1235,28 @@
       font-family: ui-monospace, monospace; font-size: 12px;
     }
     @media (max-width: 600px) {
-      .sms-template-row { flex-direction: column; }
+      /* On mobile, strip the nested card styling so the input fields
+         get the full width of the settings panel. Templates are visually
+         separated by a hairline divider instead. */
+      .sms-template-row {
+        flex-direction: column;
+        padding: 0 0 14px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 14px;
+      }
+      .sms-template-row:last-of-type {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
       .sms-template-fields { grid-template-columns: 1fr; }
+      .sms-template-row .sms-template-remove {
+        align-self: flex-end;
+        margin-top: 4px;
+      }
     }
 
     /* Week view — 7 columns of day summaries */
@@ -1901,7 +1921,14 @@
       .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
       .topbar .brand { font-size: 14px; }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
-      .nav { padding: 0 4px; overflow-x: auto; flex-wrap: nowrap; gap: 0; }
+      .nav {
+        padding: 0 4px; overflow-x: auto; flex-wrap: nowrap; gap: 0;
+        /* Constrain touch gesture to horizontal scroll only so a slightly
+           diagonal swipe doesn't cause vertical drift / icon bobbing. */
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+      }
       .nav::-webkit-scrollbar { display: none; }
       /* Stack icon over label on mobile so each tab is a proper tap target
          (≥ 56px tall) with the icon big enough to read at a glance. */
