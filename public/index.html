@@ -30,6 +30,8 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+  %META_PIXEL_SCRIPT%
+
   <!-- Structured data: tells search engines this is a SaaS product with pricing -->
   <script type="application/ld+json">
   {
@@ -3869,6 +3871,12 @@ function SignupForm({ onSuccess }) {
       });
       const session = { ...data, slug: data.organization && data.organization.slug };
       saveSession(session);
+      // Conversion: a new org was created. Fire to Meta Pixel if loaded.
+      try {
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'CompleteRegistration', { content_name: 'org_signup' });
+        }
+      } catch (e) { /* no-op */ }
       onSuccess(session);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }

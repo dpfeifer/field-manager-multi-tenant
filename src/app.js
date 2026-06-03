@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
@@ -68,11 +69,45 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.use(express.static(PUBLIC_DIR));
+// Build the index.html we'll serve. We inject server-side env config
+// (Meta Pixel ID, etc.) into a placeholder so the static file stays
+// portable but production gets real tracking IDs.
+function buildIndexHtml() {
+  const raw = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+  const pixelId = process.env.META_PIXEL_ID;
+  const pixelScript = pixelId ? `
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel -->
+` : '';
+  return raw.replace('%META_PIXEL_SCRIPT%', pixelScript);
+}
+let cachedIndexHtml = buildIndexHtml();
+// In dev, rebuild on every request so HTML edits show up immediately.
+function serveIndex(req, res) {
+  const html = process.env.NODE_ENV === 'production' ? cachedIndexHtml : buildIndexHtml();
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+}
+
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  serveIndex(req, res);
 });
 
 app.use(errorHandler);
