@@ -946,6 +946,14 @@
     .occurrence-row.today .date .day { color: #cbd6e6; }
     .occurrence-row .body { flex: 1; min-width: 0; }
     .occurrence-row .body .title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+    /* Stack the price under the job title so it has room to breathe instead
+       of butting right up against the title text. */
+    .occurrence-row .body .title .price {
+      display: block; margin-top: 2px;
+      font-family: var(--serif); font-weight: 500;
+      font-size: 14px; letter-spacing: -0.01em;
+      color: var(--text);
+    }
     .occurrence-row .body .meta { font-size: 12px; color: var(--text-muted); }
     .occurrence-row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: nowrap; }
     .occurrence-row .actions button { white-space: nowrap; }
