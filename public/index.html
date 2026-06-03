@@ -821,6 +821,8 @@
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    /* Team row: badge sits inline between info and actions on desktop. */
+    .team-row .team-role { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     /* Invoice utility actions — View / Edit / Delete sit inline as a
        quieter "secondary" cluster below the primary customer-facing
        actions. Differentiated by smaller size, lighter weight, and a
@@ -1234,33 +1236,30 @@
     .dash-widget-help { font-size: 12px; color: var(--text-muted); margin-top: 1px; line-height: 1.4; }
 
     /* Quick-text editor rows in Settings */
+    /* Quick text template editor — same stacked layout on desktop and mobile:
+       full-width inputs, a hairline divider between templates, no nested
+       card chrome eating horizontal space. */
     .sms-template-row {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 14px; margin-bottom: 12px;
-      background: var(--tinted);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 0 0 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sms-template-row:last-of-type {
+      border-bottom: none; margin-bottom: 0; padding-bottom: 0;
     }
     .sms-template-fields {
-      flex: 1; display: flex; flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 10px;
       min-width: 0;
     }
     .sms-template-fields label { margin-top: 0; }
     .sms-template-row .sms-template-remove {
-      flex-shrink: 0; align-self: flex-start;
+      align-self: flex-start;
       padding: 4px 10px; font-size: 12px;
     }
     .sms-template-row code {
-      background: var(--card); padding: 1px 5px; border-radius: 3px;
+      background: var(--tinted); padding: 1px 5px; border-radius: 3px;
       font-family: ui-monospace, monospace; font-size: 12px;
-    }
-    @media (max-width: 600px) {
-      /* Keep the card look but make the fields use the full row width.
-         Without align-self: stretch, the column-flex layout collapses the
-         fields container to its content width, making inputs look narrow. */
-      .sms-template-row { flex-direction: column; }
-      .sms-template-fields { align-self: stretch; grid-template-columns: 1fr; }
-      .sms-template-row .sms-template-remove { align-self: flex-start; }
     }
 
     /* Week view — 7 columns of day summaries */
@@ -1982,6 +1981,24 @@
         min-width: 0; gap: 6px;
       }
       .row .actions button { flex: 0 0 auto; }
+      /* Team row mobile: role badge to top-right, action buttons in a
+         single row underneath, left-aligned. */
+      .row.team-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        column-gap: 12px;
+        row-gap: 8px;
+      }
+      .row.team-row .info { grid-column: 1; grid-row: 1; }
+      .row.team-row .team-role {
+        grid-column: 2; grid-row: 1;
+        align-self: start; justify-self: end;
+      }
+      .row.team-row .actions {
+        grid-column: 1 / -1; grid-row: 2;
+        margin-top: 0;
+        justify-content: flex-start;
+      }
       /* Schedule rows (Mark complete / Skip / Reschedule) — keep inline.
          Tighter button padding so all three fit on one line. */
       .row .actions.schedule-actions {
@@ -11061,7 +11078,7 @@ function TeamView({ session }) {
             const displayName = u.name || u.email;
             const isResetting = resettingId === u.id;
             return (
-              <div key={u.id} className="row">
+              <div key={u.id} className="row team-row">
                 <div className="info">
                   <div className="name">
                     {displayName}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}
@@ -11084,7 +11101,7 @@ function TeamView({ session }) {
                     </div>
                   )}
                 </div>
-                <div className="actions">
+                <div className="team-role">
                   {editingRoleId === u.id ? (
                     <>
                       <select
@@ -11101,23 +11118,23 @@ function TeamView({ session }) {
                   ) : (
                     <span className="badge">{u.role}</span>
                   )}
-                  {!isMe && editingRoleId !== u.id && !isResetting && (
-                    <>
-                      {u.invite_pending && (
-                        <button
-                          className="secondary"
-                          disabled={resendingId === u.id}
-                          onClick={() => resendInvite(u.id, displayName)}
-                        >
-                          {resendingId === u.id ? 'Sending...' : 'Resend invite'}
-                        </button>
-                      )}
-                      <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
-                      <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
-                      <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
-                    </>
-                  )}
                 </div>
+                {!isMe && editingRoleId !== u.id && !isResetting && (
+                  <div className="actions">
+                    {u.invite_pending && (
+                      <button
+                        className="secondary"
+                        disabled={resendingId === u.id}
+                        onClick={() => resendInvite(u.id, displayName)}
+                      >
+                        {resendingId === u.id ? 'Sending...' : 'Resend invite'}
+                      </button>
+                    )}
+                    <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
+                    <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
+                    <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
+                  </div>
+                )}
               </div>
             );
           })
