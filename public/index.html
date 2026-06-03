@@ -2491,19 +2491,14 @@
       .ed-tile-2, .ed-tile-8, .ed-tile-9 { display: none; }
     }
 
-    /* Cinema hero: scroll-pinned section. Text stays vertically centered
-       while image planes scale up, drift outward from center, and fade out
-       as the user scrolls through the section. */
+    /* Cinema hero: standard-flow section (no pinning). Image planes are
+       born inside a headline-sized region at the viewport center and
+       travel outward off the edges of the screen. */
     .ed-hero-cinema {
       position: relative;
-      height: 200vh;
-      overflow: clip;
-    }
-    .ed-cinema-sticky {
-      position: sticky; top: 0;
-      height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      height: 100vh; min-height: 600px;
       overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
     }
     .ed-cinema-stage {
       position: absolute; inset: 0;
@@ -2512,16 +2507,15 @@
     .ed-cinema-tile {
       position: absolute;
       left: 50%; top: 50%;
-      width: 18vmin; height: 24vmin;
-      background-size: cover; background-position: center;
-      background-color: #e8dfd0;
+      width: 22vmin; height: auto;
+      max-height: 38vmin;
+      display: block;
+      object-fit: contain;
       transform-origin: center center;
       will-change: transform, opacity;
       box-shadow: 0 18px 40px -16px rgba(0,0,0,0.35);
       border-radius: 2px;
     }
-    .ed-cinema-tile.wide { width: 26vmin; height: 18vmin; }
-    .ed-cinema-tile.tall { width: 16vmin; height: 26vmin; }
     .ed-cinema-text {
       position: relative; z-index: 1000;
       max-width: 760px; padding: 0 32px;
@@ -2529,10 +2523,8 @@
     }
     .ed-cinema-text .ed-eyebrow { margin-bottom: 28px; }
     @media (max-width: 720px) {
-      .ed-hero-cinema { height: 160vh; }
-      .ed-cinema-tile { width: 26vmin; height: 32vmin; }
-      .ed-cinema-tile.wide { width: 34vmin; height: 24vmin; }
-      .ed-cinema-tile.tall { width: 24vmin; height: 34vmin; }
+      .ed-hero-cinema { min-height: 540px; }
+      .ed-cinema-tile { width: 30vmin; max-height: 46vmin; }
     }
 
     /* bridge & chapters */
@@ -4608,66 +4600,66 @@ function CyclingHeadline() {
 }
 
 const CINEMA_IMAGES = [
-  'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&q=80&auto=format',
+  'https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=900&q=80&auto=format',
 ];
-const CINEMA_SHAPES = ['', 'wide', 'tall'];
-const CINEMA_TILE_COUNT = 28;
 
-// Generate a random tile field. Every tile is "born" at the viewport
-// center and travels outward along its own random direction at its own
-// random speed. The rAF loop walks each through scale-up + outward
-// translate (no opacity fade-out — tiles simply exit the screen).
-function generateCinemaTiles(count) {
-  const tiles = [];
-  for (let i = 0; i < count; i++) {
+// Generate the tile field. Each tile gets a unique image, a random
+// starting point inside a headline-sized region at the viewport center,
+// and a direction vector to fly outward off the screen.
+function generateCinemaTiles() {
+  return CINEMA_IMAGES.map((src) => {
     const angle = Math.random() * Math.PI * 2;
-    tiles.push({
-      src: CINEMA_IMAGES[i % CINEMA_IMAGES.length],
-      dx: Math.cos(angle),                  // unit direction
+    return {
+      src,
+      originX: (Math.random() - 0.5) * 28,   // ~headline width, in vmax
+      originY: (Math.random() - 0.5) * 18,   // ~headline height, in vmax
+      dx: Math.cos(angle),
       dy: Math.sin(angle),
-      reach: 80 + Math.random() * 35,       // peak distance in vmax
-      phase: Math.random(),                 // offset in the loop
-      baseScale: 0.6 + Math.random() * 0.5,
-      duration: 0.9 + Math.random() * 0.6,
-      shape: CINEMA_SHAPES[Math.floor(Math.random() * CINEMA_SHAPES.length)],
-    });
-  }
-  return tiles;
+      reach: 95 + Math.random() * 30,        // peak distance in vmax (exits viewport)
+      phase: Math.random(),
+      baseScale: 0.7 + Math.random() * 0.45,
+      duration: 1.15 + Math.random() * 0.6,
+    };
+  });
 }
 
 function CinemaHero() {
   const heroRef = useRef(null);
   const tilesRef = useRef([]);
-  const [tiles] = useState(() => generateCinemaTiles(CINEMA_TILE_COUNT));
+  const [tiles] = useState(() => generateCinemaTiles());
 
   useEffect(() => {
     let raf = 0;
-    let clock = 0;             // seconds elapsed, scaled by speed
-    let scrollProg = 0;        // 0 at top of hero, 1 at bottom
+    let clock = 0;                                  // seconds elapsed, scaled by speed
+    let scrollBoost = 0;                            // temporary speed bonus from scroll velocity
+    let lastScrollY = window.scrollY;
+    let lastScrollAt = performance.now();
     let last = performance.now();
 
-    function updateScroll() {
-      const el = heroRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
-      const scrolled = Math.max(0, -rect.top);
-      scrollProg = total > 0 ? Math.max(0, Math.min(1, scrolled / total)) : 0;
+    function onScroll() {
+      const now = performance.now();
+      const dt = Math.max(1, now - lastScrollAt);
+      const dy = Math.abs(window.scrollY - lastScrollY);
+      const velocity = dy / dt;                     // px/ms
+      scrollBoost = Math.min(2.5, scrollBoost + velocity * 0.035);
+      lastScrollY = window.scrollY;
+      lastScrollAt = now;
     }
 
     function tick(now) {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      // Baseline 0.10 cycles/sec; scroll boosts up to 8x.
-      const speed = 0.10 * (1 + scrollProg * 7);
+      // Exponential decay so the boost dies off quickly when scrolling stops.
+      scrollBoost *= Math.pow(0.04, dt);
+      const speed = 0.10 * (1 + scrollBoost);
       clock += dt * speed;
 
       const nodes = tilesRef.current;
@@ -4675,63 +4667,55 @@ function CinemaHero() {
         const node = nodes[i];
         if (!node) continue;
         const t = tiles[i];
-        // Each tile's life cycle progresses at its own duration.
         let local = ((clock / t.duration) + t.phase) % 1;
         if (local < 0) local += 1;
-        // Cubic ease — accelerates as the tile travels away from origin.
+        // Cubic ease — accelerates as the tile leaves the origin region.
         const ease = local * local * local;
-        // All tiles are born at viewport center and fly outward along
-        // their direction vector; reach is large enough to exit the screen.
-        const tx = t.dx * t.reach * ease;
-        const ty = t.dy * t.reach * ease;
-        // Moderate scale-up. Tiles do not fill the viewport.
-        const scale = (0.05 + ease * 1.5) * t.baseScale;
-        // Fade in over the first 12% of the loop; no fade-out — the
-        // tile exits the viewport while fully opaque.
-        const opacity = local < 0.12 ? local / 0.12 : 1;
+        const tx = t.originX + t.dx * t.reach * ease;
+        const ty = t.originY + t.dy * t.reach * ease;
+        const scale = (0.1 + ease * 1.4) * t.baseScale;
+        // Fade in over the first 18% of the loop, then hold full opacity
+        // until the tile travels off the edge of the viewport.
+        const opacity = Math.min(1, local / 0.18);
         node.style.transform = `translate(-50%, -50%) translate(${tx}vmax, ${ty}vmax) scale(${scale})`;
-        node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
-        // Near tiles paint over far tiles. Capped at 8 so the headline
-        // (z-index 1000) is always on top.
+        node.style.opacity = String(opacity);
+        // Capped at 8 so the headline (z-index 1000) always stays on top.
         node.style.zIndex = String(Math.round(ease * 8));
       }
       raf = requestAnimationFrame(tick);
     }
 
-    updateScroll();
-    window.addEventListener('scroll', updateScroll, { passive: true });
-    window.addEventListener('resize', updateScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     raf = requestAnimationFrame(tick);
     return () => {
-      window.removeEventListener('scroll', updateScroll);
-      window.removeEventListener('resize', updateScroll);
+      window.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(raf);
     };
   }, [tiles]);
 
   return (
     <header className="ed-hero-cinema" ref={heroRef}>
-      <div className="ed-cinema-sticky">
-        <div className="ed-cinema-stage" aria-hidden="true">
-          {tiles.map((t, i) => (
-            <div
-              key={i}
-              ref={(el) => { tilesRef.current[i] = el; }}
-              className={`ed-cinema-tile${t.shape ? ' ' + t.shape : ''}`}
-              style={{ backgroundImage: `url(${t.src})`, opacity: 0 }}
-            />
-          ))}
-        </div>
-        <div className="ed-cinema-text">
-          <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-          <HeroHeadline />
-          <p className="ed-hero-lede fade-in-delay-2">
-            No more juggling a notebook, a calendar, and three text threads.
-          </p>
-          <div className="ed-hero-actions fade-in-delay-3">
-            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-            <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
-          </div>
+      <div className="ed-cinema-stage" aria-hidden="true">
+        {tiles.map((t, i) => (
+          <img
+            key={i}
+            ref={(el) => { tilesRef.current[i] = el; }}
+            src={t.src}
+            alt=""
+            className="ed-cinema-tile"
+            style={{ opacity: 0 }}
+          />
+        ))}
+      </div>
+      <div className="ed-cinema-text">
+        <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
+        <HeroHeadline />
+        <p className="ed-hero-lede fade-in-delay-2">
+          No more juggling a notebook, a calendar, and three text threads.
+        </p>
+        <div className="ed-hero-actions fade-in-delay-3">
+          <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+          <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
         </div>
       </div>
     </header>
