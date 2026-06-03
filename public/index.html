@@ -8644,9 +8644,13 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         </div>
 
         <div className="section-heading">Payments</div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 16 }}>
+          Add the ways customers can pay you — buttons appear on every invoice link.
+          Field Manager doesn't talk to your payment processor, so you'll click <em>Mark paid</em> on the invoice once the money lands.
+        </p>
         <div className="form-grid">
           <div className="full">
-            <label>Pay-now link <span className="hint">(optional — Stripe Payment Link, PayPal.me, Square invoice URL, anything)</span></label>
+            <label>Pay-now link <span className="hint">(optional)</span></label>
             <input
               type="url"
               placeholder="https://buy.stripe.com/..."
@@ -8655,14 +8659,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               disabled={!isAdmin}
             />
             <p className="hint" style={{ marginTop: 4 }}>
-              Shows a "Pay now" button on every invoice link. If you paste a Stripe Payment Link or PayPal.me URL, the invoice total is filled in for you.
-            </p>
-            <p className="hint" style={{ marginTop: 4, color: 'var(--text)' }}>
-              <strong>Heads up:</strong> Field Manager doesn't talk to your payment processor — you'll need to click <em>Mark paid</em> on the invoice once the money lands.
+              Stripe Payment Link, PayPal.me, Square invoice URL, anything. Amount is pre-filled for Stripe and PayPal.
             </p>
           </div>
           <div className="full">
-            <label>Venmo handle <span className="hint">(without the @)</span></label>
+            <label>Venmo handle <span className="hint">(optional, without the @)</span></label>
             <input value={form.venmo_handle} onChange={(e) => setField('venmo_handle', e.target.value)} disabled={!isAdmin} />
           </div>
         </div>
