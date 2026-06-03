@@ -2491,6 +2491,51 @@
       .ed-tile-2, .ed-tile-8, .ed-tile-9 { display: none; }
     }
 
+    /* Cinema hero: scroll-pinned section. Text stays vertically centered
+       while image planes scale up, drift outward from center, and fade out
+       as the user scrolls through the section. */
+    .ed-hero-cinema {
+      position: relative;
+      height: 200vh;
+      overflow: clip;
+    }
+    .ed-cinema-sticky {
+      position: sticky; top: 0;
+      height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .ed-cinema-stage {
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+    .ed-cinema-tile {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 18vmin; height: 24vmin;
+      background-size: cover; background-position: center;
+      background-color: #e8dfd0;
+      transform-origin: center center;
+      will-change: transform, opacity;
+      box-shadow: 0 18px 40px -16px rgba(0,0,0,0.35);
+      border-radius: 2px;
+    }
+    .ed-cinema-tile.wide { width: 26vmin; height: 18vmin; }
+    .ed-cinema-tile.tall { width: 16vmin; height: 26vmin; }
+    .ed-cinema-text {
+      position: relative; z-index: 2;
+      max-width: 760px; padding: 0 32px;
+      text-align: center;
+      will-change: opacity, transform;
+    }
+    .ed-cinema-text .ed-eyebrow { margin-bottom: 28px; }
+    @media (max-width: 720px) {
+      .ed-hero-cinema { height: 160vh; }
+      .ed-cinema-tile { width: 26vmin; height: 32vmin; }
+      .ed-cinema-tile.wide { width: 34vmin; height: 24vmin; }
+      .ed-cinema-tile.tall { width: 24vmin; height: 34vmin; }
+    }
+
     /* bridge & chapters */
     .ed-bridge {
       max-width: 720px; margin: 0 auto;
@@ -4563,6 +4608,90 @@ function CyclingHeadline() {
   );
 }
 
+const CINEMA_TILES = [
+  // x/y are offsets from viewport center, expressed in vmin. shape sets aspect ratio.
+  { src: 'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=600&q=80&auto=format&fit=crop', x: -38, y: -22, shape: 'wide',   z: 0.85 },
+  { src: 'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=700&q=80&auto=format&fit=crop', x: -18, y: -30, shape: 'tall',   z: 1.0  },
+  { src: 'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop', x:  24, y: -28, shape: '',       z: 0.95 },
+  { src: 'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=600&q=80&auto=format&fit=crop', x:  40, y:  -6, shape: 'wide',   z: 0.8  },
+  { src: 'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=700&q=80&auto=format&fit=crop', x:  30, y:  24, shape: 'tall',   z: 1.0  },
+  { src: 'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=800&q=80&auto=format&fit=crop', x:   2, y:  32, shape: '',       z: 0.9  },
+  { src: 'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=700&q=80&auto=format&fit=crop', x: -28, y:  24, shape: 'wide',   z: 0.95 },
+  { src: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop', x: -40, y:   2, shape: 'tall',   z: 0.85 },
+];
+
+function CinemaHero() {
+  const heroRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let raf = 0;
+    function update() {
+      const el = heroRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const scrolled = Math.max(0, -rect.top);
+      const p = total > 0 ? Math.max(0, Math.min(1, scrolled / total)) : 0;
+      setProgress(p);
+    }
+    function onScroll() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    }
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Cubic ease-in so the planes accelerate (the "speed up" feel).
+  const ease = progress * progress * progress;
+  // Text fades only slightly so it stays readable through most of the scroll.
+  const textOpacity = Math.max(0, 1 - progress * 0.7);
+
+  return (
+    <header className="ed-hero-cinema" ref={heroRef}>
+      <div className="ed-cinema-sticky">
+        <div className="ed-cinema-stage" aria-hidden="true">
+          {CINEMA_TILES.map((t, i) => {
+            const growth = 1 + ease * 6 * t.z;
+            const tx = t.x * (1 + ease * 5);
+            const ty = t.y * (1 + ease * 5);
+            const opacity = Math.max(0, 1 - ease * 1.3);
+            return (
+              <div
+                key={i}
+                className={`ed-cinema-tile${t.shape ? ' ' + t.shape : ''}`}
+                style={{
+                  backgroundImage: `url(${t.src})`,
+                  transform: `translate(-50%, -50%) translate(${tx}vmin, ${ty}vmin) scale(${growth})`,
+                  opacity,
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="ed-cinema-text" style={{ opacity: textOpacity }}>
+          <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
+          <HeroHeadline />
+          <p className="ed-hero-lede fade-in-delay-2">
+            No more juggling a notebook, a calendar, and three text threads.
+          </p>
+          <div className="ed-hero-actions fade-in-delay-3">
+            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+            <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 function LandingPage() {
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
@@ -4612,30 +4741,7 @@ function LandingPage() {
         </div>
       </nav>
 
-      <header className="ed-hero">
-        <div className="ed-hero-text">
-          <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-          <HeroHeadline />
-          <p className="ed-hero-lede fade-in-delay-2">
-            No more juggling a notebook, a calendar, and three text threads.
-          </p>
-          <div className="ed-hero-actions fade-in-delay-3">
-            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-            <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
-          </div>
-        </div>
-        <div className="ed-collage" aria-hidden="true">
-          <div className="ed-tile ed-tile-1" />
-          <div className="ed-tile ed-tile-2" />
-          <div className="ed-tile ed-tile-3" />
-          <div className="ed-tile ed-tile-4" />
-          <div className="ed-tile ed-tile-5" />
-          <div className="ed-tile ed-tile-6" />
-          <div className="ed-tile ed-tile-7" />
-          <div className="ed-tile ed-tile-8" />
-          <div className="ed-tile ed-tile-9" />
-        </div>
-      </header>
+      <CinemaHero />
 
       <section className="ed-bridge" data-reveal>
         <p className="ed-bridge-rule">— Welcome to the small operation —</p>
