@@ -821,8 +821,16 @@
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-    /* Team row: badge sits inline between info and actions on desktop. */
+    /* Team row: 3-column grid so badge and action buttons feel like one
+       cluster, with the badge anchored just to the left of the buttons. */
+    .row.team-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      column-gap: 12px;
+      align-items: center;
+    }
     .team-row .team-role { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .team-row .actions { margin: 0; }
     /* Invoice utility actions — View / Edit / Delete sit inline as a
        quieter "secondary" cluster below the primary customer-facing
        actions. Differentiated by smaller size, lighter weight, and a
@@ -1236,18 +1244,17 @@
     .dash-widget-help { font-size: 12px; color: var(--text-muted); margin-top: 1px; line-height: 1.4; }
 
     /* Quick-text editor rows in Settings */
-    /* Quick text template editor — same stacked layout on desktop and mobile:
-       full-width inputs, a hairline divider between templates, no nested
-       card chrome eating horizontal space. */
+    /* Quick text template editor — stacked layout (matches mobile) with a
+       tinted card wrapper per template so they read as distinct blocks. */
     .sms-template-row {
       display: flex; flex-direction: column; gap: 10px;
-      padding: 0 0 16px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 14px;
+      margin-bottom: 12px;
+      background: var(--tinted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
     }
-    .sms-template-row:last-of-type {
-      border-bottom: none; margin-bottom: 0; padding-bottom: 0;
-    }
+    .sms-template-row:last-of-type { margin-bottom: 0; }
     .sms-template-fields {
       display: flex; flex-direction: column; gap: 10px;
       min-width: 0;
@@ -1258,7 +1265,7 @@
       padding: 4px 10px; font-size: 12px;
     }
     .sms-template-row code {
-      background: var(--tinted); padding: 1px 5px; border-radius: 3px;
+      background: var(--card); padding: 1px 5px; border-radius: 3px;
       font-family: ui-monospace, monospace; font-size: 12px;
     }
 
@@ -1982,7 +1989,9 @@
       }
       .row .actions button { flex: 0 0 auto; }
       /* Team row mobile: role badge to top-right, action buttons in a
-         single row underneath, left-aligned. */
+         single inline row underneath. Horizontal scroll catches the case
+         where four buttons (Resend + Reset + Change role + Remove) won't
+         all fit on a 375px viewport. */
       .row.team-row {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -1998,6 +2007,15 @@
         grid-column: 1 / -1; grid-row: 2;
         margin-top: 0;
         justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+      }
+      .row.team-row .actions::-webkit-scrollbar { display: none; }
+      .row.team-row .actions button {
+        padding: 8px 12px; font-size: 13px;
+        white-space: nowrap;
       }
       /* Schedule rows (Mark complete / Skip / Reschedule) — keep inline.
          Tighter button padding so all three fit on one line. */
