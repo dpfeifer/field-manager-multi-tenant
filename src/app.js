@@ -29,6 +29,7 @@ const stripeWebhookRoutes = require('./routes/stripeWebhook');
 const onboardingRoutes = require('./routes/onboarding');
 const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
+const teamMessagesRoutes = require('./routes/teamMessages');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -73,6 +74,7 @@ app.use('/api/billing', resolveOrganization, requireAuth, billingRoutes);
 app.use('/api/onboarding', resolveOrganization, requireAuth, onboardingRoutes);
 app.use('/api/booking-requests', resolveOrganization, requireAuth, bookingRequestsRoutes);
 app.use('/api/support', resolveOrganization, requireAuth, supportRoutes);
+app.use('/api/team-messages', resolveOrganization, requireAuth, teamMessagesRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });

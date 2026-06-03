@@ -47,7 +47,7 @@ const TERMINOLOGY_FIELDS = new Set([
 // letter so the nav doesn't read as shouting. Otherwise leave the user's
 // casing alone so 'eBook' or 'pet-sitter' survive unchanged.
 const VALID_WIDGET_IDS = new Set([
-  'greeting', 'stats', 'today', 'tomorrow', 'overdue', 'outstanding',
+  'greeting', 'team_notes', 'stats', 'today', 'tomorrow', 'overdue', 'outstanding',
   'pending_requests', 'quick_actions', 'top_customers',
 ]);
 function normalizeDashboardWidgets(value) {

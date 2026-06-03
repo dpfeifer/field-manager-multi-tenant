@@ -1548,6 +1548,102 @@
     .stat-card .subvalue { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .stat-card.accent .value { color: var(--primary); }
 
+    /* Team notes — widget header, cards, app-wide banner, compose modal */
+    .team-notes-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin: 24px 0 12px;
+    }
+    .team-notes-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 22px; height: 22px; padding: 0 7px;
+      background: var(--accent); color: #fff;
+      border-radius: 999px; font-size: 11px; font-weight: 700;
+      margin-left: 8px;
+    }
+    .team-notes-compose { padding: 7px 14px; font-size: 13px; }
+    .team-notes-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .team-note-card {
+      background: var(--card); border: 1px solid var(--border-strong);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px; padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .team-note-subject {
+      font-weight: 600; font-size: 15px; margin-bottom: 4px;
+      color: var(--text); letter-spacing: -0.01em;
+    }
+    .team-note-body {
+      white-space: pre-wrap; font-size: 14px; line-height: 1.55;
+      color: var(--text);
+    }
+    .team-note-foot {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 12px; color: var(--text-muted);
+      gap: 12px;
+    }
+    .team-note-foot .link-button { font-size: 13px; font-weight: 600; }
+
+    .team-notes-banner {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 32px;
+      background: var(--accent); color: #fff;
+      border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 500;
+      text-align: left;
+      transition: filter 0.15s;
+    }
+    .team-notes-banner:hover { filter: brightness(1.05); }
+    .team-notes-banner-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #fff; flex-shrink: 0;
+      animation: teamNotesPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes teamNotesPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    @media (max-width: 600px) {
+      .team-notes-banner { padding: 10px 16px; font-size: 13px; }
+    }
+
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1500;
+      background: rgba(40, 30, 20, 0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: modalFadeIn 0.18s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .modal-card {
+      background: var(--card); border-radius: 14px;
+      width: 100%; max-width: 520px;
+      padding: 24px; max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 28px 64px -22px rgba(0,0,0,0.45);
+      animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalSlideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 6px;
+    }
+    .modal-head h3 {
+      margin: 0; font-family: var(--serif); font-weight: 600;
+      font-size: 22px; letter-spacing: -0.015em;
+    }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 24px; line-height: 1; color: var(--text-muted);
+      padding: 4px 8px; border-radius: 8px;
+    }
+    .modal-close:hover { background: var(--row-hover); color: var(--text); }
+
     /* Update-available toast — appears when /api/version reports a newer build */
     .version-banner {
       position: fixed;
@@ -9659,6 +9755,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         </div>
       )}
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} orgId={me && me.organization_id} session={session} />}
+      <TeamNotesBanner session={session} />
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>
@@ -9743,6 +9840,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
 
 const DEFAULT_DASHBOARD_WIDGETS = [
   { id: 'greeting', enabled: true },
+  { id: 'team_notes', enabled: true },
   { id: 'stats', enabled: true },
   { id: 'today', enabled: true },
   { id: 'tomorrow', enabled: true },
@@ -9996,6 +10094,7 @@ function DashboardWidgetTopCustomers({ ctx }) {
 
 const DASHBOARD_WIDGET_REGISTRY = {
   greeting: { label: 'Greeting', help: 'Time-of-day welcome message and date.', render: DashboardWidgetGreeting },
+  team_notes: { label: 'Team notes', help: 'Send and receive short messages with your teammates.', render: DashboardWidgetTeamNotes },
   stats: { label: 'Stat cards', help: 'Today, overdue, outstanding, weekly revenue, projected income.', render: DashboardWidgetStats },
   today: { label: "Today's schedule", help: "Today's occurrences with mark-complete buttons.", render: DashboardWidgetToday },
   tomorrow: { label: "Tomorrow preview", help: "What's on tomorrow. Hidden when there's nothing scheduled.", render: DashboardWidgetTomorrow },
@@ -10012,24 +10111,36 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
   const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [teamNotes, setTeamNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [completing, setCompleting] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const refreshTeamNotes = useCallback(async () => {
+    try {
+      const data = await apiRequest('/api/team-messages', {
+        slug: session.slug, token: session.token,
+      });
+      setTeamNotes(data || []);
+    } catch (e) { /* swallow — widget will just be empty */ }
+  }, [session.slug, session.token]);
+
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [jobsData, invoicesData, customersData, settingsData] = await Promise.all([
+      const [jobsData, invoicesData, customersData, settingsData, notesData] = await Promise.all([
         apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
         apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
         apiRequest('/api/customers', { slug: session.slug, token: session.token }),
         apiRequest('/api/settings', { slug: session.slug, token: session.token }).catch(() => null),
+        apiRequest('/api/team-messages', { slug: session.slug, token: session.token }).catch(() => []),
       ]);
       setJobs(jobsData);
       setInvoices(invoicesData);
       setCustomers(customersData);
       setSettings(settingsData);
+      setTeamNotes(notesData || []);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [session.slug, session.token]);
@@ -10113,6 +10224,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected,
     newCustomersThisWeek,
     pendingRequestsCount: pendingRequestsCount || 0,
+    teamNotes, refreshTeamNotes,
     features, isFree,
     invoicesUsable: !isFree && features.invoices,
     quotesUsable: features.quotes,
@@ -10128,7 +10240,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
   // by revenue, quick actions — most quick actions create things they can't).
   const role = session.user.role;
   const employeeAllowed = new Set([
-    'greeting', 'today', 'tomorrow', 'overdue', 'pending_requests',
+    'greeting', 'team_notes', 'today', 'tomorrow', 'overdue', 'pending_requests',
   ]);
   const isVisibleForRole = (id) => role === 'employee' ? employeeAllowed.has(id) : true;
 
@@ -10996,6 +11108,7 @@ function TeamView({ session }) {
   const [resetSuccess, setResetSuccess] = useState(null);
   const [resendingId, setResendingId] = useState(null);
   const [resendSuccess, setResendSuccess] = useState(null);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -11087,7 +11200,10 @@ function TeamView({ session }) {
     <div>
       <div className="page-header">
         <h2>Team</h2>
-        <button className="primary" onClick={() => { setError(null); setMode('invite'); }}>+ Invite teammate</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="secondary" onClick={() => setComposeOpen(true)}>+ Send a team note</button>
+          <button className="primary" onClick={() => { setError(null); setMode('invite'); }}>+ Invite teammate</button>
+        </div>
       </div>
       {error && <div className="error">{error}</div>}
       {resetSuccess && (
@@ -11169,6 +11285,11 @@ function TeamView({ session }) {
           })
         )}
       </div>
+      <TeamNoteCompose
+        session={session}
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+      />
     </div>
   );
 }
@@ -12435,6 +12556,171 @@ function VersionCheck() {
         aria-label="Dismiss"
       >×</button>
     </div>
+  );
+}
+
+// ===== Team notes: shared compose modal, dashboard widget, banner =====
+//
+// Anyone in the org can compose a note. Recipients see it on their
+// dashboard + an app-wide banner + their inbox.
+
+function TeamNoteCompose({ session, open, onClose, onSent }) {
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  if (!open) return null;
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      await apiRequest('/api/team-messages', {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { subject, body },
+      });
+      setSubject(''); setBody('');
+      onSent && onSent();
+      onClose();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Send a team note</h3>
+          <button className="modal-close" type="button" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <p className="subtitle" style={{ marginTop: 0, marginBottom: 14 }}>
+          Goes to every teammate's dashboard and email — except yours.
+        </p>
+        <form onSubmit={submit}>
+          <label>Subject <span className="hint">(optional)</span></label>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Tomorrow's route, Mower swap, etc."
+            maxLength={200}
+          />
+          <label>Message</label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={6}
+            required
+            maxLength={5000}
+            placeholder="What everyone should know."
+          />
+          {error && <div className="error">{error}</div>}
+          <div className="form-actions" style={{ marginTop: 14 }}>
+            <button type="submit" className="primary" disabled={busy || !body.trim()}>
+              {busy ? 'Sending...' : 'Send to team'}
+            </button>
+            <button type="button" className="secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'just now';
+  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+  return `${Math.floor(ms / 86_400_000)}d ago`;
+}
+
+function DashboardWidgetTeamNotes({ ctx }) {
+  const { session, teamNotes, refreshTeamNotes } = ctx;
+  const [composing, setComposing] = useState(false);
+  const userId = session.user.id;
+  const notes = (teamNotes || []).filter((n) => !n.is_read && n.author_user_id !== userId);
+  const hasOthers = (teamNotes || []).some((n) => n.author_user_id !== userId);
+  // Solo operator (no teammates ever messaged + no compose context) — hide the widget entirely.
+  if (notes.length === 0 && !hasOthers) {
+    return (
+      <TeamNoteCompose session={session} open={composing} onClose={() => setComposing(false)} onSent={refreshTeamNotes} />
+    );
+  }
+
+  async function markRead(id) {
+    try {
+      await apiRequest(`/api/team-messages/${id}/read`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      refreshTeamNotes && refreshTeamNotes();
+    } catch (e) { /* swallow */ }
+  }
+
+  return (
+    <>
+      <div className="team-notes-head">
+        <div className="section-heading" style={{ margin: 0 }}>
+          Team notes {notes.length > 0 && <span className="team-notes-count">{notes.length}</span>}
+        </div>
+        <button type="button" className="secondary team-notes-compose" onClick={() => setComposing(true)}>
+          + Send a note
+        </button>
+      </div>
+      {notes.length === 0 ? (
+        <div className="list-empty" style={{ marginBottom: 20 }}>No unread team notes.</div>
+      ) : (
+        <div className="team-notes-list">
+          {notes.map((n) => (
+            <div key={n.id} className="team-note-card">
+              {n.subject && <div className="team-note-subject">{n.subject}</div>}
+              <div className="team-note-body">{n.body}</div>
+              <div className="team-note-foot">
+                <span>{n.author_name || n.author_email} · {timeAgo(n.created_at)}</span>
+                <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <TeamNoteCompose session={session} open={composing} onClose={() => setComposing(false)} onSent={refreshTeamNotes} />
+    </>
+  );
+}
+
+// App-wide banner. Sits below the topbar via portal-like positioning; uses
+// fixed for simplicity. Polls unread count every 5 min, plus once at mount.
+function TeamNotesBanner({ session }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let stopped = false;
+    async function check() {
+      try {
+        const data = await apiRequest('/api/team-messages/unread/count', {
+          slug: session.slug, token: session.token,
+        });
+        if (!stopped) setCount(data.count || 0);
+      } catch (e) { /* ignore */ }
+    }
+    check();
+    const timer = setInterval(check, 5 * 60 * 1000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [session.slug, session.token]);
+
+  if (count === 0) return null;
+  return (
+    <button
+      type="button"
+      className="team-notes-banner"
+      onClick={() => navigate('/dashboard')}
+    >
+      <span className="team-notes-banner-dot" />
+      <span>
+        {count === 1 ? 'New team note' : `${count} new team notes`}
+        {' '}— tap to view
+      </span>
+    </button>
   );
 }
 
