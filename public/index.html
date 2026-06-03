@@ -8666,7 +8666,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
           )}
           <form onSubmit={submit} className="form-card">
-            <p className="hint" style={{ marginTop: 0, marginBottom: 18 }}>
+            <p style={{ marginTop: 0, marginBottom: 18, fontSize: 14, lineHeight: 1.55, color: 'var(--text-muted)' }}>
               Add the ways customers can pay you — buttons appear on every invoice link.
               Field Manager doesn't talk to your payment processor, so you'll click <em>Mark paid</em> on the invoice once the money lands.
             </p>
