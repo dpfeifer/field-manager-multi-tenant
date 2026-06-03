@@ -1913,11 +1913,18 @@
         line-height: 1;
         min-height: 56px;
         min-width: 64px;
+        flex: 0 0 auto;
         flex-direction: column;
+        justify-content: center;
         gap: 5px;
         letter-spacing: 0;
       }
-      .nav button .icon { font-size: 22px; opacity: 0.85; }
+      /* Explicit width/height on the SVG icons prevents layout jitter as
+         the nav scrolls horizontally — SVGs inherit font-size inconsistently. */
+      .nav button .icon {
+        width: 22px; height: 22px; font-size: 22px;
+        opacity: 0.85; flex-shrink: 0;
+      }
       /* Free-plan usage badges (jobs/customers count) get too cluttered
          in the stacked layout — show them only on desktop. */
       .nav-quota { display: none; }
