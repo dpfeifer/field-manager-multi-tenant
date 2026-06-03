@@ -1,6 +1,11 @@
 const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const {
+  appendCompletionToDraft,
+  removeCompletionFromDraft,
+  isAutoAppendEnabled,
+} = require('../utils/draftAppend');
 
 const router = express.Router();
 
@@ -251,61 +256,88 @@ router.post('/:id/complete', async (req, res, next) => {
   }
 
   try {
-    const { rows: existing } = await query(
-      'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
-      [req.params.id, req.organization.id]
-    );
-    if (existing.length === 0) return res.status(404).json({ error: 'Not found' });
-    const job = existing[0];
-
-    if (req.user.role === 'employee') {
-      const assigned = Array.isArray(job.assigned_to) ? job.assigned_to : [];
-      if (!assigned.includes(req.user.sub)) {
-        return res.status(403).json({ error: 'You are not assigned to this job' });
+    const result = await withTransaction(async (client) => {
+      const { rows: existing } = await client.query(
+        'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+        [req.params.id, req.organization.id]
+      );
+      if (existing.length === 0) {
+        throw Object.assign(new Error('Not found'), { status: 404 });
       }
-    }
+      const job = existing[0];
 
-    const completedDates = Array.isArray(job.completed_dates) ? [...job.completed_dates] : [];
-    if (!completedDates.includes(date)) completedDates.push(date);
+      if (req.user.role === 'employee') {
+        const assigned = Array.isArray(job.assigned_to) ? job.assigned_to : [];
+        if (!assigned.includes(req.user.sub)) {
+          throw Object.assign(new Error('You are not assigned to this job'), { status: 403 });
+        }
+      }
 
-    const { rows: userRows } = await query(
-      'SELECT name FROM users WHERE id = $1 LIMIT 1',
-      [req.user.sub]
-    );
-    const completedByName = userRows[0]?.name || req.user.email;
+      const completedDates = Array.isArray(job.completed_dates) ? [...job.completed_dates] : [];
+      if (!completedDates.includes(date)) completedDates.push(date);
 
-    const completionEntry = {
-      date,
-      note: note || null,
-      completedBy: req.user.sub,
-      completedByName,
-      completedAt: new Date().toISOString(),
-    };
-    const completionNotes = Array.isArray(job.completion_notes) ? [...job.completion_notes, completionEntry] : [completionEntry];
+      const { rows: userRows } = await client.query(
+        'SELECT name FROM users WHERE id = $1 LIMIT 1',
+        [req.user.sub]
+      );
+      const completedByName = userRows[0]?.name || req.user.email;
 
-    const newStatus = job.type === 'single' ? 'completed' : job.status;
+      const completionEntry = {
+        date,
+        note: note || null,
+        completedBy: req.user.sub,
+        completedByName,
+        completedAt: new Date().toISOString(),
+      };
+      const completionNotes = Array.isArray(job.completion_notes)
+        ? [...job.completion_notes, completionEntry]
+        : [completionEntry];
 
-    await query(
-      `UPDATE jobs SET
-         completed_dates = $3::jsonb,
-         completion_notes = $4::jsonb,
-         status = $5,
-         updated_at = NOW()
-       WHERE id = $1 AND organization_id = $2`,
-      [
-        req.params.id, req.organization.id,
-        JSON.stringify(completedDates),
-        JSON.stringify(completionNotes),
-        newStatus,
-      ]
-    );
+      const newStatus = job.type === 'single' ? 'completed' : job.status;
+      const billedDates = Array.isArray(job.billed_dates) ? [...job.billed_dates] : [];
 
-    const { rows } = await query(
-      `${BASE_SELECT} WHERE j.id = $1 LIMIT 1`,
-      [req.params.id]
-    );
-    res.json(rows[0]);
+      // If auto-append is on, also push the line onto the customer's open
+      // draft (or start one) and mark this date as billed so the scheduled
+      // rollup will not re-bill it.
+      const appendEnabled = await isAutoAppendEnabled(client, req.organization.id);
+      if (appendEnabled) {
+        await appendCompletionToDraft(client, {
+          orgId: req.organization.id,
+          jobId: job.id,
+          customerId: job.customer_id,
+          jobTitle: job.title,
+          rate: job.default_price,
+          date,
+        });
+        if (!billedDates.includes(date)) billedDates.push(date);
+      }
+
+      await client.query(
+        `UPDATE jobs SET
+           completed_dates = $3::jsonb,
+           completion_notes = $4::jsonb,
+           status = $5,
+           billed_dates = $6::jsonb,
+           updated_at = NOW()
+         WHERE id = $1 AND organization_id = $2`,
+        [
+          req.params.id, req.organization.id,
+          JSON.stringify(completedDates),
+          JSON.stringify(completionNotes),
+          newStatus,
+          JSON.stringify(billedDates.sort()),
+        ]
+      );
+
+      const { rows } = await client.query(
+        `${BASE_SELECT} WHERE j.id = $1 LIMIT 1`,
+        [req.params.id]
+      );
+      return rows[0];
+    });
+    res.json(result);
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });
@@ -358,28 +390,69 @@ router.delete('/:id/completions/:index', requireRole('admin', 'lead'), async (re
   }
 
   try {
-    const job = await loadJobInOrg(req.organization.id, req.params.id);
-    if (!job) return res.status(404).json({ error: 'Not found' });
-    const notes = Array.isArray(job.completion_notes) ? [...job.completion_notes] : [];
-    if (idx >= notes.length) return res.status(404).json({ error: 'Completion not found' });
+    const result = await withTransaction(async (client) => {
+      const { rows: jobRows } = await client.query(
+        'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+        [req.params.id, req.organization.id]
+      );
+      if (jobRows.length === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+      const job = jobRows[0];
 
-    const removed = notes.splice(idx, 1)[0];
-    const remainingDates = new Set(notes.map((n) => n.date));
-    const completedDates = (Array.isArray(job.completed_dates) ? job.completed_dates : [])
-      .filter((d) => d !== removed.date || remainingDates.has(d));
+      const notes = Array.isArray(job.completion_notes) ? [...job.completion_notes] : [];
+      if (idx >= notes.length) throw Object.assign(new Error('Completion not found'), { status: 404 });
 
-    let newStatus = job.status;
-    if (job.type === 'single' && job.status === 'completed' && notes.length === 0) {
-      newStatus = 'scheduled';
-    }
+      const removed = notes.splice(idx, 1)[0];
+      const remainingDates = new Set(notes.map((n) => n.date));
+      const dateGone = !remainingDates.has(removed.date);
+      const completedDates = (Array.isArray(job.completed_dates) ? job.completed_dates : [])
+        .filter((d) => d !== removed.date || remainingDates.has(d));
 
-    await query(
-      `UPDATE jobs SET completion_notes = $3::jsonb, completed_dates = $4::jsonb, status = $5, updated_at = NOW()
-       WHERE id = $1 AND organization_id = $2`,
-      [req.params.id, req.organization.id, JSON.stringify(notes), JSON.stringify(completedDates), newStatus]
-    );
-    await returnJob(res, req.params.id);
-  } catch (err) { next(err); }
+      let newStatus = job.status;
+      if (job.type === 'single' && job.status === 'completed' && notes.length === 0) {
+        newStatus = 'scheduled';
+      }
+
+      // If this was the last completion for that date, pull the matching
+      // line item from the customer's open draft and unmark billed_dates
+      // so the next completion (or scheduled rollup) can re-bill cleanly.
+      let billedDates = Array.isArray(job.billed_dates) ? [...job.billed_dates] : [];
+      if (dateGone) {
+        const removeResult = await removeCompletionFromDraft(client, {
+          orgId: req.organization.id,
+          jobId: job.id,
+          customerId: job.customer_id,
+          date: removed.date,
+        });
+        if (removeResult.removed) {
+          billedDates = billedDates.filter((d) => d !== removed.date);
+        }
+      }
+
+      await client.query(
+        `UPDATE jobs SET
+           completion_notes = $3::jsonb,
+           completed_dates = $4::jsonb,
+           status = $5,
+           billed_dates = $6::jsonb,
+           updated_at = NOW()
+         WHERE id = $1 AND organization_id = $2`,
+        [
+          req.params.id, req.organization.id,
+          JSON.stringify(notes),
+          JSON.stringify(completedDates),
+          newStatus,
+          JSON.stringify(billedDates.sort()),
+        ]
+      );
+
+      const { rows } = await client.query(`${BASE_SELECT} WHERE j.id = $1 LIMIT 1`, [req.params.id]);
+      return rows[0];
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 });
 
 router.post('/:id/skip', requireRole('admin', 'lead'), async (req, res, next) => {

@@ -10,6 +10,7 @@ const FIELDS = [
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
   'about', 'sms_templates', 'dashboard_widgets',
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
+  'auto_append_to_draft',
   'booking_form_config',
 ];
 
@@ -20,6 +21,7 @@ const SELECT = `
          about, sms_templates, dashboard_widgets,
          auto_invoice_schedule, auto_invoice_day_of_month,
          auto_invoice_day_of_week, auto_invoice_last_run_at,
+         auto_append_to_draft,
          booking_form_config,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1

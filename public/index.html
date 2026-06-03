@@ -7469,7 +7469,7 @@ function InvoicesView({ session }) {
   const [copiedId, setCopiedId] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('unpaid');
 
   function exportInvoices() {
     const headers = ['invoice_number', 'customer', 'date', 'status', 'sent_date', 'paid_date', 'subtotal', 'discount', 'tax', 'total', 'description'];
@@ -8283,6 +8283,24 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
       )}
       <form onSubmit={submit} className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Add to draft on completion</div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
+          <input
+            type="checkbox"
+            checked={!!form.auto_append_to_draft}
+            disabled={!isAdmin}
+            onChange={(e) => setField('auto_append_to_draft', e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            When a {terms.jobLower} is marked complete, append a line item to the {terms.customerLower}&apos;s open draft invoice (or start one). Un-completing removes the line.
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              Drafts still need to be sent manually. Works alongside the scheduled rollup below — each completion is only billed once.
+            </span>
+          </span>
+        </label>
+
+        <div className="section-heading">Scheduled rollup</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
           Roll up unbilled completions into draft invoices on a schedule. We never auto-send — drafts land in your Invoices tab for review. Per-{terms.customerLower} opt-out lives on the {terms.customerLower} record.
         </p>
@@ -8598,6 +8616,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_day_of_month: data.auto_invoice_day_of_month || 1,
         auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
+        auto_append_to_draft: !!data.auto_append_to_draft,
         booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')
           ? {
               show_phone: data.booking_form_config.show_phone !== false,
