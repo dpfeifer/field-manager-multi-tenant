@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Field Manager — Run your service business in one place</title>
+  <!-- iOS standalone PWA chrome -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Field Manager" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Free forever for five customers; $29/month flat when you grow. No App Store, no per-seat fees, no surprise overages." />
   <meta name="theme-color" content="#f7f4ec" />
   <link rel="canonical" href="https://fieldmgr.com/" />
@@ -428,6 +433,10 @@
       background: var(--card); border-bottom: 1px solid var(--border);
       padding: 16px 32px; display: flex;
       align-items: center; justify-content: space-between;
+      /* Respect iPhone notch / Dynamic Island in standalone PWA mode. */
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-left: max(32px, env(safe-area-inset-left));
+      padding-right: max(32px, env(safe-area-inset-right));
     }
     .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
     .topbar .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
@@ -1988,6 +1997,7 @@
       max-width: 1240px; margin: 0 auto;
       padding: 28px 32px;
       display: flex; align-items: center; justify-content: space-between;
+      padding-top: max(28px, env(safe-area-inset-top));
     }
     @media (max-width: 600px) {
       .ed-nav { padding: 20px 20px; }
