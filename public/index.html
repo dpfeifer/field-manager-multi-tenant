@@ -1191,6 +1191,11 @@
 
     /* Dashboard widgets */
     .dash-greeting { margin-bottom: 16px; }
+    .dash-greeting-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+    }
+    .dash-greeting-text { min-width: 0; flex: 1; }
     .dash-greeting h2 {
       font-family: var(--serif); font-weight: 600;
       font-size: clamp(24px, 3.5vw, 32px);
@@ -1199,6 +1204,19 @@
     .dash-greeting p {
       margin: 0; color: var(--text-muted);
       font-size: 14px; line-height: 1.5;
+    }
+    .dash-greeting-action {
+      flex-shrink: 0; padding: 8px 14px;
+      font-size: 13px; align-self: center;
+    }
+    @media (max-width: 600px) {
+      .dash-greeting-head {
+        flex-wrap: nowrap;
+      }
+      .dash-greeting-action {
+        font-size: 12px; padding: 7px 10px;
+        white-space: nowrap;
+      }
     }
 
     .dash-pending-requests {
@@ -9871,12 +9889,92 @@ function timeOfDayGreeting() {
 }
 
 function DashboardWidgetGreeting({ ctx }) {
-  const { session, terms } = ctx;
+  const { session, terms, teamNotes, refreshTeamNotes } = ctx;
+  const [composing, setComposing] = useState(false);
   const firstName = (session.user.name || session.user.email || '').split(' ')[0].split('@')[0];
+  const userId = session.user.id;
+  const isAdmin = session.user.role === 'admin';
+
+  const allNotes = teamNotes || [];
+  const unreadCount = allNotes.filter((n) => !n.is_read && n.author_user_id !== userId).length;
+  const recent = allNotes.slice(0, 4);
+
+  const dateStr = ctx.today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const jobsCount = ctx.todayOccurrences.length;
+  const jobsLabel = jobsCount === 1 ? terms.jobLower : terms.jobsLower;
+
+  async function markRead(id) {
+    try {
+      await apiRequest(`/api/team-messages/${id}/read`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      refreshTeamNotes && refreshTeamNotes();
+    } catch (e) { /* swallow */ }
+  }
+  async function deleteNote(id) {
+    if (!confirm('Delete this team note? Anyone who hasn\'t opened it will lose it.')) return;
+    try {
+      await apiRequest(`/api/team-messages/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      refreshTeamNotes && refreshTeamNotes();
+    } catch (e) { /* swallow */ }
+  }
+
   return (
     <div className="dash-greeting">
-      <h2>{timeOfDayGreeting()}{firstName ? `, ${firstName}` : ''}.</h2>
-      <p>{ctx.today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {ctx.todayOccurrences.length} {ctx.todayOccurrences.length === 1 ? terms.jobLower : terms.jobsLower} on the schedule.</p>
+      <div className="dash-greeting-head">
+        <div className="dash-greeting-text">
+          <h2>{timeOfDayGreeting()}{firstName ? `, ${firstName}` : ''}.</h2>
+          <p>
+            {dateStr} · {jobsCount} {jobsLabel} on the schedule
+            {unreadCount > 0 && <>. <strong style={{ color: 'var(--accent)' }}>{unreadCount} new {unreadCount === 1 ? 'note' : 'notes'}</strong></>}
+            .
+          </p>
+        </div>
+        <button type="button" className="secondary dash-greeting-action" onClick={() => setComposing(true)}>
+          + Send a note
+        </button>
+      </div>
+
+      {recent.length > 0 && (
+        <div className="team-notes-list" style={{ marginTop: 16 }}>
+          {recent.map((n) => {
+            const isMine = n.author_user_id === userId;
+            const isUnread = !n.is_read && !isMine;
+            return (
+              <div
+                key={n.id}
+                className={`team-note-card${isUnread ? '' : ' read'}${isMine ? ' mine' : ''}`}
+              >
+                {n.subject && <div className="team-note-subject">{n.subject}</div>}
+                <div className="team-note-body">{n.body}</div>
+                <div className="team-note-foot">
+                  <span>
+                    {isMine ? 'You' : (n.author_name || n.author_email)}
+                    {' · '}{timeAgo(n.created_at)}
+                  </span>
+                  <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+                    {isUnread && (
+                      <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
+                    )}
+                    {(isMine || isAdmin) && (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => deleteNote(n.id)}
+                        style={{ color: 'var(--danger)' }}
+                      >Delete</button>
+                    )}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <TeamNoteCompose session={session} open={composing} onClose={() => setComposing(false)} onSent={refreshTeamNotes} />
     </div>
   );
 }
@@ -10273,10 +10371,6 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
               jobs={jobs}
             />
           )}
-          {/* Always render team notes outside the configurable widget loop
-              so existing users (whose saved dashboard_widgets array predates
-              the widget) still see it. */}
-          <DashboardWidgetTeamNotes ctx={ctx} />
           {widgets
             .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id) && w.id !== 'team_notes')
             .map((w) => {
