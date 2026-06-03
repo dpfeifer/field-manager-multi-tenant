@@ -9929,7 +9929,6 @@ function DashboardWidgetGreeting({ ctx }) {
           <p>
             {dateStr} · {jobsCount} {jobsLabel} on the schedule · {allNotes.length} {allNotes.length === 1 ? 'note' : 'notes'}
             {unreadCount > 0 && <> (<strong style={{ color: 'var(--accent)' }}>{unreadCount} new</strong>)</>}
-            .
           </p>
         </div>
         <button type="button" className="secondary dash-greeting-action" onClick={() => setComposing(true)}>
