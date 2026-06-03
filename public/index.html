@@ -9927,8 +9927,8 @@ function DashboardWidgetGreeting({ ctx }) {
         <div className="dash-greeting-text">
           <h2>{timeOfDayGreeting()}{firstName ? `, ${firstName}` : ''}.</h2>
           <p>
-            {dateStr} · {jobsCount} {jobsLabel} on the schedule
-            {unreadCount > 0 && <>. <strong style={{ color: 'var(--accent)' }}>{unreadCount} new {unreadCount === 1 ? 'note' : 'notes'}</strong></>}
+            {dateStr} · {jobsCount} {jobsLabel} on the schedule · {allNotes.length} {allNotes.length === 1 ? 'note' : 'notes'}
+            {unreadCount > 0 && <> (<strong style={{ color: 'var(--accent)' }}>{unreadCount} new</strong>)</>}
             .
           </p>
         </div>
