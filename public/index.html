@@ -1235,28 +1235,12 @@
       font-family: ui-monospace, monospace; font-size: 12px;
     }
     @media (max-width: 600px) {
-      /* On mobile, strip the nested card styling so the input fields
-         get the full width of the settings panel. Templates are visually
-         separated by a hairline divider instead. */
+      /* Keep the card look but trim padding so the inputs are wider. */
       .sms-template-row {
         flex-direction: column;
-        padding: 0 0 14px;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        border-bottom: 1px solid var(--border);
-        margin-bottom: 14px;
-      }
-      .sms-template-row:last-of-type {
-        border-bottom: none;
-        padding-bottom: 0;
-        margin-bottom: 0;
+        padding: 12px 10px;
       }
       .sms-template-fields { grid-template-columns: 1fr; }
-      .sms-template-row .sms-template-remove {
-        align-self: flex-end;
-        margin-top: 4px;
-      }
     }
 
     /* Week view — 7 columns of day summaries */
@@ -1923,12 +1907,14 @@
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
       .nav {
         padding: 0 4px; overflow-x: auto; flex-wrap: nowrap; gap: 0;
-        /* Constrain touch gesture to horizontal scroll only so a slightly
-           diagonal swipe doesn't cause vertical drift / icon bobbing. */
+        /* Constrain touch gestures to horizontal so a diagonal swipe
+           doesn't drag the page vertically (which makes icons appear to
+           bob during a swipe). Apply to children too — iOS Safari needs
+           it on the actual element under the finger. */
         touch-action: pan-x;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
+      .nav button { touch-action: pan-x; }
       .nav::-webkit-scrollbar { display: none; }
       /* Stack icon over label on mobile so each tab is a proper tap target
          (≥ 56px tall) with the icon big enough to read at a glance. */
@@ -1966,6 +1952,7 @@
       }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
+      .form-card { padding: 18px; }
       .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
       .page-header h2 { font-size: 18px; }
       .row, .occurrence-row, .compact-row { flex-wrap: wrap; }
