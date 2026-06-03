@@ -5882,7 +5882,17 @@ function sendSmsTemplate(phone, template, customer) {
   const cleanPhone = String(phone).replace(/\D/g, '');
   const msg = String(template.message || '').replace(/\{name\}/g, customerFirstName(customer));
   // iOS uses ?body=, Android wants &body=. Most platforms accept both.
-  window.open(`sms:${cleanPhone}?body=${encodeURIComponent(msg)}`);
+  const url = `sms:${cleanPhone}?body=${encodeURIComponent(msg)}`;
+  // window.open() with the sms: scheme fails silently inside an iOS
+  // standalone PWA (home-screen install). A programmatic anchor click is
+  // treated as a normal link tap, which iOS routes to the Messages app
+  // correctly in both browser tabs AND standalone mode.
+  const a = document.createElement('a');
+  a.href = url;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplates = [] }) {
