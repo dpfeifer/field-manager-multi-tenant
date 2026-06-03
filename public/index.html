@@ -4607,25 +4607,49 @@ function CyclingHeadline() {
   );
 }
 
-const CINEMA_TILES = [
-  // x/y are offsets from viewport center, expressed in vmin. shape sets aspect ratio.
-  { src: 'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=600&q=80&auto=format&fit=crop', x: -38, y: -22, shape: 'wide',   z: 0.85 },
-  { src: 'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=700&q=80&auto=format&fit=crop', x: -18, y: -30, shape: 'tall',   z: 1.0  },
-  { src: 'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop', x:  24, y: -28, shape: '',       z: 0.95 },
-  { src: 'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=600&q=80&auto=format&fit=crop', x:  40, y:  -6, shape: 'wide',   z: 0.8  },
-  { src: 'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=700&q=80&auto=format&fit=crop', x:  30, y:  24, shape: 'tall',   z: 1.0  },
-  { src: 'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=800&q=80&auto=format&fit=crop', x:   2, y:  32, shape: '',       z: 0.9  },
-  { src: 'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=700&q=80&auto=format&fit=crop', x: -28, y:  24, shape: 'wide',   z: 0.95 },
-  { src: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop', x: -40, y:   2, shape: 'tall',   z: 0.85 },
+const CINEMA_IMAGES = [
+  'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=700&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=700&q=80&auto=format&fit=crop',
 ];
+const CINEMA_SHAPES = ['', 'wide', 'tall'];
+const CINEMA_TILE_COUNT = 28;
+
+// Generate a random tile field. Each tile has a fixed (x,y) position
+// somewhere across the viewport and its own phase + lifespan. The rAF
+// loop walks each tile through scale-up + fade, so they appear as a
+// continuous stream of images drifting toward the camera at random
+// points across the whole hero.
+function generateCinemaTiles(count) {
+  const tiles = [];
+  for (let i = 0; i < count; i++) {
+    tiles.push({
+      src: CINEMA_IMAGES[i % CINEMA_IMAGES.length],
+      x: (Math.random() - 0.5) * 90,   // -45vw to +45vw
+      y: (Math.random() - 0.5) * 80,   // -40vh to +40vh
+      phase: Math.random(),            // offset in the loop
+      baseScale: 0.55 + Math.random() * 0.55,
+      duration: 0.85 + Math.random() * 0.5,
+      shape: CINEMA_SHAPES[Math.floor(Math.random() * CINEMA_SHAPES.length)],
+    });
+  }
+  return tiles;
+}
 
 function CinemaHero() {
   const heroRef = useRef(null);
   const tilesRef = useRef([]);
+  const [tiles] = useState(() => generateCinemaTiles(CINEMA_TILE_COUNT));
 
   useEffect(() => {
     let raf = 0;
-    let phase = 0;             // global loop phase, advances over time
+    let clock = 0;             // seconds elapsed, scaled by speed
     let scrollProg = 0;        // 0 at top of hero, 1 at bottom
     let last = performance.now();
 
@@ -4641,33 +4665,30 @@ function CinemaHero() {
     function tick(now) {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      // Baseline 0.10 cycles/sec; scroll adds up to 8x speed.
+      // Baseline 0.10 cycles/sec; scroll boosts up to 8x.
       const speed = 0.10 * (1 + scrollProg * 7);
-      phase += dt * speed;
+      clock += dt * speed;
 
-      const tiles = tilesRef.current;
-      const n = CINEMA_TILES.length;
-      for (let i = 0; i < n; i++) {
-        const node = tiles[i];
+      const nodes = tilesRef.current;
+      for (let i = 0; i < tiles.length; i++) {
+        const node = nodes[i];
         if (!node) continue;
-        const t = CINEMA_TILES[i];
-        // Each tile sits at a different point in the loop so they stagger.
-        let local = (phase + i / n) % 1;
+        const t = tiles[i];
+        // Each tile's life cycle progresses at its own duration.
+        let local = ((clock / t.duration) + t.phase) % 1;
         if (local < 0) local += 1;
-        // Cubic ease — tile accelerates as it approaches the camera.
+        // Cubic ease — accelerates as the tile approaches the camera.
         const ease = local * local * local;
-        // Scale from tiny/distant to viewport-filling.
-        const scale = 0.06 + ease * 13;
-        // Light drift toward the tile's direction vector as it grows.
-        const tx = t.x * ease * 0.5;
-        const ty = t.y * ease * 0.5;
-        // Opacity tracks proximity — distant tiles are transparent, near
-        // tiles solid; the last 15% of the loop fades them as they exit.
+        // Scale from tiny/distant to ~2.5x base size; not viewport-filling.
+        const scale = (0.18 + ease * 2.4) * t.baseScale;
+        // Distant tiles are transparent, near tiles solid, exit fades.
         const distanceFade = Math.min(1, ease * 2.6);
-        const exitFade = local > 0.85 ? Math.max(0, (1 - local) / 0.15) : 1;
+        const exitFade = local > 0.82 ? Math.max(0, (1 - local) / 0.18) : 1;
         const opacity = distanceFade * exitFade;
-        node.style.transform = `translate(-50%, -50%) translate(${tx}vmin, ${ty}vmin) scale(${scale})`;
+        node.style.transform = `translate(-50%, -50%) translate(${t.x}vw, ${t.y}vh) scale(${scale})`;
         node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
+        // Near tiles paint over far tiles.
+        node.style.zIndex = String(Math.round(ease * 100));
       }
       raf = requestAnimationFrame(tick);
     }
@@ -4681,13 +4702,13 @@ function CinemaHero() {
       window.removeEventListener('resize', updateScroll);
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [tiles]);
 
   return (
     <header className="ed-hero-cinema" ref={heroRef}>
       <div className="ed-cinema-sticky">
         <div className="ed-cinema-stage" aria-hidden="true">
-          {CINEMA_TILES.map((t, i) => (
+          {tiles.map((t, i) => (
             <div
               key={i}
               ref={(el) => { tilesRef.current[i] = el; }}
