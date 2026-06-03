@@ -4599,34 +4599,52 @@ function CyclingHeadline() {
   );
 }
 
-const CINEMA_IMAGES = [
-  'https://images.unsplash.com/photo-1623161551727-54c918bdcec1?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1728706613021-e447801e1ea6?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1740657254989-42fe9c3b8cce?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1641199788912-9a7385a35c82?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1628847115161-d6793dc59c7f?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1734303023491-db8037a21f09?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1530700131180-d43d9b8cc41f?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&q=80&auto=format',
-  'https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?w=900&q=80&auto=format',
+const CINEMA_IMAGE_IDS = [
+  // original 9
+  '1623161551727-54c918bdcec1', '1728706613021-e447801e1ea6', '1740657254989-42fe9c3b8cce',
+  '1641199788912-9a7385a35c82', '1628847115161-d6793dc59c7f', '1734303023491-db8037a21f09',
+  '1530700131180-d43d9b8cc41f', '1503951914875-452162b0f3f1', '1613844044163-1ad2f2d0b152',
+  // landscaping
+  '1676496046182-356a6a0ed002', '1734079692160-fcbe4be6ab96', '1597201278257-3687be27d954',
+  '1664299231556-57f570023f87', '1605117882932-f9e32b03fea9', '1668120089662-42642838cfef',
+  '1734079692079-aae7e24a7035', '1458245201577-fc8a130b8829', '1734079692079-172d8243ebd3',
+  '1700689807667-82630348b301', '1632161293871-cf2083474e34', '1663185777390-d44a6f4724b9',
+  '1617850687395-620757feb1f3', '1669829646756-083a328c0abb', '1689728318937-17d24bc0a65c',
+  '1629575063988-881596e38d31', '1592595896616-c37162298647',
+  // cleaning service
+  '1663011218145-c1d0c3ba3542', '1686178827149-6d55c72d81df', '1627905646269-7f034dcc5738',
+  '1683141112334-d7d404f6e716', '1563453392212-326f5e854473', '1603712725038-e9334ae8f39f',
+  '1585421514284-efb74c2b69ba', '1678304224523-d25b4117558f', '1669101602108-fa5ba89507ee',
+  '1628177142898-93e36e4e3a50', '1642505172378-a6f5e5b15580', '1684407616442-87bf0d69e8b4',
+  '1580256081112-e49377338b7f', '1581578731548-c64695cc6952', '1646980241033-cd7abda2ee88',
+  '1663047397245-2ddad26c5dd7', '1618038483079-bfe64dcb17f1', '1647381518264-97ff1835026f',
 ];
+const CINEMA_IMAGES = CINEMA_IMAGE_IDS.map(
+  (id) => `https://images.unsplash.com/photo-${id}?w=900&q=80&auto=format`
+);
 
-// Generate the tile field. Each tile gets a unique image, a random
-// starting point inside a headline-sized region at the viewport center,
-// and a direction vector to fly outward off the screen.
+// Generate the tile field. All tiles share a single origin (viewport
+// center) but each gets:
+//   - a roughly-evenly-distributed direction (with jitter), so paths
+//     spread out and tiles don't sit on top of each other,
+//   - a non-zero starting distance "out in the plane" so tiles fade in
+//     a bit away from dead-center rather than at scale=0,
+//   - a random phase so the field is always staggered, no big "all
+//     reset at once" snap.
 function generateCinemaTiles() {
-  return CINEMA_IMAGES.map((src) => {
-    const angle = Math.random() * Math.PI * 2;
+  const n = CINEMA_IMAGES.length;
+  const slot = (Math.PI * 2) / n;
+  return CINEMA_IMAGES.map((src, i) => {
+    const angle = i * slot + (Math.random() - 0.5) * slot * 0.7;
     return {
       src,
-      originX: (Math.random() - 0.5) * 28,   // ~headline width, in vmax
-      originY: (Math.random() - 0.5) * 18,   // ~headline height, in vmax
       dx: Math.cos(angle),
       dy: Math.sin(angle),
-      reach: 95 + Math.random() * 30,        // peak distance in vmax (exits viewport)
+      startDist: 6 + Math.random() * 10,        // vmax — where the tile fades in
+      reach: 70 + Math.random() * 25,           // additional outward travel (exits viewport)
       phase: Math.random(),
-      baseScale: 0.7 + Math.random() * 0.45,
-      duration: 1.15 + Math.random() * 0.6,
+      baseScale: 0.65 + Math.random() * 0.4,
+      duration: 1.1 + Math.random() * 0.7,
     };
   });
 }
@@ -4669,16 +4687,22 @@ function CinemaHero() {
         const t = tiles[i];
         let local = ((clock / t.duration) + t.phase) % 1;
         if (local < 0) local += 1;
-        // Cubic ease — accelerates as the tile leaves the origin region.
+        // Cubic ease — accelerates as the tile travels outward.
         const ease = local * local * local;
-        const tx = t.originX + t.dx * t.reach * ease;
-        const ty = t.originY + t.dy * t.reach * ease;
-        const scale = (0.1 + ease * 1.4) * t.baseScale;
-        // Fade in over the first 18% of the loop, then hold full opacity
-        // until the tile travels off the edge of the viewport.
-        const opacity = Math.min(1, local / 0.18);
+        // Tile is born at startDist along its direction (not at dead-center),
+        // then continues outward to startDist + reach (off-screen).
+        const dist = t.startDist + t.reach * ease;
+        const tx = t.dx * dist;
+        const ty = t.dy * dist;
+        // Scale never returns to zero — born at a visible size, grows modestly.
+        const scale = (0.35 + ease * 1.1) * t.baseScale;
+        // Two-phase opacity: fade in to ~0.35 quickly, then a slow climb
+        // (driven by cubic ease) so tiles only hit full opacity near the
+        // edge of the screen.
+        const fadeIn = Math.min(1, local / 0.10);
+        const opacity = 0.35 * fadeIn + 0.65 * ease;
         node.style.transform = `translate(-50%, -50%) translate(${tx}vmax, ${ty}vmax) scale(${scale})`;
-        node.style.opacity = String(opacity);
+        node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
         // Capped at 8 so the headline (z-index 1000) always stays on top.
         node.style.zIndex = String(Math.round(ease * 8));
       }
