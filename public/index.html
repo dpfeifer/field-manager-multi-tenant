@@ -1568,6 +1568,18 @@
       border-radius: 10px; padding: 14px 16px;
       box-shadow: var(--shadow-sm);
     }
+    /* Already-read notes fade back, so unread ones stand out. */
+    .team-note-card.read {
+      border-left-color: var(--border-strong);
+      background: var(--bg);
+      box-shadow: none;
+      opacity: 0.78;
+    }
+    /* Notes you sent get a soft tint so they're visibly "your side." */
+    .team-note-card.mine {
+      border-left-color: var(--primary);
+      background: var(--tinted);
+    }
     .team-note-subject {
       font-weight: 600; font-size: 15px; margin-bottom: 4px;
       color: var(--text); letter-spacing: -0.01em;
@@ -12639,15 +12651,14 @@ function timeAgo(iso) {
 function DashboardWidgetTeamNotes({ ctx }) {
   const { session, teamNotes, refreshTeamNotes } = ctx;
   const [composing, setComposing] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const userId = session.user.id;
-  const notes = (teamNotes || []).filter((n) => !n.is_read && n.author_user_id !== userId);
-  const hasOthers = (teamNotes || []).some((n) => n.author_user_id !== userId);
-  // Solo operator (no teammates ever messaged + no compose context) — hide the widget entirely.
-  if (notes.length === 0 && !hasOthers) {
-    return (
-      <TeamNoteCompose session={session} open={composing} onClose={() => setComposing(false)} onSent={refreshTeamNotes} />
-    );
-  }
+  // Show the most recent notes regardless of read state or authorship. Unread
+  // ones get the accent border; read ones dim. Notes you sent are tagged
+  // "you" so it's clear they're yours and don't need a Got-it button.
+  const allNotes = teamNotes || [];
+  const recent = showAll ? allNotes : allNotes.slice(0, 4);
+  const unreadCount = allNotes.filter((n) => !n.is_read && n.author_user_id !== userId).length;
 
   async function markRead(id) {
     try {
@@ -12662,27 +12673,50 @@ function DashboardWidgetTeamNotes({ ctx }) {
     <>
       <div className="team-notes-head">
         <div className="section-heading" style={{ margin: 0 }}>
-          Team notes {notes.length > 0 && <span className="team-notes-count">{notes.length}</span>}
+          Team notes {unreadCount > 0 && <span className="team-notes-count">{unreadCount}</span>}
         </div>
         <button type="button" className="secondary team-notes-compose" onClick={() => setComposing(true)}>
           + Send a note
         </button>
       </div>
-      {notes.length === 0 ? (
-        <div className="list-empty" style={{ marginBottom: 20 }}>No unread team notes.</div>
-      ) : (
-        <div className="team-notes-list">
-          {notes.map((n) => (
-            <div key={n.id} className="team-note-card">
-              {n.subject && <div className="team-note-subject">{n.subject}</div>}
-              <div className="team-note-body">{n.body}</div>
-              <div className="team-note-foot">
-                <span>{n.author_name || n.author_email} · {timeAgo(n.created_at)}</span>
-                <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
-              </div>
-            </div>
-          ))}
+      {recent.length === 0 ? (
+        <div className="list-empty" style={{ marginBottom: 20 }}>
+          No team notes yet. Send the first one — your teammates will see it here and get an email.
         </div>
+      ) : (
+        <>
+          <div className="team-notes-list">
+            {recent.map((n) => {
+              const isMine = n.author_user_id === userId;
+              const isUnread = !n.is_read && !isMine;
+              return (
+                <div
+                  key={n.id}
+                  className={`team-note-card${isUnread ? '' : ' read'}${isMine ? ' mine' : ''}`}
+                >
+                  {n.subject && <div className="team-note-subject">{n.subject}</div>}
+                  <div className="team-note-body">{n.body}</div>
+                  <div className="team-note-foot">
+                    <span>
+                      {isMine ? 'You' : (n.author_name || n.author_email)}
+                      {' · '}{timeAgo(n.created_at)}
+                    </span>
+                    {isUnread && (
+                      <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {!showAll && allNotes.length > 4 && (
+            <div style={{ marginBottom: 20, textAlign: 'center' }}>
+              <button type="button" className="link-button" onClick={() => setShowAll(true)}>
+                Show {allNotes.length - 4} older
+              </button>
+            </div>
+          )}
+        </>
       )}
       <TeamNoteCompose session={session} open={composing} onClose={() => setComposing(false)} onSent={refreshTeamNotes} />
     </>
