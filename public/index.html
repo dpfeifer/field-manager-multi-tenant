@@ -9440,6 +9440,9 @@ function UserMenu({ session, onLogout, onSwitch }) {
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/support'); }}>
             Help &amp; support
           </button>
+          <button className="user-menu-item" onClick={() => { setOpen(false); window.location.reload(); }}>
+            Refresh app
+          </button>
           {session.user.is_system_admin && (
             <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/system'); }}>
               System admin
