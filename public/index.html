@@ -2523,10 +2523,9 @@
     .ed-cinema-tile.wide { width: 26vmin; height: 18vmin; }
     .ed-cinema-tile.tall { width: 16vmin; height: 26vmin; }
     .ed-cinema-text {
-      position: relative; z-index: 2;
+      position: relative; z-index: 10;
       max-width: 760px; padding: 0 32px;
       text-align: center;
-      will-change: opacity, transform;
     }
     .ed-cinema-text .ed-eyebrow { margin-bottom: 28px; }
     @media (max-width: 720px) {
@@ -4622,61 +4621,82 @@ const CINEMA_TILES = [
 
 function CinemaHero() {
   const heroRef = useRef(null);
-  const [progress, setProgress] = useState(0);
+  const tilesRef = useRef([]);
 
   useEffect(() => {
     let raf = 0;
-    function update() {
+    let phase = 0;             // global loop phase, advances over time
+    let scrollProg = 0;        // 0 at top of hero, 1 at bottom
+    let last = performance.now();
+
+    function updateScroll() {
       const el = heroRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       const scrolled = Math.max(0, -rect.top);
-      const p = total > 0 ? Math.max(0, Math.min(1, scrolled / total)) : 0;
-      setProgress(p);
+      scrollProg = total > 0 ? Math.max(0, Math.min(1, scrolled / total)) : 0;
     }
-    function onScroll() {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(update);
+
+    function tick(now) {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      // Baseline 0.10 cycles/sec; scroll adds up to 8x speed.
+      const speed = 0.10 * (1 + scrollProg * 7);
+      phase += dt * speed;
+
+      const tiles = tilesRef.current;
+      const n = CINEMA_TILES.length;
+      for (let i = 0; i < n; i++) {
+        const node = tiles[i];
+        if (!node) continue;
+        const t = CINEMA_TILES[i];
+        // Each tile sits at a different point in the loop so they stagger.
+        let local = (phase + i / n) % 1;
+        if (local < 0) local += 1;
+        // Cubic ease — tile accelerates as it approaches the camera.
+        const ease = local * local * local;
+        // Scale from tiny/distant to viewport-filling.
+        const scale = 0.06 + ease * 13;
+        // Light drift toward the tile's direction vector as it grows.
+        const tx = t.x * ease * 0.5;
+        const ty = t.y * ease * 0.5;
+        // Opacity tracks proximity — distant tiles are transparent, near
+        // tiles solid; the last 15% of the loop fades them as they exit.
+        const distanceFade = Math.min(1, ease * 2.6);
+        const exitFade = local > 0.85 ? Math.max(0, (1 - local) / 0.15) : 1;
+        const opacity = distanceFade * exitFade;
+        node.style.transform = `translate(-50%, -50%) translate(${tx}vmin, ${ty}vmin) scale(${scale})`;
+        node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
+      }
+      raf = requestAnimationFrame(tick);
     }
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+
+    updateScroll();
+    window.addEventListener('scroll', updateScroll, { passive: true });
+    window.addEventListener('resize', updateScroll);
+    raf = requestAnimationFrame(tick);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('scroll', updateScroll);
+      window.removeEventListener('resize', updateScroll);
       cancelAnimationFrame(raf);
     };
   }, []);
-
-  // Cubic ease-in so the planes accelerate (the "speed up" feel).
-  const ease = progress * progress * progress;
-  // Text fades only slightly so it stays readable through most of the scroll.
-  const textOpacity = Math.max(0, 1 - progress * 0.7);
 
   return (
     <header className="ed-hero-cinema" ref={heroRef}>
       <div className="ed-cinema-sticky">
         <div className="ed-cinema-stage" aria-hidden="true">
-          {CINEMA_TILES.map((t, i) => {
-            const growth = 1 + ease * 6 * t.z;
-            const tx = t.x * (1 + ease * 5);
-            const ty = t.y * (1 + ease * 5);
-            const opacity = Math.max(0, 1 - ease * 1.3);
-            return (
-              <div
-                key={i}
-                className={`ed-cinema-tile${t.shape ? ' ' + t.shape : ''}`}
-                style={{
-                  backgroundImage: `url(${t.src})`,
-                  transform: `translate(-50%, -50%) translate(${tx}vmin, ${ty}vmin) scale(${growth})`,
-                  opacity,
-                }}
-              />
-            );
-          })}
+          {CINEMA_TILES.map((t, i) => (
+            <div
+              key={i}
+              ref={(el) => { tilesRef.current[i] = el; }}
+              className={`ed-cinema-tile${t.shape ? ' ' + t.shape : ''}`}
+              style={{ backgroundImage: `url(${t.src})`, opacity: 0 }}
+            />
+          ))}
         </div>
-        <div className="ed-cinema-text" style={{ opacity: textOpacity }}>
+        <div className="ed-cinema-text">
           <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
           <HeroHeadline />
           <p className="ed-hero-lede fade-in-delay-2">
