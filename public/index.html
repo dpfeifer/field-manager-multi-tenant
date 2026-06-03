@@ -1891,9 +1891,35 @@
       .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
       .topbar .brand { font-size: 14px; }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
-      .nav { padding: 0 8px; overflow-x: auto; flex-wrap: nowrap; }
+      .nav { padding: 0 4px; overflow-x: auto; flex-wrap: nowrap; gap: 0; }
       .nav::-webkit-scrollbar { display: none; }
-      .nav button { white-space: nowrap; padding: 12px 10px; font-size: 13px; }
+      /* Stack icon over label on mobile so each tab is a proper tap target
+         (≥ 56px tall) with the icon big enough to read at a glance. */
+      .nav button {
+        position: relative;
+        white-space: nowrap;
+        padding: 10px 12px;
+        font-size: 11px;
+        line-height: 1;
+        min-height: 56px;
+        min-width: 64px;
+        flex-direction: column;
+        gap: 5px;
+        letter-spacing: 0;
+      }
+      .nav button .icon { font-size: 22px; opacity: 0.85; }
+      /* Free-plan usage badges (jobs/customers count) get too cluttered
+         in the stacked layout — show them only on desktop. */
+      .nav-quota { display: none; }
+      .nav-badge {
+        position: absolute; top: 6px; right: 8px;
+        min-width: 6px; min-height: 6px;
+        padding: 1px 5px; font-size: 10px;
+      }
+      .nav-lock {
+        position: absolute; top: 6px; right: 8px;
+        font-size: 9px; padding: 1px 4px;
+      }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
       .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
