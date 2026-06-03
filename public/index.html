@@ -4623,28 +4623,27 @@ const CINEMA_IMAGES = CINEMA_IMAGE_IDS.map(
   (id) => `https://images.unsplash.com/photo-${id}?w=900&q=80&auto=format`
 );
 
-// Generate the tile field. All tiles share a single origin (viewport
-// center) but each gets:
-//   - a roughly-evenly-distributed direction (with jitter), so paths
-//     spread out and tiles don't sit on top of each other,
-//   - a non-zero starting distance "out in the plane" so tiles fade in
-//     a bit away from dead-center rather than at scale=0,
-//   - a random phase so the field is always staggered, no big "all
-//     reset at once" snap.
+// Generate the tile field. All tiles:
+//   - share a single origin at the viewport center,
+//   - get evenly-spaced directions (with tiny jitter) so paths fan out,
+//   - get golden-ratio-spaced phases so adjacent-angle tiles are never
+//     at adjacent stages of the loop — minimizes visual overlap,
+//   - share one duration (set in CinemaHero), so every tile moves at
+//     the same speed.
+const PHI = (1 + Math.sqrt(5)) / 2;
 function generateCinemaTiles() {
   const n = CINEMA_IMAGES.length;
   const slot = (Math.PI * 2) / n;
   return CINEMA_IMAGES.map((src, i) => {
-    const angle = i * slot + (Math.random() - 0.5) * slot * 0.7;
+    const angle = i * slot + (Math.random() - 0.5) * slot * 0.25;
     return {
       src,
       dx: Math.cos(angle),
       dy: Math.sin(angle),
-      startDist: 6 + Math.random() * 10,        // vmax — where the tile fades in
-      reach: 70 + Math.random() * 25,           // additional outward travel (exits viewport)
-      phase: Math.random(),
-      baseScale: 0.65 + Math.random() * 0.4,
-      duration: 1.1 + Math.random() * 0.7,
+      startDist: 7 + Math.random() * 8,         // vmax — where the tile fades in
+      reach: 78 + Math.random() * 18,           // additional outward travel
+      phase: (i * PHI) % 1,
+      baseScale: 0.7 + Math.random() * 0.35,
     };
   });
 }
@@ -4655,9 +4654,10 @@ function CinemaHero() {
   const [tiles] = useState(() => generateCinemaTiles());
 
   useEffect(() => {
+    const BASE_RATE = 0.32;                         // cycles per second — same for every tile
     let raf = 0;
-    let clock = 0;                                  // seconds elapsed, scaled by speed
-    let scrollBoost = 0;                            // temporary speed bonus from scroll velocity
+    let clock = 0;
+    let scrollBoost = 0;
     let lastScrollY = window.scrollY;
     let lastScrollAt = performance.now();
     let last = performance.now();
@@ -4666,8 +4666,8 @@ function CinemaHero() {
       const now = performance.now();
       const dt = Math.max(1, now - lastScrollAt);
       const dy = Math.abs(window.scrollY - lastScrollY);
-      const velocity = dy / dt;                     // px/ms
-      scrollBoost = Math.min(2.5, scrollBoost + velocity * 0.035);
+      const velocity = dy / dt;
+      scrollBoost = Math.min(1.8, scrollBoost + velocity * 0.025);
       lastScrollY = window.scrollY;
       lastScrollAt = now;
     }
@@ -4675,32 +4675,29 @@ function CinemaHero() {
     function tick(now) {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      // Exponential decay so the boost dies off quickly when scrolling stops.
       scrollBoost *= Math.pow(0.04, dt);
-      const speed = 0.10 * (1 + scrollBoost);
-      clock += dt * speed;
+      const rate = BASE_RATE * (1 + scrollBoost);
+      clock += dt * rate;
 
       const nodes = tilesRef.current;
       for (let i = 0; i < tiles.length; i++) {
         const node = nodes[i];
         if (!node) continue;
         const t = tiles[i];
-        let local = ((clock / t.duration) + t.phase) % 1;
+        let local = (clock + t.phase) % 1;
         if (local < 0) local += 1;
         // Cubic ease — accelerates as the tile travels outward.
         const ease = local * local * local;
-        // Tile is born at startDist along its direction (not at dead-center),
-        // then continues outward to startDist + reach (off-screen).
+        // Born at startDist along its direction, continues outward off-screen.
         const dist = t.startDist + t.reach * ease;
         const tx = t.dx * dist;
         const ty = t.dy * dist;
-        // Scale never returns to zero — born at a visible size, grows modestly.
+        // Scale grows modestly; never returns to zero.
         const scale = (0.35 + ease * 1.1) * t.baseScale;
-        // Two-phase opacity: fade in to ~0.35 quickly, then a slow climb
-        // (driven by cubic ease) so tiles only hit full opacity near the
-        // edge of the screen.
-        const fadeIn = Math.min(1, local / 0.10);
-        const opacity = 0.35 * fadeIn + 0.65 * ease;
+        // Opacity tracks the tile's size — small/far = transparent,
+        // large/near-exit = fully opaque. sqrt curve gives a smoother
+        // fade-in than tying directly to ease.
+        const opacity = Math.sqrt(ease);
         node.style.transform = `translate(-50%, -50%) translate(${tx}vmax, ${ty}vmax) scale(${scale})`;
         node.style.opacity = String(Math.max(0, Math.min(1, opacity)));
         // Capped at 8 so the headline (z-index 1000) always stays on top.
