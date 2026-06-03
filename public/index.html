@@ -12673,6 +12673,18 @@ function DashboardWidgetTeamNotes({ ctx }) {
     } catch (e) { /* swallow */ }
   }
 
+  async function deleteNote(id) {
+    if (!confirm('Delete this team note? Anyone who hasn\'t opened it will lose it.')) return;
+    try {
+      await apiRequest(`/api/team-messages/${id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      refreshTeamNotes && refreshTeamNotes();
+    } catch (e) { /* swallow */ }
+  }
+
+  const isAdmin = session.user.role === 'admin';
+
   return (
     <>
       <div className="team-notes-head">
@@ -12705,9 +12717,19 @@ function DashboardWidgetTeamNotes({ ctx }) {
                       {isMine ? 'You' : (n.author_name || n.author_email)}
                       {' · '}{timeAgo(n.created_at)}
                     </span>
-                    {isUnread && (
-                      <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
-                    )}
+                    <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+                      {isUnread && (
+                        <button type="button" className="link-button" onClick={() => markRead(n.id)}>Got it</button>
+                      )}
+                      {(isMine || isAdmin) && (
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => deleteNote(n.id)}
+                          style={{ color: 'var(--danger)' }}
+                        >Delete</button>
+                      )}
+                    </span>
                   </div>
                 </div>
               );
