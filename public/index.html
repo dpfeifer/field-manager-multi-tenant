@@ -1508,6 +1508,54 @@
     .stat-card .subvalue { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     .stat-card.accent .value { color: var(--primary); }
 
+    /* Update-available toast — appears when /api/version reports a newer build */
+    .version-banner {
+      position: fixed;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      right: max(20px, env(safe-area-inset-right));
+      left: auto;
+      z-index: 1001;
+      display: flex; align-items: center; gap: 12px;
+      max-width: 92vw;
+      padding: 12px 12px 12px 16px;
+      background: var(--text); color: var(--bg);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.35);
+      font-size: 14px;
+      animation: versionBannerIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes versionBannerIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .version-banner-text {
+      flex: 1; min-width: 0;
+    }
+    .version-banner-refresh {
+      background: var(--bg); color: var(--text);
+      border: none; border-radius: 8px;
+      padding: 7px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      flex-shrink: 0;
+    }
+    .version-banner-refresh:hover { opacity: 0.9; }
+    .version-banner-close {
+      background: none; border: none;
+      color: var(--bg); opacity: 0.6;
+      cursor: pointer; font-size: 20px;
+      width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0; flex-shrink: 0;
+    }
+    .version-banner-close:hover { opacity: 1; }
+    @media (max-width: 600px) {
+      .version-banner {
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        max-width: none;
+      }
+    }
+
     /* First-job celebration toast */
     .first-job-toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 1000;
@@ -12197,6 +12245,60 @@ function PublicProfileView({ slug }) {
   );
 }
 
+// Polls /api/version every 5 minutes. If the server's build identifier
+// changes mid-session (i.e., a new deploy went out), shows a small toast
+// asking the user to refresh. Dismiss is per-session — if another deploy
+// goes out later, the banner returns.
+function VersionCheck() {
+  const initialRef = React.useRef(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    let stopped = false;
+    async function check() {
+      try {
+        const res = await fetch('/api/version', { cache: 'no-store' });
+        if (!res.ok || stopped) return;
+        const data = await res.json();
+        if (initialRef.current === null) {
+          initialRef.current = data.version;
+        } else if (data.version !== initialRef.current) {
+          setUpdateAvailable(true);
+        }
+      } catch (e) { /* network blip, try again next tick */ }
+    }
+    check();
+    const timer = setInterval(check, 5 * 60 * 1000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, []);
+
+  // Re-show the banner on the next mismatch even after dismissal —
+  // tracked by resetting dismissed when updateAvailable flips off.
+  useEffect(() => {
+    if (!updateAvailable) setDismissed(false);
+  }, [updateAvailable]);
+
+  if (!updateAvailable || dismissed) return null;
+
+  return (
+    <div className="version-banner" role="status">
+      <span className="version-banner-text">A new version is available.</span>
+      <button
+        type="button"
+        className="version-banner-refresh"
+        onClick={() => window.location.reload()}
+      >Refresh</button>
+      <button
+        type="button"
+        className="version-banner-close"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+      >×</button>
+    </div>
+  );
+}
+
 function App() {
   const path = useLocation();
   const [session, setSession] = useState(loadSession);
@@ -12232,7 +12334,12 @@ function App() {
   return <LandingPage />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <>
+    <App />
+    <VersionCheck />
+  </>
+);
 </script>
 </body>
 </html>

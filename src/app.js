@@ -47,6 +47,15 @@ app.use('/api/webhooks/stripe', stripeWebhookRoutes);
 app.use(express.json());
 
 app.use('/health', healthRoutes);
+// Build identifier — used by the client to detect deploys mid-session.
+const SERVER_VERSION = process.env.RAILWAY_GIT_COMMIT_SHA
+  || process.env.GIT_COMMIT
+  || Date.now().toString();
+app.get('/api/version', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ version: SERVER_VERSION });
+});
+
 app.use('/api/public', publicRoutes);
 app.use('/api/system', systemAuthRoutes);
 app.use('/api/system', systemRoutes);
