@@ -7431,7 +7431,7 @@ function InvoicesView({ session }) {
                     <div className="inv-util-break" aria-hidden="true" />
                     <div className="inv-util-group">
                       {(inv.status === 'sent' || inv.status === 'paid') && (
-                        <button className="inv-util" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                        <button className="inv-util" onClick={() => navigate(`/i/${inv.id}?from=app`)}>View</button>
                       )}
                       <button className="inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
                       <button className="inv-util inv-util-danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
@@ -9713,7 +9713,7 @@ function DashboardWidgetOutstanding({ ctx }) {
               </div>
               <div className="actions">
                 <button className="primary" onClick={() => onMarkPaid(inv.id)}>Mark paid</button>
-                <button className="secondary" onClick={() => window.open(`/i/${inv.id}`, '_blank')}>View</button>
+                <button className="secondary" onClick={() => navigate(`/i/${inv.id}?from=app`)}>View</button>
               </div>
             </div>
           );
@@ -11713,8 +11713,26 @@ function PublicInvoiceView({ id }) {
   });
   const companyName = invoice.company_name || invoice.organization_name;
 
+  const fromApp = (typeof window !== 'undefined') &&
+    new URLSearchParams(window.location.search).get('from') === 'app';
+
+  function goBack() {
+    if (window.history.length > 1) window.history.back();
+    else navigate('/invoices');
+  }
+
   return (
     <div className="public-shell">
+      {fromApp && (
+        <div style={{ maxWidth: 800, margin: '12px auto 0', padding: '0 16px' }}>
+          <button
+            type="button"
+            className="link-button"
+            onClick={goBack}
+            style={{ fontSize: 14, padding: '6px 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >← Back</button>
+        </div>
+      )}
       <div className="invoice-doc">
         <header className="invoice-header">
           <div className="company">
