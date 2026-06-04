@@ -11,11 +11,29 @@
 
 const { main: runAutoInvoices } = require('../scripts/run-auto-invoices');
 const { main: runTrialReminders } = require('../scripts/send-trial-reminders');
+const { query } = require('./config/db');
 
 const SCHEDULE = {
   autoInvoice:   { utcHour: 9,  envFlag: 'DISABLE_AUTO_INVOICE_CRON' },
   trialReminder: { utcHour: 14, envFlag: 'DISABLE_TRIAL_REMINDER_CRON' },
 };
+
+// Delete demo orgs that have rolled past their expires-at. Cascading
+// FKs on customers/jobs/invoices/etc clean up the dependent rows.
+let lastDemoCleanupAt = 0;
+async function cleanupExpiredDemoOrgs() {
+  const now = Date.now();
+  if (now - lastDemoCleanupAt < 60 * 60 * 1000) return; // run at most hourly
+  lastDemoCleanupAt = now;
+  try {
+    const { rowCount } = await query(
+      `DELETE FROM organizations WHERE is_demo = TRUE AND demo_expires_at < NOW()`
+    );
+    if (rowCount > 0) console.log(`[scheduler] cleaned up ${rowCount} expired demo orgs`);
+  } catch (err) {
+    console.error('[scheduler] demo cleanup failed:', err);
+  }
+}
 
 // In-memory "last run" date per job. Resets on restart, but the jobs are
 // idempotent so the worst case is one duplicate scan after a redeploy.
@@ -48,6 +66,7 @@ async function maybeRun(jobName, runFn) {
 async function tick() {
   await maybeRun('autoInvoice', runAutoInvoices);
   await maybeRun('trialReminder', runTrialReminders);
+  await cleanupExpiredDemoOrgs();
 }
 
 function start() {

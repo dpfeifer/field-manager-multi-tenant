@@ -2,12 +2,13 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { validatePassword } = require('../utils/password');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
 const { sendEmail } = require('../utils/email');
 const { passwordResetTemplate } = require('../utils/emailTemplates');
 const { requireAuth } = require('../middleware/auth');
+const { populateDemoOrg } = require('../utils/demoSeed');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -224,6 +225,61 @@ router.post('/switch-org', requireAuth, async (req, res, next) => {
       organization: { id: u.org_id, slug: u.org_slug, name: u.org_name },
     });
   } catch (err) { next(err); }
+});
+
+// Spin up a fresh demo org + admin user, seed it with realistic data,
+// and return a JWT so the visitor lands logged in.
+router.post('/demo', async (req, res, next) => {
+  try {
+    const orgId = crypto.randomUUID();
+    const userId = crypto.randomUUID();
+    const slug = 'demo-' + crypto.randomBytes(4).toString('hex');
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await withTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO organizations
+           (id, slug, name, subscription_status, trial_ends_at,
+            is_demo, demo_expires_at, created_at, updated_at)
+         VALUES ($1, $2, $3, 'active', NULL, TRUE, $4, NOW(), NOW())`,
+        [orgId, slug, 'Acme Lawn Care (Demo)', expiresAt]
+      );
+
+      // Friendly org_settings so the demo isn't blank.
+      await client.query(
+        `INSERT INTO organization_settings
+           (organization_id, company_name, customer_label, customer_label_plural,
+            job_label, job_label_plural, auto_append_to_draft)
+         VALUES ($1, $2, 'Customer', 'Customers', 'Job', 'Jobs', TRUE)`,
+        [orgId, 'Acme Lawn Care']
+      );
+
+      await client.query(
+        `INSERT INTO users
+           (id, organization_id, email, password_hash, name, role, email_verified_at, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'Demo User', 'admin', NOW(), NOW(), NOW())`,
+        [userId, orgId, `demo-${slug}@demo.fieldmgr.com`, passwordHash]
+      );
+
+      await populateDemoOrg(client, orgId, userId);
+    });
+
+    const token = jwt.sign(
+      { sub: userId, organization_id: orgId, email: `demo-${slug}@demo.fieldmgr.com`, role: 'admin', is_system_admin: false },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: { id: userId, email: `demo-${slug}@demo.fieldmgr.com`, name: 'Demo User', role: 'admin', is_system_admin: false },
+      organization: { id: orgId, slug, name: 'Acme Lawn Care (Demo)' },
+    });
+  } catch (err) {
+    console.error('Demo provisioning failed:', err);
+    next(err);
+  }
 });
 
 module.exports = router;
