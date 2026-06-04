@@ -1921,16 +1921,46 @@
       font-size: 12px; color: var(--text-muted);
       font-weight: 500; letter-spacing: 0.01em;
     }
-    .reports-basis-toggle {
-      display: flex; align-items: center; gap: 6px;
-      flex-wrap: wrap; margin: -4px 0 16px;
-    }
-    .reports-basis-hint {
+    .weekly-legend {
+      display: flex; gap: 16px; flex-wrap: wrap;
       font-size: 12px; color: var(--text-muted);
-      margin-left: 6px;
+    }
+    .weekly-legend-item {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .weekly-legend-item .swatch {
+      width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+    }
+    .weekly-legend-item .swatch.collected { background: #3a6b4f; }
+    .weekly-legend-item .swatch.projected { background: #7a5793; }
+    .weekly-chart {
+      display: flex; gap: 6px; align-items: flex-end;
+      height: 220px; margin-top: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .weekly-col {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; min-width: 0;
+    }
+    .weekly-col-bars {
+      display: flex; gap: 3px; align-items: end;
+      height: 100%; width: 100%; padding: 0 3px;
+    }
+    .weekly-bar {
+      flex: 1; min-height: 1px; border-radius: 2px 2px 0 0;
+      background: var(--border);
+      transition: opacity 0.15s ease;
+    }
+    .weekly-bar:hover { opacity: 0.8; }
+    .weekly-bar.collected { background: #3a6b4f; }
+    .weekly-bar.projected { background: #7a5793; }
+    .weekly-col-label {
+      font-size: 10px; color: var(--text-muted);
+      margin-top: 6px; white-space: nowrap;
     }
     @media (max-width: 600px) {
-      .reports-basis-hint { flex-basis: 100%; margin-left: 0; }
+      .weekly-chart { height: 180px; gap: 3px; }
+      .weekly-col-label { font-size: 9px; }
     }
     .reports-top-customers { display: flex; flex-direction: column; gap: 10px; }
     .reports-tc-row {
@@ -10612,11 +10642,22 @@ function getReportRange(preset, customFrom, customTo) {
   return { from: customFrom || todayStr, to: customTo || todayStr };
 }
 
-const REVENUE_BASES = [
-  { id: 'by_work',     label: 'Work done',    hint: 'Every completed visit at its job’s default price, billed or not.' },
-  { id: 'by_invoiced', label: 'Invoiced',     hint: 'Bucketed by the invoice date for sent + paid invoices.' },
-  { id: 'by_paid',     label: 'Cash in',      hint: 'Bucketed by the date payment was recorded.' },
-];
+function generateWeeks(fromStr, toStr) {
+  const weeks = [];
+  const end = new Date(toStr + 'T00:00:00');
+  const cursor = new Date(fromStr + 'T00:00:00');
+  while (cursor <= end) {
+    const weekEnd = new Date(cursor);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const clampedEnd = weekEnd > end ? new Date(end) : weekEnd;
+    weeks.push({
+      start: formatYMD(cursor),
+      end: formatYMD(clampedEnd),
+    });
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return weeks;
+}
 
 function ReportsView({ session }) {
   const terms = useTerms();
@@ -10627,7 +10668,6 @@ function ReportsView({ session }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [revenueBasis, setRevenueBasis] = useState('by_work');
 
   const range = getReportRange(preset, customFrom, customTo);
 
@@ -10653,15 +10693,18 @@ function ReportsView({ session }) {
 
   const projectedIncome = computeProjectedIncome(jobs, range.from, range.to);
 
-  // monthly_revenue is { by_work, by_invoiced, by_paid }; pick the
-  // active series based on the toggle.
-  const monthlyRows = (report && report.monthly_revenue && Array.isArray(report.monthly_revenue[revenueBasis]))
-    ? report.monthly_revenue[revenueBasis]
-    : [];
-  const maxMonthly = monthlyRows.length > 0
-    ? Math.max(...monthlyRows.map((r) => parseFloat(r.total) || 0))
-    : 0;
-  const activeBasis = REVENUE_BASES.find((b) => b.id === revenueBasis) || REVENUE_BASES[0];
+  // Weekly chart data: Collected from API (paid invoices in week),
+  // Projected computed client-side from upcoming jobs in week.
+  const weeks = (report ? generateWeeks(report.range.from, report.range.to) : []).map((w) => {
+    const collectedRow = (report && report.weekly_collected || [])
+      .find((r) => r.week_start && r.week_start.split('T')[0] === w.start);
+    const collected = collectedRow ? parseFloat(collectedRow.total) || 0 : 0;
+    const projected = computeProjectedIncome(jobs, w.start, w.end);
+    return { ...w, collected, projected };
+  });
+  const maxWeekly = weeks.reduce((m, w) => Math.max(m, w.collected, w.projected), 0);
+  const totalCollected = weeks.reduce((s, w) => s + w.collected, 0);
+  const totalProjected = weeks.reduce((s, w) => s + w.projected, 0);
 
   // Avg paid per invoice in range (KPI ish)
   const avgPerInvoice = report && report.invoices.paid_count > 0
@@ -10747,34 +10790,36 @@ function ReportsView({ session }) {
 
           <div className="reports-panel">
             <div className="reports-panel-head">
-              <h3>Revenue by month</h3>
-              <span>{monthlyRows.length} {monthlyRows.length === 1 ? 'month' : 'months'}</span>
+              <h3>Revenue</h3>
+              <div className="weekly-legend">
+                <span className="weekly-legend-item"><span className="swatch collected" /> Collected · {formatPrice(totalCollected)}</span>
+                <span className="weekly-legend-item"><span className="swatch projected" /> Projected · {formatPrice(totalProjected)}</span>
+              </div>
             </div>
-            <div className="reports-basis-toggle">
-              {REVENUE_BASES.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  className={`chip ${revenueBasis === b.id ? 'active' : ''}`}
-                  onClick={() => setRevenueBasis(b.id)}
-                >{b.label}</button>
-              ))}
-              <span className="reports-basis-hint">{activeBasis.hint}</span>
-            </div>
-            {monthlyRows.length === 0 ? (
+            {weeks.length === 0 ? (
               <div className="line-items-empty">No revenue in this range.</div>
             ) : (
-              <div className="revenue-bars">
-                {monthlyRows.map((row) => {
-                  const amount = parseFloat(row.total) || 0;
-                  const pct = maxMonthly > 0 ? (amount / maxMonthly) * 100 : 0;
-                  const d = new Date(row.month + '-01');
-                  const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+              <div className="weekly-chart">
+                {weeks.map((w) => {
+                  const collectedPct = maxWeekly > 0 ? (w.collected / maxWeekly) * 100 : 0;
+                  const projectedPct = maxWeekly > 0 ? (w.projected / maxWeekly) * 100 : 0;
+                  const d = new Date(w.start + 'T00:00:00');
+                  const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                   return (
-                    <div key={row.month} className="revenue-bar-row">
-                      <div className="month">{label}</div>
-                      <div className="bar-track"><div className="bar-fill" style={{ width: `${pct}%` }}></div></div>
-                      <div className="amount">{formatPrice(amount)}</div>
+                    <div key={w.start} className="weekly-col">
+                      <div className="weekly-col-bars">
+                        <div
+                          className="weekly-bar collected"
+                          style={{ height: `${collectedPct}%` }}
+                          title={`Collected ${formatPrice(w.collected)}`}
+                        />
+                        <div
+                          className="weekly-bar projected"
+                          style={{ height: `${projectedPct}%` }}
+                          title={`Projected ${formatPrice(w.projected)}`}
+                        />
+                      </div>
+                      <div className="weekly-col-label">{label}</div>
                     </div>
                   );
                 })}

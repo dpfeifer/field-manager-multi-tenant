@@ -111,119 +111,44 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       [req.organization.id, from, to]
     );
 
-    // Three revenue series, same shape { month, total }:
-    //   - by_work:     each line item bucketed by its work date (parsed
-    //                  from source.date or trailing YYYY-MM-DD in the
-    //                  description; falls back to invoice.date). Counts
-    //                  any non-draft invoice.
-    //   - by_invoiced: invoice totals bucketed by invoice.date for
-    //                  sent + paid invoices.
-    //   - by_paid:     invoice totals bucketed by paid_date for paid
-    //                  invoices. (Original "monthly_revenue" behavior.)
-    const TOTAL_EXPR = `GREATEST(
-      (
-        COALESCE((
-          SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-          FROM jsonb_array_elements(i.line_items) AS item
-        ), 0)
-        - CASE
-            WHEN i.discount_type = 'percent' THEN
-              COALESCE((
-                SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-                FROM jsonb_array_elements(i.line_items) AS item
-              ), 0) * i.discount_value / 100
-            WHEN i.discount_type = 'amount' THEN i.discount_value
-            ELSE 0
-          END
-      ) * (1 + i.tax_rate / 100),
-      0
-    )`;
-
-    // Work-basis is a hybrid:
-    //   - For any invoice line item we can date (item.date from the
-    //     single-tenant migration, source.date from auto-append, or a
-    //     trailing YYYY-MM-DD in the description), use that amount.
-    //   - For any job.completed_dates entry that has no matching line
-    //     item for that customer on that day, fall back to the job's
-    //     default_price.
-    // This gives historical accuracy from real invoiced amounts plus
-    // current-month coverage from completions that have not been
-    // billed yet.
-    const monthlyByWork = await query(
-      `WITH line_item_revenue AS (
-         SELECT
-           i.customer_id,
-           COALESCE(
-             NULLIF(item->>'date', '')::date,
-             NULLIF(item->'source'->>'date', '')::date,
-             substring(item->>'description' from '[0-9]{4}-[0-9]{2}-[0-9]{2}')::date,
-             i.date::date
-           ) AS work_date,
-           COALESCE((item->>'amount')::numeric, 0) AS amount
-         FROM invoices i, jsonb_array_elements(i.line_items) AS item
-         WHERE i.organization_id = $1
-           AND i.deleted_at IS NULL
-       ),
-       customer_invoiced_dates AS (
-         SELECT DISTINCT customer_id, work_date
-         FROM line_item_revenue
-         WHERE work_date IS NOT NULL
-       ),
-       uninvoiced_completions AS (
-         SELECT
-           d::date AS work_date,
-           COALESCE(j.default_price, 0) AS amount
-         FROM jobs j, jsonb_array_elements_text(j.completed_dates) AS d
-         WHERE j.organization_id = $1
-           AND j.deleted_at IS NULL
-           AND NOT EXISTS (
-             SELECT 1 FROM customer_invoiced_dates cid
-             WHERE cid.customer_id = j.customer_id
-               AND cid.work_date = d::date
-           )
-       ),
-       all_revenue AS (
-         SELECT work_date, amount FROM line_item_revenue WHERE work_date IS NOT NULL
-         UNION ALL
-         SELECT work_date, amount FROM uninvoiced_completions
-       )
-       SELECT to_char(work_date, 'YYYY-MM') AS month, SUM(amount) AS total
-       FROM all_revenue
-       WHERE work_date BETWEEN $2 AND $3
-       GROUP BY month
-       ORDER BY month`,
-      [req.organization.id, from, to]
-    );
-
-    const monthlyByInvoiced = await query(
+    // Weekly Collected: paid invoices bucketed by paid_date into 7-day
+    // windows anchored on the range's `from` date. Matches the
+    // single-tenant Reports chart (the proven, intuitive design).
+    // Projected is computed client-side from upcoming jobs.
+    const weeklyCollected = await query(
       `WITH it AS (
-         SELECT i.date::date AS bucket_date, ${TOTAL_EXPR} AS total
-         FROM invoices i
-         WHERE i.organization_id = $1
-           AND i.deleted_at IS NULL
-           AND i.status IN ('sent', 'paid')
-           AND i.date::date BETWEEN $2 AND $3
-       )
-       SELECT to_char(bucket_date, 'YYYY-MM') AS month, SUM(total) AS total
-       FROM it
-       GROUP BY month
-       ORDER BY month`,
-      [req.organization.id, from, to]
-    );
-
-    const monthlyByPaid = await query(
-      `WITH it AS (
-         SELECT i.paid_date::date AS bucket_date, ${TOTAL_EXPR} AS total
+         SELECT
+           i.paid_date::date AS paid_date,
+           GREATEST(
+             (
+               COALESCE((
+                 SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                 FROM jsonb_array_elements(i.line_items) AS item
+               ), 0)
+               - CASE
+                   WHEN i.discount_type = 'percent' THEN
+                     COALESCE((
+                       SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                       FROM jsonb_array_elements(i.line_items) AS item
+                     ), 0) * i.discount_value / 100
+                   WHEN i.discount_type = 'amount' THEN i.discount_value
+                   ELSE 0
+                 END
+             ) * (1 + i.tax_rate / 100),
+             0
+           ) AS total
          FROM invoices i
          WHERE i.organization_id = $1
            AND i.deleted_at IS NULL
            AND i.status = 'paid'
            AND i.paid_date::date BETWEEN $2 AND $3
        )
-       SELECT to_char(bucket_date, 'YYYY-MM') AS month, SUM(total) AS total
+       SELECT
+         ($2::date + ((paid_date - $2::date) / 7) * 7) AS week_start,
+         SUM(total) AS total
        FROM it
-       GROUP BY month
-       ORDER BY month`,
+       GROUP BY week_start
+       ORDER BY week_start`,
       [req.organization.id, from, to]
     );
 
@@ -239,11 +164,7 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
         business_name: r.business_name,
         paid_total: r.paid_total,
       })),
-      monthly_revenue: {
-        by_work: monthlyByWork.rows,
-        by_invoiced: monthlyByInvoiced.rows,
-        by_paid: monthlyByPaid.rows,
-      },
+      weekly_collected: weeklyCollected.rows,
     });
   } catch (err) { next(err); }
 });
