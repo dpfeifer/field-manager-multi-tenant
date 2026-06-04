@@ -139,24 +139,57 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       0
     )`;
 
-    // Work-basis reads completions directly off jobs so it counts every
-    // visit marked complete, even when the invoice for it hasn't been
-    // generated yet. Source is completed_dates (the canonical string
-    // array, populated by both the single-tenant migration and every
-    // new completion). Each visit is priced at the job's current
-    // default_price — matches "what did I earn that day."
+    // Work-basis is a hybrid:
+    //   - For any invoice line item we can date (item.date from the
+    //     single-tenant migration, source.date from auto-append, or a
+    //     trailing YYYY-MM-DD in the description), use that amount.
+    //   - For any job.completed_dates entry that has no matching line
+    //     item for that customer on that day, fall back to the job's
+    //     default_price.
+    // This gives historical accuracy from real invoiced amounts plus
+    // current-month coverage from completions that have not been
+    // billed yet.
     const monthlyByWork = await query(
-      `WITH completions AS (
+      `WITH line_item_revenue AS (
+         SELECT
+           i.customer_id,
+           COALESCE(
+             NULLIF(item->>'date', '')::date,
+             NULLIF(item->'source'->>'date', '')::date,
+             substring(item->>'description' from '[0-9]{4}-[0-9]{2}-[0-9]{2}')::date,
+             i.date::date
+           ) AS work_date,
+           COALESCE((item->>'amount')::numeric, 0) AS amount
+         FROM invoices i, jsonb_array_elements(i.line_items) AS item
+         WHERE i.organization_id = $1
+           AND i.deleted_at IS NULL
+       ),
+       customer_invoiced_dates AS (
+         SELECT DISTINCT customer_id, work_date
+         FROM line_item_revenue
+         WHERE work_date IS NOT NULL
+       ),
+       uninvoiced_completions AS (
          SELECT
            d::date AS work_date,
-           COALESCE(j.default_price, 0) AS rate
+           COALESCE(j.default_price, 0) AS amount
          FROM jobs j, jsonb_array_elements_text(j.completed_dates) AS d
          WHERE j.organization_id = $1
            AND j.deleted_at IS NULL
-           AND d::date BETWEEN $2 AND $3
+           AND NOT EXISTS (
+             SELECT 1 FROM customer_invoiced_dates cid
+             WHERE cid.customer_id = j.customer_id
+               AND cid.work_date = d::date
+           )
+       ),
+       all_revenue AS (
+         SELECT work_date, amount FROM line_item_revenue WHERE work_date IS NOT NULL
+         UNION ALL
+         SELECT work_date, amount FROM uninvoiced_completions
        )
-       SELECT to_char(work_date, 'YYYY-MM') AS month, SUM(rate) AS total
-       FROM completions
+       SELECT to_char(work_date, 'YYYY-MM') AS month, SUM(amount) AS total
+       FROM all_revenue
+       WHERE work_date BETWEEN $2 AND $3
        GROUP BY month
        ORDER BY month`,
       [req.organization.id, from, to]
