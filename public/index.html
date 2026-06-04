@@ -1921,6 +1921,39 @@
       font-size: 12px; color: var(--text-muted);
       font-weight: 500; letter-spacing: 0.01em;
     }
+    .rv-chart {
+      display: flex; gap: 6px; align-items: stretch;
+      height: 220px; margin-top: 4px;
+      padding: 8px 4px 0;
+    }
+    .rv-col {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; min-width: 0;
+      cursor: default;
+    }
+    .rv-col-track {
+      flex: 1; width: 100%;
+      display: flex; align-items: flex-end; justify-content: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .rv-col-bar {
+      width: 80%;
+      min-height: 0;
+      background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, black));
+      border-radius: 3px 3px 0 0;
+      transition: opacity 0.15s ease;
+    }
+    .rv-col:hover .rv-col-bar { opacity: 0.85; }
+    .rv-col-label {
+      font-size: 10px; color: var(--text-muted);
+      margin-top: 8px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    @media (max-width: 600px) {
+      .rv-chart { height: 160px; gap: 3px; }
+      .rv-col-label { font-size: 9px; }
+    }
     .reports-top-customers { display: flex; flex-direction: column; gap: 10px; }
     .reports-tc-row {
       display: grid; grid-template-columns: 28px 1fr auto;
@@ -10604,6 +10637,38 @@ function getReportRange(preset, customFrom, customTo) {
   return { from: customFrom || todayStr, to: customTo || todayStr };
 }
 
+// Pick a bucket size that keeps the chart legible: weekly for ranges
+// up to ~100 days, monthly otherwise. Returns the bucket list with each
+// item as { start, end, label }.
+function buildReportBuckets(fromStr, toStr) {
+  const start = new Date(fromStr + 'T00:00:00');
+  const end = new Date(toStr + 'T00:00:00');
+  const days = Math.round((end - start) / 86400000) + 1;
+  const mode = days <= 100 ? 'weekly' : 'monthly';
+  const out = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    let bucketEnd;
+    let label;
+    if (mode === 'monthly') {
+      bucketEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+      label = cursor.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+    } else {
+      bucketEnd = new Date(cursor);
+      bucketEnd.setDate(bucketEnd.getDate() + 6);
+      label = cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+    if (bucketEnd > end) bucketEnd = new Date(end);
+    out.push({ start: formatYMD(cursor), end: formatYMD(bucketEnd), label });
+    if (mode === 'monthly') {
+      cursor.setFullYear(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    } else {
+      cursor.setDate(cursor.getDate() + 7);
+    }
+  }
+  return out;
+}
+
 function ReportsView({ session }) {
   const terms = useTerms();
   const [preset, setPreset] = useState('month');
@@ -10638,11 +10703,23 @@ function ReportsView({ session }) {
 
   const projectedIncome = computeProjectedIncome(jobs, range.from, range.to);
 
-
   // Avg paid per invoice in range (KPI ish)
   const avgPerInvoice = report && report.invoices.paid_count > 0
     ? report.invoices.paid_total / report.invoices.paid_count
     : 0;
+
+  // Bucket the daily collected payments returned by the API.
+  const chartBuckets = report ? buildReportBuckets(report.range.from, report.range.to) : [];
+  const dailyCollected = (report && Array.isArray(report.collected_by_day)) ? report.collected_by_day : [];
+  const chartRows = chartBuckets.map((b) => {
+    let amount = 0;
+    for (const row of dailyCollected) {
+      const day = row.day && row.day.split('T')[0];
+      if (day && day >= b.start && day <= b.end) amount += parseFloat(row.total) || 0;
+    }
+    return { ...b, amount };
+  });
+  const chartMax = chartRows.reduce((m, r) => Math.max(m, r.amount), 0);
 
   return (
     <div>
@@ -10719,6 +10796,30 @@ function ReportsView({ session }) {
               <div className="value">{formatPrice(avgPerInvoice)}</div>
               <div className="subvalue">paid invoices, range</div>
             </div>
+          </div>
+
+          <div className="reports-panel">
+            <div className="reports-panel-head">
+              <h3>Collected over time</h3>
+              <span>paid invoices, grouped by date</span>
+            </div>
+            {chartRows.length === 0 || chartMax === 0 ? (
+              <div className="line-items-empty">No payments recorded in this range.</div>
+            ) : (
+              <div className="rv-chart">
+                {chartRows.map((r) => {
+                  const pct = chartMax > 0 ? (r.amount / chartMax) * 100 : 0;
+                  return (
+                    <div key={r.start} className="rv-col" title={`${r.label}: ${formatPrice(r.amount)}`}>
+                      <div className="rv-col-track">
+                        <div className="rv-col-bar" style={{ height: `${pct}%` }} />
+                      </div>
+                      <div className="rv-col-label">{r.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="reports-panel">
