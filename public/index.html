@@ -10637,14 +10637,14 @@ function getReportRange(preset, customFrom, customTo) {
   return { from: customFrom || todayStr, to: customTo || todayStr };
 }
 
-// Pick a bucket size that keeps the chart legible: weekly for ranges
-// up to ~100 days, monthly otherwise. Returns the bucket list with each
-// item as { start, end, label }.
+// Adaptive bucket size: daily for ≤31 days, weekly for ≤100 days,
+// monthly otherwise. Returns the bucket list with each item as
+// { start, end, label }.
 function buildReportBuckets(fromStr, toStr) {
   const start = new Date(fromStr + 'T00:00:00');
   const end = new Date(toStr + 'T00:00:00');
   const days = Math.round((end - start) / 86400000) + 1;
-  const mode = days <= 100 ? 'weekly' : 'monthly';
+  const mode = days <= 31 ? 'daily' : days <= 100 ? 'weekly' : 'monthly';
   const out = [];
   const cursor = new Date(start);
   while (cursor <= end) {
@@ -10653,6 +10653,9 @@ function buildReportBuckets(fromStr, toStr) {
     if (mode === 'monthly') {
       bucketEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
       label = cursor.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+    } else if (mode === 'daily') {
+      bucketEnd = new Date(cursor);
+      label = cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     } else {
       bucketEnd = new Date(cursor);
       bucketEnd.setDate(bucketEnd.getDate() + 6);
@@ -10662,6 +10665,8 @@ function buildReportBuckets(fromStr, toStr) {
     out.push({ start: formatYMD(cursor), end: formatYMD(bucketEnd), label });
     if (mode === 'monthly') {
       cursor.setFullYear(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    } else if (mode === 'daily') {
+      cursor.setDate(cursor.getDate() + 1);
     } else {
       cursor.setDate(cursor.getDate() + 7);
     }
