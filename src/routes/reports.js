@@ -139,25 +139,23 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       0
     )`;
 
+    // Work-basis reads completions directly off jobs so it counts every
+    // visit marked complete, even when the invoice for it hasn't been
+    // generated yet. Each visit is priced at the job's current
+    // default_price — matches the operator mental model of "what did I
+    // earn that day."
     const monthlyByWork = await query(
-      `WITH item_rows AS (
+      `WITH completions AS (
          SELECT
-           COALESCE(
-             NULLIF(item->'source'->>'date', '')::date,
-             substring(item->>'description' from '[0-9]{4}-[0-9]{2}-[0-9]{2}')::date,
-             i.date::date
-           ) AS work_date,
-           COALESCE((item->>'amount')::numeric, 0) AS item_amount
-         FROM invoices i, jsonb_array_elements(i.line_items) AS item
-         WHERE i.organization_id = $1
-           AND i.deleted_at IS NULL
-           AND i.status IN ('sent', 'paid')
+           (note->>'date')::date AS work_date,
+           COALESCE(j.default_price, 0) AS rate
+         FROM jobs j, jsonb_array_elements(j.completion_notes) AS note
+         WHERE j.organization_id = $1
+           AND j.deleted_at IS NULL
+           AND (note->>'date')::date BETWEEN $2 AND $3
        )
-       SELECT
-         to_char(work_date, 'YYYY-MM') AS month,
-         SUM(item_amount) AS total
-       FROM item_rows
-       WHERE work_date BETWEEN $2 AND $3
+       SELECT to_char(work_date, 'YYYY-MM') AS month, SUM(rate) AS total
+       FROM completions
        GROUP BY month
        ORDER BY month`,
       [req.organization.id, from, to]
