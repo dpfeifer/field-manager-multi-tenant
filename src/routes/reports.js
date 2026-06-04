@@ -111,37 +111,84 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       [req.organization.id, from, to]
     );
 
-    const monthlyRevenue = await query(
-      `WITH it AS (
+    // Three revenue series, same shape { month, total }:
+    //   - by_work:     each line item bucketed by its work date (parsed
+    //                  from source.date or trailing YYYY-MM-DD in the
+    //                  description; falls back to invoice.date). Counts
+    //                  any non-draft invoice.
+    //   - by_invoiced: invoice totals bucketed by invoice.date for
+    //                  sent + paid invoices.
+    //   - by_paid:     invoice totals bucketed by paid_date for paid
+    //                  invoices. (Original "monthly_revenue" behavior.)
+    const TOTAL_EXPR = `GREATEST(
+      (
+        COALESCE((
+          SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+          FROM jsonb_array_elements(i.line_items) AS item
+        ), 0)
+        - CASE
+            WHEN i.discount_type = 'percent' THEN
+              COALESCE((
+                SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
+                FROM jsonb_array_elements(i.line_items) AS item
+              ), 0) * i.discount_value / 100
+            WHEN i.discount_type = 'amount' THEN i.discount_value
+            ELSE 0
+          END
+      ) * (1 + i.tax_rate / 100),
+      0
+    )`;
+
+    const monthlyByWork = await query(
+      `WITH item_rows AS (
          SELECT
-           i.paid_date,
-           GREATEST(
-             (
-               COALESCE((
-                 SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-                 FROM jsonb_array_elements(i.line_items) AS item
-               ), 0)
-               - CASE
-                   WHEN i.discount_type = 'percent' THEN
-                     COALESCE((
-                       SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-                       FROM jsonb_array_elements(i.line_items) AS item
-                     ), 0) * i.discount_value / 100
-                   WHEN i.discount_type = 'amount' THEN i.discount_value
-                   ELSE 0
-                 END
-             ) * (1 + i.tax_rate / 100),
-             0
-           ) AS total
+           COALESCE(
+             NULLIF(item->'source'->>'date', '')::date,
+             substring(item->>'description' from '[0-9]{4}-[0-9]{2}-[0-9]{2}')::date,
+             i.date::date
+           ) AS work_date,
+           COALESCE((item->>'amount')::numeric, 0) AS item_amount
+         FROM invoices i, jsonb_array_elements(i.line_items) AS item
+         WHERE i.organization_id = $1
+           AND i.deleted_at IS NULL
+           AND i.status IN ('sent', 'paid')
+       )
+       SELECT
+         to_char(work_date, 'YYYY-MM') AS month,
+         SUM(item_amount) AS total
+       FROM item_rows
+       WHERE work_date BETWEEN $2 AND $3
+       GROUP BY month
+       ORDER BY month`,
+      [req.organization.id, from, to]
+    );
+
+    const monthlyByInvoiced = await query(
+      `WITH it AS (
+         SELECT i.date::date AS bucket_date, ${TOTAL_EXPR} AS total
+         FROM invoices i
+         WHERE i.organization_id = $1
+           AND i.deleted_at IS NULL
+           AND i.status IN ('sent', 'paid')
+           AND i.date::date BETWEEN $2 AND $3
+       )
+       SELECT to_char(bucket_date, 'YYYY-MM') AS month, SUM(total) AS total
+       FROM it
+       GROUP BY month
+       ORDER BY month`,
+      [req.organization.id, from, to]
+    );
+
+    const monthlyByPaid = await query(
+      `WITH it AS (
+         SELECT i.paid_date::date AS bucket_date, ${TOTAL_EXPR} AS total
          FROM invoices i
          WHERE i.organization_id = $1
            AND i.deleted_at IS NULL
            AND i.status = 'paid'
            AND i.paid_date::date BETWEEN $2 AND $3
        )
-       SELECT
-         to_char(paid_date::date, 'YYYY-MM') AS month,
-         SUM(total) AS paid_total
+       SELECT to_char(bucket_date, 'YYYY-MM') AS month, SUM(total) AS total
        FROM it
        GROUP BY month
        ORDER BY month`,
@@ -160,7 +207,11 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
         business_name: r.business_name,
         paid_total: r.paid_total,
       })),
-      monthly_revenue: monthlyRevenue.rows,
+      monthly_revenue: {
+        by_work: monthlyByWork.rows,
+        by_invoiced: monthlyByInvoiced.rows,
+        by_paid: monthlyByPaid.rows,
+      },
     });
   } catch (err) { next(err); }
 });
