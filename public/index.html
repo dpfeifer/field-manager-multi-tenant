@@ -1921,47 +1921,6 @@
       font-size: 12px; color: var(--text-muted);
       font-weight: 500; letter-spacing: 0.01em;
     }
-    .weekly-legend {
-      display: flex; gap: 16px; flex-wrap: wrap;
-      font-size: 12px; color: var(--text-muted);
-    }
-    .weekly-legend-item {
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .weekly-legend-item .swatch {
-      width: 10px; height: 10px; border-radius: 2px; display: inline-block;
-    }
-    .weekly-legend-item .swatch.collected { background: #3a6b4f; }
-    .weekly-legend-item .swatch.projected { background: #7a5793; }
-    .weekly-chart {
-      display: flex; gap: 6px; align-items: flex-end;
-      height: 220px; margin-top: 4px;
-      border-bottom: 1px solid var(--border);
-    }
-    .weekly-col {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; min-width: 0;
-    }
-    .weekly-col-bars {
-      display: flex; gap: 3px; align-items: end;
-      height: 100%; width: 100%; padding: 0 3px;
-    }
-    .weekly-bar {
-      flex: 1; min-height: 1px; border-radius: 2px 2px 0 0;
-      background: var(--border);
-      transition: opacity 0.15s ease;
-    }
-    .weekly-bar:hover { opacity: 0.8; }
-    .weekly-bar.collected { background: #3a6b4f; }
-    .weekly-bar.projected { background: #7a5793; }
-    .weekly-col-label {
-      font-size: 10px; color: var(--text-muted);
-      margin-top: 6px; white-space: nowrap;
-    }
-    @media (max-width: 600px) {
-      .weekly-chart { height: 180px; gap: 3px; }
-      .weekly-col-label { font-size: 9px; }
-    }
     .reports-top-customers { display: flex; flex-direction: column; gap: 10px; }
     .reports-tc-row {
       display: grid; grid-template-columns: 28px 1fr auto;
@@ -10645,45 +10604,6 @@ function getReportRange(preset, customFrom, customTo) {
   return { from: customFrom || todayStr, to: customTo || todayStr };
 }
 
-// Adaptive bucketing: weekly buckets for ranges up to ~14 weeks,
-// monthly buckets after that. Bucket window is half-open [start, end].
-function chooseBucketing(fromStr, toStr) {
-  const days = Math.ceil((new Date(toStr + 'T00:00:00') - new Date(fromStr + 'T00:00:00')) / 86400000) + 1;
-  if (days <= 100) return 'weekly';
-  return 'monthly';
-}
-
-function generateBuckets(fromStr, toStr, mode) {
-  const out = [];
-  const end = new Date(toStr + 'T00:00:00');
-  const cursor = new Date(fromStr + 'T00:00:00');
-  while (cursor <= end) {
-    let bucketEnd;
-    if (mode === 'monthly') {
-      bucketEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-    } else {
-      bucketEnd = new Date(cursor);
-      bucketEnd.setDate(bucketEnd.getDate() + 6);
-    }
-    if (bucketEnd > end) bucketEnd = new Date(end);
-    out.push({ start: formatYMD(cursor), end: formatYMD(bucketEnd) });
-    if (mode === 'monthly') {
-      cursor.setFullYear(cursor.getFullYear(), cursor.getMonth() + 1, 1);
-    } else {
-      cursor.setDate(cursor.getDate() + 7);
-    }
-  }
-  return out;
-}
-
-function bucketLabel(startStr, mode) {
-  const d = new Date(startStr + 'T00:00:00');
-  if (mode === 'monthly') {
-    return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-  }
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
 function ReportsView({ session }) {
   const terms = useTerms();
   const [preset, setPreset] = useState('month');
@@ -10718,22 +10638,6 @@ function ReportsView({ session }) {
 
   const projectedIncome = computeProjectedIncome(jobs, range.from, range.to);
 
-  // Adaptive Collected + Projected chart. Backend returns sparse daily
-  // collected; we bucket it client-side into weeks or months based on
-  // range length. Projected is computed per bucket from upcoming jobs.
-  const bucketMode = report ? chooseBucketing(report.range.from, report.range.to) : 'weekly';
-  const buckets = (report ? generateBuckets(report.range.from, report.range.to, bucketMode) : []).map((b) => {
-    const collected = (report && report.collected_by_day || []).reduce((sum, row) => {
-      const day = row.day && row.day.split('T')[0];
-      if (day && day >= b.start && day <= b.end) return sum + (parseFloat(row.total) || 0);
-      return sum;
-    }, 0);
-    const projected = computeProjectedIncome(jobs, b.start, b.end);
-    return { ...b, collected, projected };
-  });
-  const maxBucket = buckets.reduce((m, b) => Math.max(m, b.collected, b.projected), 0);
-  const totalCollected = buckets.reduce((s, b) => s + b.collected, 0);
-  const totalProjected = buckets.reduce((s, b) => s + b.projected, 0);
 
   // Avg paid per invoice in range (KPI ish)
   const avgPerInvoice = report && report.invoices.paid_count > 0
@@ -10815,43 +10719,6 @@ function ReportsView({ session }) {
               <div className="value">{formatPrice(avgPerInvoice)}</div>
               <div className="subvalue">paid invoices, range</div>
             </div>
-          </div>
-
-          <div className="reports-panel">
-            <div className="reports-panel-head">
-              <h3>Revenue</h3>
-              <div className="weekly-legend">
-                <span className="weekly-legend-item"><span className="swatch collected" /> Collected · {formatPrice(totalCollected)}</span>
-                <span className="weekly-legend-item"><span className="swatch projected" /> Projected · {formatPrice(totalProjected)}</span>
-              </div>
-            </div>
-            {buckets.length === 0 ? (
-              <div className="line-items-empty">No revenue in this range.</div>
-            ) : (
-              <div className="weekly-chart">
-                {buckets.map((b) => {
-                  const collectedPct = maxBucket > 0 ? (b.collected / maxBucket) * 100 : 0;
-                  const projectedPct = maxBucket > 0 ? (b.projected / maxBucket) * 100 : 0;
-                  return (
-                    <div key={b.start} className="weekly-col">
-                      <div className="weekly-col-bars">
-                        <div
-                          className="weekly-bar collected"
-                          style={{ height: `${collectedPct}%` }}
-                          title={`Collected ${formatPrice(b.collected)}`}
-                        />
-                        <div
-                          className="weekly-bar projected"
-                          style={{ height: `${projectedPct}%` }}
-                          title={`Projected ${formatPrice(b.projected)}`}
-                        />
-                      </div>
-                      <div className="weekly-col-label">{bucketLabel(b.start, bucketMode)}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           <div className="reports-panel">

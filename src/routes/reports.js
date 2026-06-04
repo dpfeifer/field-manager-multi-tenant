@@ -111,39 +111,6 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       [req.organization.id, from, to]
     );
 
-    // Daily paid revenue, frontend buckets to week or month based on
-    // range size. Sparse: only days with a payment appear.
-    const collectedByDay = await query(
-      `SELECT
-         i.paid_date::date AS day,
-         SUM(GREATEST(
-           (
-             COALESCE((
-               SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-               FROM jsonb_array_elements(i.line_items) AS item
-             ), 0)
-             - CASE
-                 WHEN i.discount_type = 'percent' THEN
-                   COALESCE((
-                     SELECT SUM(COALESCE((item->>'amount')::numeric, 0))
-                     FROM jsonb_array_elements(i.line_items) AS item
-                   ), 0) * i.discount_value / 100
-                 WHEN i.discount_type = 'amount' THEN i.discount_value
-                 ELSE 0
-               END
-           ) * (1 + i.tax_rate / 100),
-           0
-         )) AS total
-       FROM invoices i
-       WHERE i.organization_id = $1
-         AND i.deleted_at IS NULL
-         AND i.status = 'paid'
-         AND i.paid_date::date BETWEEN $2 AND $3
-       GROUP BY day
-       ORDER BY day`,
-      [req.organization.id, from, to]
-    );
-
     res.json({
       range: { from, to },
       invoices: invoiceStats.rows[0],
@@ -156,7 +123,6 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
         business_name: r.business_name,
         paid_total: r.paid_total,
       })),
-      collected_by_day: collectedByDay.rows,
     });
   } catch (err) { next(err); }
 });
