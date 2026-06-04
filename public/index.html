@@ -2751,6 +2751,25 @@
       font-size: 48px; letter-spacing: -0.03em; line-height: 1;
       color: var(--text);
     }
+    .ed-plan-amt-strike {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 26px; line-height: 1;
+      color: var(--text-muted);
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+      margin-right: 2px;
+    }
+    .ed-plan-tag-founder {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      padding: 4px 10px; border-radius: 999px;
+      top: 12px; right: 12px;
+    }
+    .ed-plan-founder-note {
+      font-size: 13px; line-height: 1.45;
+      color: var(--accent); margin: 0 0 16px;
+      font-weight: 500;
+    }
     .ed-plan-suf {
       font-size: 14px; color: var(--text-muted);
     }
@@ -4488,6 +4507,16 @@ function ChapterMock({ kind }) {
 }
 
 function LandingPricing() {
+  const [founder, setFounder] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/public/founder-status')
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setFounder(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   return (
     <section id="pricing" className="ed-pricing" data-reveal>
       <p className="ed-eyebrow">The pricing page</p>
@@ -4521,12 +4550,25 @@ function LandingPricing() {
           <button className="ed-plan-cta" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
         </div>
         <div className="ed-plan ed-plan-pro">
-          <div className="ed-plan-tag">Most chosen</div>
+          {founderActive && <div className="ed-plan-tag ed-plan-tag-founder">Founder pricing · {founder.seats_remaining} left</div>}
+          {!founderActive && <div className="ed-plan-tag">Most chosen</div>}
           <div className="ed-plan-name">Pro</div>
           <div className="ed-plan-price">
-            <span className="ed-plan-amt">$29</span>
+            {founderActive ? (
+              <>
+                <span className="ed-plan-amt-strike">${Math.round(founder.listed_price)}</span>
+                <span className="ed-plan-amt">${Math.round(founder.founder_price)}</span>
+              </>
+            ) : (
+              <span className="ed-plan-amt">$29</span>
+            )}
             <span className="ed-plan-suf">/mo</span>
           </div>
+          {founderActive && (
+            <p className="ed-plan-founder-note">
+              Locked in for life. The first {founder.total_seats} signups get ${Math.round(founder.founder_price)}/mo forever.
+            </p>
+          )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
           <ul className="ed-plan-list">
             <li>Everything in Free</li>

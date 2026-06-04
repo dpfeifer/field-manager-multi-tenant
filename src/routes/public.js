@@ -8,6 +8,27 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
+const FOUNDER_TOTAL_SEATS = parseInt(process.env.FOUNDER_TOTAL_SEATS || '10', 10);
+const FOUNDER_PRICE = parseFloat(process.env.FOUNDER_PRICE || '19');
+const LISTED_PRICE = parseFloat(process.env.LISTED_PRICE || '29');
+
+router.get('/founder-status', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT COUNT(*)::int AS used FROM organizations WHERE founder_pricing_applied_at IS NOT NULL`
+    );
+    const used = rows[0]?.used || 0;
+    const remaining = Math.max(0, FOUNDER_TOTAL_SEATS - used);
+    res.json({
+      total_seats: FOUNDER_TOTAL_SEATS,
+      seats_remaining: remaining,
+      founder_price: FOUNDER_PRICE,
+      listed_price: LISTED_PRICE,
+      active: remaining > 0 && !!process.env.STRIPE_FOUNDER_COUPON_ID,
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/orgs/:slug', async (req, res, next) => {
   const slug = (req.params.slug || '').toLowerCase();
   if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });

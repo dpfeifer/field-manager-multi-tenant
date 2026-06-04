@@ -38,11 +38,36 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
 
   try {
     const { rows } = await query(
-      'SELECT name, slug, stripe_customer_id FROM organizations WHERE id = $1 LIMIT 1',
+      'SELECT name, slug, stripe_customer_id, founder_pricing_applied_at FROM organizations WHERE id = $1 LIMIT 1',
       [req.organization.id]
     );
     const org = rows[0];
     const origin = req.protocol + '://' + req.get('host');
+
+    // Founder pricing: if a seat is available and the coupon is
+    // configured, auto-apply it. Mark this org as having claimed the
+    // seat so a second checkout from a different org cannot reuse it.
+    const founderTotal = parseInt(process.env.FOUNDER_TOTAL_SEATS || '10', 10);
+    const founderCoupon = process.env.STRIPE_FOUNDER_COUPON_ID;
+    let discounts;
+    if (founderCoupon) {
+      if (org.founder_pricing_applied_at) {
+        discounts = [{ coupon: founderCoupon }];
+      } else {
+        const usedRows = await query(
+          `SELECT COUNT(*)::int AS used FROM organizations WHERE founder_pricing_applied_at IS NOT NULL`
+        );
+        const used = usedRows.rows[0]?.used || 0;
+        if (used < founderTotal) {
+          discounts = [{ coupon: founderCoupon }];
+          await query(
+            `UPDATE organizations SET founder_pricing_applied_at = NOW()
+             WHERE id = $1 AND founder_pricing_applied_at IS NULL`,
+            [req.organization.id]
+          );
+        }
+      }
+    }
 
     const session = await stripe().checkout.sessions.create({
       mode: 'subscription',
@@ -57,7 +82,10 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
       },
       success_url: `${origin}/billing?success=true`,
       cancel_url: `${origin}/billing?canceled=true`,
-      allow_promotion_codes: true,
+      discounts,
+      // allow_promotion_codes cannot coexist with discounts; only enable
+      // it when no founder discount is being auto-applied.
+      allow_promotion_codes: discounts ? undefined : true,
       custom_text: {
         submit: { message: 'You can cancel any time from the Billing tab.' },
       },
