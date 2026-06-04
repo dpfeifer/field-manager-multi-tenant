@@ -10588,7 +10588,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
         <div className="list-empty">Loading...</div>
       ) : (
         <>
-          {role === 'admin' && (
+          {role === 'admin' && !(me && me.is_demo) && (
             <GettingStartedChecklist
               session={session}
               features={features}

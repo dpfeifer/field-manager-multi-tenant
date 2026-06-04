@@ -241,8 +241,9 @@ router.post('/demo', async (req, res, next) => {
       await client.query(
         `INSERT INTO organizations
            (id, slug, name, subscription_status, trial_ends_at,
-            is_demo, demo_expires_at, created_at, updated_at)
-         VALUES ($1, $2, $3, 'active', NULL, TRUE, $4, NOW(), NOW())`,
+            is_demo, demo_expires_at, onboarding_completed_at,
+            created_at, updated_at)
+         VALUES ($1, $2, $3, 'active', NULL, TRUE, $4, NOW(), NOW(), NOW())`,
         [orgId, slug, 'Acme Lawn Care (Demo)', expiresAt]
       );
 
