@@ -9336,15 +9336,20 @@ function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
   let color = '#8c5a00';
   let showDismiss = false;
 
+  const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft > 3) {
     bg = 'var(--tinted)';
     color = 'var(--text-muted)';
     body = isAdmin
-      ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to keep Pro after the trial.</>
+      ? (founderActive
+          ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to take advantage of our founder pricing.</>
+          : <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to keep Pro after the trial.</>)
       : <>This organization is on a Pro trial — {trialDaysLeft} days left.</>;
   } else if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     body = isAdmin
-      ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep Pro</button>, or do nothing to drop to Free.</>
+      ? (founderActive
+          ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to lock in founder pricing</button>, or do nothing to drop to Free.</>
+          : <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep Pro</button>, or do nothing to drop to Free.</>)
       : <>This organization's Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}.</>;
   } else if (trialEnded && !dismissed) {
     bg = 'var(--tinted)'; color = 'var(--text)';
