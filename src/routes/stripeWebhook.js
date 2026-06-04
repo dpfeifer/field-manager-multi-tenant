@@ -38,6 +38,18 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
              WHERE id = $1`,
             [orgId, s.customer, s.subscription]
           );
+          // Claim the founder seat now that payment is actually
+          // committed. The flag is set only if a) the checkout was
+          // marked as a founder-intent session at create time, and
+          // b) this org hasn't already claimed a seat.
+          if (s.metadata && s.metadata.founder_pricing === 'true') {
+            await query(
+              `UPDATE organizations
+               SET founder_pricing_applied_at = NOW()
+               WHERE id = $1 AND founder_pricing_applied_at IS NULL`,
+              [orgId]
+            );
+          }
         }
         break;
       }

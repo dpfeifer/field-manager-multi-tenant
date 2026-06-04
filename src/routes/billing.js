@@ -46,15 +46,17 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
     const origin = req.protocol + '://' + req.get('host');
 
     // Founder pricing: if a seat is available and the coupon is
-    // configured (via the System page), auto-apply it. Mark this org as
-    // having claimed the seat so a second checkout from a different
-    // org cannot reuse it.
+    // configured (via the System page), auto-apply it. The seat is
+    // CLAIMED only when checkout actually completes (handled in the
+    // Stripe webhook) so an abandoned checkout doesn't burn a seat.
     const systemSettings = await getSystemSettings();
     const founderCoupon = systemSettings.stripe_founder_coupon_id;
     const founderTotal = systemSettings.founder_total_seats;
     let discounts;
+    let founderIntent = false;
     if (founderCoupon) {
       if (org.founder_pricing_applied_at) {
+        // Already a founder — re-subscribe with the same coupon.
         discounts = [{ coupon: founderCoupon }];
       } else {
         const usedRows = await query(
@@ -63,14 +65,16 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
         const used = usedRows.rows[0]?.used || 0;
         if (used < founderTotal) {
           discounts = [{ coupon: founderCoupon }];
-          await query(
-            `UPDATE organizations SET founder_pricing_applied_at = NOW()
-             WHERE id = $1 AND founder_pricing_applied_at IS NULL`,
-            [req.organization.id]
-          );
+          founderIntent = true; // webhook will claim the seat on completion
         }
       }
     }
+
+    const sessionMetadata = {
+      organization_id: req.organization.id,
+      organization_slug: org.slug,
+    };
+    if (founderIntent) sessionMetadata.founder_pricing = 'true';
 
     const session = await stripe().checkout.sessions.create({
       mode: 'subscription',
@@ -78,7 +82,7 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
       customer: org.stripe_customer_id || undefined,
       customer_email: org.stripe_customer_id ? undefined : req.user.email,
       client_reference_id: req.organization.id,
-      metadata: { organization_id: req.organization.id, organization_slug: org.slug },
+      metadata: sessionMetadata,
       subscription_data: {
         metadata: { organization_id: req.organization.id, organization_slug: org.slug },
         description: 'Field Manager — monthly subscription',
