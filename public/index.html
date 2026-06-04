@@ -6013,7 +6013,7 @@ function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
           <button className="primary" onClick={() => onMarkComplete(occurrence.job, occurrence.date)}>Mark complete</button>
         )}
         {occurrence.completed && onUncomplete && (
-          <button className="secondary" onClick={() => onUncomplete(occurrence.job, occurrence.date)}>Un-complete</button>
+          <button className="secondary" onClick={() => onUncomplete(occurrence.job, occurrence.date)}>Undo</button>
         )}
         <button className="secondary" onClick={() => onEdit(occurrence.job)}>Open</button>
       </div>
@@ -6652,7 +6652,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
   }
 
   function deleteCompletion(idx, date) {
-    if (!confirm(`Un-complete the visit on ${formatDateString(date)}? The visit moves back to upcoming and any matching line item is pulled from the open draft invoice.`)) return;
+    if (!confirm(`Undo the completion on ${formatDateString(date)}? The visit moves back to upcoming and any matching line item is pulled from the open draft invoice.`)) return;
     return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
       method: 'DELETE', slug: session.slug, token: session.token,
     }));
@@ -6808,7 +6808,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
                       ) : (
                         <>
                           <button className="secondary" onClick={() => { setEditingCompletionIdx(c._idx); setEditedNote(c.note || ''); }}>Edit note</button>
-                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Un-complete</button>
+                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Undo</button>
                         </>
                       )}
                     </div>
@@ -6939,7 +6939,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
     const idx = notes.findIndex((n) => n.date === date);
     if (idx === -1) return;
-    if (!confirm(`Un-complete this visit on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
+    if (!confirm(`Undo the completion on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
     setBusy(true); setError(null);
     try {
       await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
@@ -10351,7 +10351,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
     const idx = notes.findIndex((n) => n.date === date);
     if (idx === -1) return;
-    if (!confirm(`Un-complete this visit on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
+    if (!confirm(`Undo the completion on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
     setBusy(true); setError(null);
     try {
       await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
