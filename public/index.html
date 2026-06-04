@@ -4566,7 +4566,7 @@ function LandingPricing() {
           </div>
           {founderActive && (
             <p className="ed-plan-founder-note">
-              Locked in for life. The first {founder.total_seats} signups get ${Math.round(founder.founder_price)}/mo forever.
+              {founder.seats_remaining} founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo. Locked in for life.
             </p>
           )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
