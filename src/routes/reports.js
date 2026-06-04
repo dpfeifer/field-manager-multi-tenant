@@ -55,10 +55,10 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
 
     const completedWork = await query(
       `SELECT COUNT(*)::int AS completed_count
-       FROM jobs j, jsonb_array_elements(j.completion_notes) AS note
+       FROM jobs j, jsonb_array_elements_text(j.completed_dates) AS d
        WHERE j.organization_id = $1
          AND j.deleted_at IS NULL
-         AND (note->>'date')::date BETWEEN $2 AND $3`,
+         AND d::date BETWEEN $2 AND $3`,
       [req.organization.id, from, to]
     );
 
@@ -141,18 +141,19 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
 
     // Work-basis reads completions directly off jobs so it counts every
     // visit marked complete, even when the invoice for it hasn't been
-    // generated yet. Each visit is priced at the job's current
-    // default_price — matches the operator mental model of "what did I
-    // earn that day."
+    // generated yet. Source is completed_dates (the canonical string
+    // array, populated by both the single-tenant migration and every
+    // new completion). Each visit is priced at the job's current
+    // default_price — matches "what did I earn that day."
     const monthlyByWork = await query(
       `WITH completions AS (
          SELECT
-           (note->>'date')::date AS work_date,
+           d::date AS work_date,
            COALESCE(j.default_price, 0) AS rate
-         FROM jobs j, jsonb_array_elements(j.completion_notes) AS note
+         FROM jobs j, jsonb_array_elements_text(j.completed_dates) AS d
          WHERE j.organization_id = $1
            AND j.deleted_at IS NULL
-           AND (note->>'date')::date BETWEEN $2 AND $3
+           AND d::date BETWEEN $2 AND $3
        )
        SELECT to_char(work_date, 'YYYY-MM') AS month, SUM(rate) AS total
        FROM completions
