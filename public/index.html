@@ -2437,6 +2437,14 @@
       line-height: 1.5; max-width: 420px;
       text-align: center;
     }
+    .ed-hero-founder-note {
+      font-size: 13px; line-height: 1.5;
+      color: var(--accent); font-weight: 500;
+      text-align: center; max-width: 420px;
+      padding: 6px 14px;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-radius: 999px;
+    }
 
     /* Editorial collage: 9 sharp-edged photos sharing a middle horizontal
        seam. Within each row tiles touch left-to-right. Heights vary above
@@ -2741,8 +2749,8 @@
       top: auto; right: auto;
     }
     .ed-plan-name-row {
-      display: flex; align-items: center; gap: 12px;
-      flex-wrap: wrap; margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
     }
     .ed-plan-name-row .ed-plan-name { margin-bottom: 0; }
     .ed-plan-name {
@@ -4514,7 +4522,7 @@ function ChapterMock({ kind }) {
   return null;
 }
 
-function LandingPricing() {
+function useFounderStatus() {
   const [founder, setFounder] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -4524,6 +4532,10 @@ function LandingPricing() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+  return founder;
+}
+
+function LandingPricing({ founder }) {
   const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   return (
     <section id="pricing" className="ed-pricing" data-reveal>
@@ -4663,6 +4675,8 @@ function CyclingHeadline() {
 }
 
 function LandingPage() {
+  const founder = useFounderStatus();
+  const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
       document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-revealed'));
@@ -4721,6 +4735,11 @@ function LandingPage() {
           <div className="ed-hero-actions fade-in-delay-3">
             <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
             <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
+            {founderActive && (
+              <span className="ed-hero-founder-note">
+                {founder.seats_remaining} founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo. Locked in for life.
+              </span>
+            )}
           </div>
         </div>
         <div className="ed-collage" aria-hidden="true">
@@ -4815,7 +4834,7 @@ function LandingPage() {
         </div>
       </section>
 
-      <LandingPricing />
+      <LandingPricing founder={founder} />
 
       <section className="ed-close" data-reveal>
         <p className="ed-close-rule">— The work is the work —</p>
