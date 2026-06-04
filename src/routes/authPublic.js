@@ -235,7 +235,9 @@ router.post('/demo', async (req, res, next) => {
     const userId = crypto.randomUUID();
     const slug = 'demo-' + crypto.randomBytes(4).toString('hex');
     const passwordHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // 4 hours covers a multi-session look around without leaving demo
+    // orgs to accumulate. The scheduler sweeps expired demos every 15min.
+    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
 
     await withTransaction(async (client) => {
       await client.query(

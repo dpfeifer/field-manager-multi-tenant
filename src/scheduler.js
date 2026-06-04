@@ -23,7 +23,7 @@ const SCHEDULE = {
 let lastDemoCleanupAt = 0;
 async function cleanupExpiredDemoOrgs() {
   const now = Date.now();
-  if (now - lastDemoCleanupAt < 60 * 60 * 1000) return; // run at most hourly
+  if (now - lastDemoCleanupAt < 15 * 60 * 1000) return; // run at most every 15 min
   lastDemoCleanupAt = now;
   try {
     const { rowCount } = await query(

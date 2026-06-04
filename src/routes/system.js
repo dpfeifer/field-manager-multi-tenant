@@ -65,11 +65,15 @@ router.put('/site-settings', async (req, res, next) => {
 });
 
 router.get('/organizations', async (req, res, next) => {
+  // Hide demo orgs from the list by default — they churn fast and would
+  // drown out real signups. Pass ?include_demo=1 to see them.
+  const includeDemo = req.query.include_demo === '1';
   try {
     const { rows } = await query(
       `SELECT
          o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
          o.subscription_status, o.trial_ends_at, o.stripe_subscription_id,
+         o.is_demo,
          (SELECT COUNT(*)::int FROM users WHERE organization_id = o.id AND deleted_at IS NULL) AS user_count,
          (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
          (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
@@ -77,6 +81,7 @@ router.get('/organizations', async (req, res, next) => {
          (SELECT COUNT(*)::int FROM quotes WHERE organization_id = o.id AND deleted_at IS NULL) AS quote_count
        FROM organizations o
        WHERE o.deleted_at IS NULL
+         ${includeDemo ? '' : 'AND o.is_demo = FALSE'}
        ORDER BY o.created_at DESC`
     );
     res.json(rows);

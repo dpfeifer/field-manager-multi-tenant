@@ -12040,15 +12040,17 @@ function OrganizationsSection({ session }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
+  const [includeDemo, setIncludeDemo] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const data = await apiRequest('/api/system/organizations', { token: session.token });
+      const path = '/api/system/organizations' + (includeDemo ? '?include_demo=1' : '');
+      const data = await apiRequest(path, { token: session.token });
       setOrgs(data);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, [session.token]);
+  }, [session.token, includeDemo]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -12074,6 +12076,10 @@ function OrganizationsSection({ session }) {
           <option value="status">Sort: Status</option>
           <option value="users">Sort: Most users</option>
         </select>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          <input type="checkbox" checked={includeDemo} onChange={(e) => setIncludeDemo(e.target.checked)} />
+          Show demos
+        </label>
       </div>
       <div className="list">
         {loading ? (
