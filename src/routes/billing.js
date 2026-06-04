@@ -2,6 +2,7 @@ const express = require('express');
 const Stripe = require('stripe');
 const { query } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const { getSystemSettings } = require('../utils/systemSettings');
 
 const router = express.Router();
 
@@ -45,10 +46,12 @@ router.post('/checkout', requireRole('admin'), async (req, res, next) => {
     const origin = req.protocol + '://' + req.get('host');
 
     // Founder pricing: if a seat is available and the coupon is
-    // configured, auto-apply it. Mark this org as having claimed the
-    // seat so a second checkout from a different org cannot reuse it.
-    const founderTotal = parseInt(process.env.FOUNDER_TOTAL_SEATS || '10', 10);
-    const founderCoupon = process.env.STRIPE_FOUNDER_COUPON_ID;
+    // configured (via the System page), auto-apply it. Mark this org as
+    // having claimed the seat so a second checkout from a different
+    // org cannot reuse it.
+    const systemSettings = await getSystemSettings();
+    const founderCoupon = systemSettings.stripe_founder_coupon_id;
+    const founderTotal = systemSettings.founder_total_seats;
     let discounts;
     if (founderCoupon) {
       if (org.founder_pricing_applied_at) {

@@ -8,23 +8,22 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
-const FOUNDER_TOTAL_SEATS = parseInt(process.env.FOUNDER_TOTAL_SEATS || '10', 10);
-const FOUNDER_PRICE = parseFloat(process.env.FOUNDER_PRICE || '19');
-const LISTED_PRICE = parseFloat(process.env.LISTED_PRICE || '29');
+const { getSystemSettings } = require('../utils/systemSettings');
 
 router.get('/founder-status', async (req, res, next) => {
   try {
+    const settings = await getSystemSettings();
     const { rows } = await query(
       `SELECT COUNT(*)::int AS used FROM organizations WHERE founder_pricing_applied_at IS NOT NULL`
     );
     const used = rows[0]?.used || 0;
-    const remaining = Math.max(0, FOUNDER_TOTAL_SEATS - used);
+    const remaining = Math.max(0, settings.founder_total_seats - used);
     res.json({
-      total_seats: FOUNDER_TOTAL_SEATS,
+      total_seats: settings.founder_total_seats,
       seats_remaining: remaining,
-      founder_price: FOUNDER_PRICE,
-      listed_price: LISTED_PRICE,
-      active: remaining > 0 && !!process.env.STRIPE_FOUNDER_COUPON_ID,
+      founder_price: settings.founder_price,
+      listed_price: settings.listed_price,
+      active: remaining > 0 && !!settings.stripe_founder_coupon_id,
     });
   } catch (err) { next(err); }
 });

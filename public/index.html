@@ -9259,6 +9259,7 @@ const APP_ROUTES = {
   '/system': 'system',
   '/system/staff': 'system',
   '/system/templates': 'system',
+  '/system/pricing': 'system',
   // /system/orgs/:id handled specially in AppShell (see startsWith check)
   '/profile': 'profile',
   '/support': 'support',
@@ -11731,6 +11732,7 @@ function SystemView({ session }) {
   const subView = orgDetailMatch ? 'org-detail'
     : path === '/system/staff' ? 'staff'
     : path === '/system/templates' ? 'templates'
+    : path === '/system/pricing' ? 'pricing'
     : 'organizations';
   const isStaff = session.user && session.user.is_staff;
 
@@ -11758,12 +11760,127 @@ function SystemView({ session }) {
             className={`chip ${subView === 'templates' ? 'active' : ''}`}
             onClick={() => navigate('/system/templates')}
           >Email templates</button>
+          <button
+            className={`chip ${subView === 'pricing' ? 'active' : ''}`}
+            onClick={() => navigate('/system/pricing')}
+          >Founder pricing</button>
         </div>
       </div>
       {subView === 'organizations' && <OrganizationsSection session={session} />}
       {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
       {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
+      {subView === 'pricing' && <FounderPricingSection token={session.token} />}
     </div>
+  );
+}
+
+function FounderPricingSection({ token }) {
+  const [data, setData] = useState(null);
+  const [coupon, setCoupon] = useState('');
+  const [seats, setSeats] = useState(10);
+  const [founderPrice, setFounderPrice] = useState(19);
+  const [listedPrice, setListedPrice] = useState(29);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function refresh() {
+    setLoading(true); setError(null);
+    try {
+      const d = await apiRequest('/api/system/founder-pricing', { token });
+      setData(d);
+      setCoupon(d.stripe_founder_coupon_id || '');
+      setSeats(d.founder_total_seats);
+      setFounderPrice(d.founder_price);
+      setListedPrice(d.listed_price);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { refresh(); }, []);
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true); setError(null); setSaved(false);
+    try {
+      await apiRequest('/api/system/founder-pricing', {
+        method: 'PUT', token,
+        body: {
+          stripe_founder_coupon_id: coupon,
+          founder_total_seats: seats,
+          founder_price: founderPrice,
+          listed_price: listedPrice,
+        },
+      });
+      setSaved(true);
+      await refresh();
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (loading) return <div className="list-empty">Loading...</div>;
+  const seatsUsed = data?.seats_used || 0;
+  const seatsLeft = Math.max(0, seats - seatsUsed);
+  return (
+    <>
+      {error && <div className="error">{error}</div>}
+      {saved && <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>}
+      <form onSubmit={save} className="form-card">
+        <p className="hint" style={{ marginTop: 0, marginBottom: 16 }}>
+          Auto-apply a Stripe coupon to the first N paying signups. The discounted price shows on the public landing page until all seats are claimed.
+        </p>
+        <div className="section-heading" style={{ marginTop: 0 }}>Status</div>
+        <p className="hint" style={{ marginTop: 0 }}>
+          <strong style={{ color: 'var(--text)' }}>{seatsUsed}</strong> of <strong style={{ color: 'var(--text)' }}>{seats}</strong> seats claimed · <strong style={{ color: 'var(--text)' }}>{seatsLeft}</strong> remaining
+        </p>
+
+        <div className="section-heading">Stripe coupon</div>
+        <label>Coupon ID</label>
+        <input
+          type="text"
+          value={coupon}
+          onChange={(e) => setCoupon(e.target.value)}
+          placeholder="e.g. AbCdEfGh — leave blank to disable founder pricing"
+        />
+        <span className="hint" style={{ display: 'block', marginTop: 6 }}>
+          Create the coupon in your Stripe dashboard (Coupons → New), set duration to "Forever" and the amount off to the difference between your listed and founder price. Paste its ID here.
+        </span>
+
+        <div className="form-grid" style={{ marginTop: 16 }}>
+          <div>
+            <label>Total seats</label>
+            <input
+              type="number" min="0" step="1"
+              value={seats}
+              onChange={(e) => setSeats(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+          <div>
+            <label>Founder price ($/mo)</label>
+            <input
+              type="number" min="0" step="1"
+              value={founderPrice}
+              onChange={(e) => setFounderPrice(parseFloat(e.target.value) || 0)}
+            />
+          </div>
+          <div>
+            <label>Listed price ($/mo)</label>
+            <input
+              type="number" min="0" step="1"
+              value={listedPrice}
+              onChange={(e) => setListedPrice(parseFloat(e.target.value) || 0)}
+            />
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button type="submit" className="primary" disabled={busy}>
+            {busy ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }
 

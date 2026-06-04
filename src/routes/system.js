@@ -10,6 +10,54 @@ const router = express.Router();
 
 router.use(requireAuth, requireSystemAdmin);
 
+// Founder pricing config (singleton system_settings row).
+router.get('/founder-pricing', async (req, res, next) => {
+  try {
+    const { rows } = await query(`SELECT * FROM system_settings WHERE id = 1 LIMIT 1`);
+    const row = rows[0] || {};
+    const usedRows = await query(
+      `SELECT COUNT(*)::int AS used FROM organizations WHERE founder_pricing_applied_at IS NOT NULL`
+    );
+    res.json({
+      stripe_founder_coupon_id: row.stripe_founder_coupon_id || '',
+      founder_total_seats: Number(row.founder_total_seats || 10),
+      founder_price: Number(row.founder_price || 19),
+      listed_price: Number(row.listed_price || 29),
+      seats_used: usedRows.rows[0]?.used || 0,
+      updated_at: row.updated_at || null,
+    });
+  } catch (err) { next(err); }
+});
+
+router.put('/founder-pricing', async (req, res, next) => {
+  const body = req.body || {};
+  const coupon = typeof body.stripe_founder_coupon_id === 'string'
+    ? body.stripe_founder_coupon_id.trim() || null
+    : null;
+  const totalSeats = Number.isFinite(Number(body.founder_total_seats))
+    ? Math.max(0, Math.floor(Number(body.founder_total_seats)))
+    : 10;
+  const founderPrice = Number.isFinite(Number(body.founder_price))
+    ? Math.max(0, Number(body.founder_price))
+    : 19;
+  const listedPrice = Number.isFinite(Number(body.listed_price))
+    ? Math.max(0, Number(body.listed_price))
+    : 29;
+  try {
+    await query(
+      `UPDATE system_settings
+         SET stripe_founder_coupon_id = $1,
+             founder_total_seats = $2,
+             founder_price = $3,
+             listed_price = $4,
+             updated_at = NOW()
+       WHERE id = 1`,
+      [coupon, totalSeats, founderPrice, listedPrice]
+    );
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 router.get('/organizations', async (req, res, next) => {
   try {
     const { rows } = await query(
