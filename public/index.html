@@ -4535,6 +4535,22 @@ function useFounderStatus() {
   return founder;
 }
 
+// Renders "$29/mo" — or "$29 $19/mo" with the listed price struck
+// through — depending on whether founder pricing is currently active.
+function ProPriceText({ founder, suffix = '/mo' }) {
+  const active = !!(founder && founder.active && founder.seats_remaining > 0);
+  const listed = founder ? Math.round(founder.listed_price) : 29;
+  if (!active) return <>${listed}{suffix}</>;
+  return (
+    <>
+      <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: 4 }}>
+        ${listed}
+      </span>
+      ${Math.round(founder.founder_price)}{suffix}
+    </>
+  );
+}
+
 function LandingPricing({ founder }) {
   const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   return (
@@ -9301,6 +9317,7 @@ function daysUntil(dateStr) {
 }
 
 function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
+  const founder = useFounderStatus();
   if (!status) return null;
   const trialEnded = status === 'trial_expired' || (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 0);
   const droppedToFree = trialEnded || status === 'canceled';
@@ -9333,7 +9350,7 @@ function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
     bg = 'var(--tinted)'; color = 'var(--text)';
     showDismiss = true;
     body = isAdmin
-      ? <>Your Pro trial ended — you're now on <strong>Free</strong> with caps of 5 customers + 20 jobs. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }} onClick={() => startUpgrade(session)}>Upgrade to Pro · $29/mo</button>.</>
+      ? <>Your Pro trial ended — you're now on <strong>Free</strong> with caps of 5 customers + 20 jobs. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }} onClick={() => startUpgrade(session)}>Upgrade to Pro · <ProPriceText founder={founder} /></button>.</>
       : <>This organization's Pro trial ended. It's now on the Free plan.</>;
   } else if (status === 'past_due') {
     bg = 'var(--danger-bg)'; color = 'var(--danger)';
@@ -9388,6 +9405,7 @@ function BillingUsageBar({ label, used, limit }) {
 }
 
 function BillingView({ session, me }) {
+  const founder = useFounderStatus();
   const terms = useTerms();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -9483,7 +9501,7 @@ function BillingView({ session, me }) {
               {status.status === 'free' && 'Set by platform staff — no billing on this account.'}
               {status.status === 'trialing' && trialDays > 0 && 'Trial ends ' + formatDateString(status.trial_ends_at.split('T')[0]) + '. Subscribe before then to keep Pro, or do nothing and drop to Free — your data stays put.'}
               {status.status === 'trialing' && trialDays <= 0 && 'You\'re now on the Free plan with its limits. Upgrade anytime.'}
-              {status.status === 'active' && '$29/month, unlimited everything. Manage your card or cancel anytime via the billing portal.'}
+              {status.status === 'active' && <><ProPriceText founder={founder} suffix="/month" />, unlimited everything. Manage your card or cancel anytime via the billing portal.</>}
               {status.status === 'past_due' && 'Update your payment method to keep editing — your account is currently restricted.'}
             </p>
 
@@ -9491,12 +9509,12 @@ function BillingView({ session, me }) {
               <div className="billing-cta-row">
                 {isFree && (
                   <button className="primary" disabled={busy} onClick={startCheckout}>
-                    {busy ? 'Loading...' : 'Upgrade to Pro · $29/mo'}<Icon name="arrow" />
+                    {busy ? 'Loading...' : <>Upgrade to Pro · <ProPriceText founder={founder} /></>}<Icon name="arrow" />
                   </button>
                 )}
                 {status.status === 'trialing' && (
                   <button className="primary" disabled={busy} onClick={startCheckout}>
-                    {busy ? 'Loading...' : 'Subscribe now · $29/mo'}<Icon name="arrow" />
+                    {busy ? 'Loading...' : <>Subscribe now · <ProPriceText founder={founder} /></>}<Icon name="arrow" />
                   </button>
                 )}
                 {(status.status === 'active' || status.status === 'past_due') && status.has_subscription && (
@@ -9671,6 +9689,7 @@ const LOCKED_FEATURE_COPY = {
 function LockedFeature({ feature, session }) {
   const copy = LOCKED_FEATURE_COPY[feature] || { title: 'This feature is Pro-only.', body: '', bullets: [] };
   const [busy, setBusy] = useState(false);
+  const founder = useFounderStatus();
   async function upgrade() {
     setBusy(true);
     await startUpgrade(session);
@@ -9689,7 +9708,7 @@ function LockedFeature({ feature, session }) {
         </ul>
         <div className="locked-cta-row">
           <button className="primary" onClick={upgrade} disabled={busy}>
-            {busy ? 'Opening checkout...' : 'Upgrade to Pro · $29/mo'}<Icon name="arrow" />
+            {busy ? 'Opening checkout...' : <>Upgrade to Pro · <ProPriceText founder={founder} /></>}<Icon name="arrow" />
           </button>
           <button className="secondary" onClick={() => navigate('/dashboard')}>Back to dashboard</button>
         </div>
@@ -9701,6 +9720,7 @@ function LockedFeature({ feature, session }) {
 
 function UpgradePrompt({ session, used, limit, resource }) {
   const [busy, setBusy] = useState(false);
+  const founder = useFounderStatus();
   async function upgrade() {
     setBusy(true);
     await startUpgrade(session);
@@ -9715,7 +9735,7 @@ function UpgradePrompt({ session, used, limit, resource }) {
         </span>
       </div>
       <button className="primary" onClick={upgrade} disabled={busy}>
-        {busy ? '…' : 'Upgrade · $29/mo'}
+        {busy ? '…' : <>Upgrade · <ProPriceText founder={founder} /></>}
       </button>
     </div>
   );
@@ -9725,6 +9745,7 @@ function UpgradePrompt({ session, used, limit, resource }) {
 // throws a plan-limit / pro-feature error gets the styled upgrade prompt
 // (with a direct Stripe-checkout button) instead of a plain red message.
 function PlanError({ error, session }) {
+  const founder = useFounderStatus();
   if (!error) return null;
   if (!isPlanLimitError(error)) {
     return <div className="error">{error.message || String(error)}</div>;
@@ -9736,10 +9757,10 @@ function PlanError({ error, session }) {
       <div className="upgrade-prompt-text">
         <strong>{data.billing_status === 'plan_limit' ? "You've hit the Free plan limit" : "That's a Pro feature"}</strong>
         <span>
-          {error.message} Upgrade to Pro to unlock — $29/mo, cancel anytime.
+          {error.message} Upgrade to Pro to unlock — <ProPriceText founder={founder} />, cancel anytime.
         </span>
       </div>
-      <button className="primary" onClick={() => startUpgrade(session)}>Upgrade · $29/mo</button>
+      <button className="primary" onClick={() => startUpgrade(session)}>Upgrade · <ProPriceText founder={founder} /></button>
     </div>
   );
 }
