@@ -1063,6 +1063,20 @@
       font-size: 11px; font-weight: 600; color: var(--text-muted);
       letter-spacing: 0.02em;
     }
+    .day-untimed-uncomplete {
+      padding: 4px 10px; background: transparent; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+      white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+    }
+    .day-untimed-uncomplete:hover { color: var(--text); border-color: var(--text-muted); }
+    .day-block-uncomplete {
+      padding: 3px 8px; background: rgba(255,255,255,0.18); color: white;
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 5px;
+      font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+      white-space: nowrap;
+    }
+    .day-block-uncomplete:hover { background: rgba(255,255,255,0.28); }
     @media (max-width: 600px) {
       .day-untimed-block {
         flex-direction: column; align-items: stretch;
@@ -5904,14 +5918,15 @@ function RequestsView({ session }) {
   );
 }
 
-function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
+function CompletionForm({ job, initialDate, onSubmit, onCancel, busy, defaultAddToDraft = false }) {
   const defaultDate = initialDate || (job.type === 'single' && job.date ? job.date : formatYMD(new Date()));
   const [date, setDate] = useState(defaultDate);
   const [note, setNote] = useState('');
+  const [addToDraft, setAddToDraft] = useState(!!defaultAddToDraft);
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ date, note: note || null });
+    onSubmit({ date, note: note || null, addToDraft });
   }
 
   return (
@@ -5925,6 +5940,12 @@ function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
           <label>Note <span className="hint">(optional)</span></label>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything worth recording about this visit?" />
         </div>
+        <div className="full">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 'normal', cursor: 'pointer' }}>
+            <input type="checkbox" checked={addToDraft} onChange={(e) => setAddToDraft(e.target.checked)} />
+            <span>Add to draft invoice</span>
+          </label>
+        </div>
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
@@ -5936,7 +5957,7 @@ function CompletionForm({ job, initialDate, onSubmit, onCancel, busy }) {
   );
 }
 
-function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
+function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
   const smsTemplates = useSmsTemplates();
   const d = parseDate(occurrence.date);
   const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
@@ -5991,13 +6012,16 @@ function OccurrenceRow({ occurrence, onMarkComplete, onEdit }) {
         {!occurrence.completed && (
           <button className="primary" onClick={() => onMarkComplete(occurrence.job, occurrence.date)}>Mark complete</button>
         )}
+        {occurrence.completed && onUncomplete && (
+          <button className="secondary" onClick={() => onUncomplete(occurrence.job, occurrence.date)}>Un-complete</button>
+        )}
         <button className="secondary" onClick={() => onEdit(occurrence.job)}>Open</button>
       </div>
     </div>
   );
 }
 
-function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) {
+function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, smsTemplates = [] }) {
   const terms = useTerms();
   const today = todayStart();
   const todayStr = formatYMD(today);
@@ -6132,6 +6156,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) 
             isToday={selectedDate === todayStr}
             onOpen={onChipClick}
             onMarkComplete={onMarkComplete}
+            onUncomplete={onUncomplete}
             smsTemplates={smsTemplates}
           />
         </>
@@ -6160,6 +6185,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, smsTemplates = [] }) 
           setMonthOffset={setMonthOffset}
           onChipClick={onChipClick}
           onMarkComplete={onMarkComplete}
+          onUncomplete={onUncomplete}
         />
       )}
     </div>
@@ -6198,7 +6224,7 @@ function sendSmsTemplate(phone, template, customer) {
   document.body.removeChild(a);
 }
 
-function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplates = [] }) {
+function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplete, smsTemplates = [] }) {
   const terms = useTerms();
   const jobsLowerLabel = terms.jobsLower;
   const untimed = occurrences.filter((o) => !o.job.start_time);
@@ -6276,7 +6302,15 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                         >Mark complete</button>
                       )}
                       {o.completed && (
-                        <span className="day-untimed-done-pill">Completed</span>
+                        <>
+                          <span className="day-untimed-done-pill">Completed</span>
+                          {onUncomplete && (
+                            <button
+                              className="day-untimed-uncomplete"
+                              onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
+                            >Undo</button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -6327,12 +6361,12 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                     {o.job.default_price != null && <span className="day-block-price">{formatPrice(o.job.default_price)}</span>}
                   </div>
                   <div className="day-block-title">{o.job.title}</div>
-                  {(height >= 56 || showSms || !o.completed) && (
+                  {(height >= 56 || showSms || !o.completed || (o.completed && onUncomplete)) && (
                     <div className="day-block-bottom">
                       {height >= 56 && (
                         <div className="day-block-customer">{jobCustomerName(o.job)}</div>
                       )}
-                      {(showSms || !o.completed) && (
+                      {(showSms || !o.completed || (o.completed && onUncomplete)) && (
                         <div className="day-block-actions">
                           {showSms && (
                             <select
@@ -6356,6 +6390,12 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, smsTemplate
                               className="day-block-complete"
                               onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
                             >Mark complete</button>
+                          )}
+                          {o.completed && onUncomplete && (
+                            <button
+                              className="day-block-uncomplete"
+                              onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
+                            >Undo</button>
                           )}
                         </div>
                       )}
@@ -6411,7 +6451,7 @@ function CalendarWeekGrid({ weekDays, weekByDate, todayStr, selectedDate, onSele
   );
 }
 
-function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDate, setSelectedDate, monthOffset, setMonthOffset, onChipClick, onMarkComplete }) {
+function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDate, setSelectedDate, monthOffset, setMonthOffset, onChipClick, onMarkComplete, onUncomplete }) {
   const terms = useTerms();
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
@@ -6481,6 +6521,7 @@ function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDa
                   key={`${o.job.id}-${o.date}-${i}`}
                   occurrence={o}
                   onMarkComplete={onMarkComplete}
+                  onUncomplete={onUncomplete}
                   onEdit={onChipClick}
                 />
               ))
@@ -6611,7 +6652,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
   }
 
   function deleteCompletion(idx, date) {
-    if (!confirm(`Delete the completion entry for ${formatDateString(date)}?`)) return;
+    if (!confirm(`Un-complete the visit on ${formatDateString(date)}? The visit moves back to upcoming and any matching line item is pulled from the open draft invoice.`)) return;
     return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
       method: 'DELETE', slug: session.slug, token: session.token,
     }));
@@ -6767,7 +6808,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
                       ) : (
                         <>
                           <button className="secondary" onClick={() => { setEditingCompletionIdx(c._idx); setEditedNote(c.note || ''); }}>Edit note</button>
-                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Delete</button>
+                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Un-complete</button>
                         </>
                       )}
                     </div>
@@ -6782,7 +6823,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
   );
 }
 
-function JobsView({ session, features = { invoices: true }, planContext, smsTemplates = [] }) {
+function JobsView({ session, features = { invoices: true }, planContext, smsTemplates = [], defaultAddToDraft = false }) {
   const [firstJobToast, setFirstJobToast] = useState(false);
   const terms = useTerms();
   const atCap = planContext && planContext.atCap;
@@ -6894,6 +6935,21 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     finally { setBusy(false); }
   }
 
+  async function uncompleteOccurrence(job, date) {
+    const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
+    const idx = notes.findIndex((n) => n.date === date);
+    if (idx === -1) return;
+    if (!confirm(`Un-complete this visit on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   function handleScheduleChange(updatedJob) {
     setEditing(updatedJob);
     return refresh();
@@ -6970,6 +7026,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             job={editing}
             initialDate={completionInitialDate}
             onSubmit={completeJob}
+            defaultAddToDraft={defaultAddToDraft}
             onCancel={() => {
               setError(null);
               setCompletionInitialDate(null);
@@ -7057,7 +7114,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         loading ? (
           <div className="list-empty">Loading...</div>
         ) : (
-          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} smsTemplates={smsTemplates} />
+          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} onUncomplete={uncompleteOccurrence} smsTemplates={smsTemplates} />
         )
       ) : (
       <>
@@ -8283,7 +8340,7 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
       )}
       <form onSubmit={submit} className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Add to draft on completion</div>
+        <div className="section-heading" style={{ marginTop: 0 }}>Default for "Add to draft" on completion</div>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
           <input
             type="checkbox"
@@ -8293,9 +8350,9 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
             style={{ marginTop: 3 }}
           />
           <span>
-            When a {terms.jobLower} is marked complete, append a line item to the {terms.customerLower}&apos;s open draft invoice (or start one). Un-completing removes the line.
+            Pre-check the "Add to draft invoice" box on the mark-complete form. Each completion can still be toggled individually.
             <span className="hint" style={{ display: 'block', marginTop: 4 }}>
-              Drafts still need to be sent manually. Works alongside the scheduled rollup below — each completion is only billed once.
+              When checked at completion time, the visit is appended to the {terms.customerLower}&apos;s open draft (or a new one is started). Un-completing removes the line.
             </span>
           </span>
         </label>
@@ -9862,7 +9919,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       </div>
       <div className="content">
         {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} />}
-        {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
+        {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} defaultAddToDraft={!!(me && me.auto_append_to_draft)} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && features.requests && <RequestsView session={session} />}
         {view === 'invoices' && ['admin', 'lead'].includes(session.user.role) && (isFree
@@ -10061,6 +10118,7 @@ function DashboardWidgetToday({ ctx }) {
               key={`today-${o.job.id}-${o.date}-${i}`}
               occurrence={o}
               onMarkComplete={onMarkComplete}
+              onUncomplete={ctx.onUncomplete}
               onEdit={() => {}}
             />
           ))
@@ -10082,6 +10140,7 @@ function DashboardWidgetTomorrow({ ctx }) {
             key={`tomorrow-${o.job.id}-${o.date}-${i}`}
             occurrence={o}
             onMarkComplete={onMarkComplete}
+            onUncomplete={ctx.onUncomplete}
             onEdit={() => {}}
           />
         ))}
@@ -10105,6 +10164,7 @@ function DashboardWidgetOverdue({ ctx }) {
             key={`overdue-${o.job.id}-${o.date}-${i}`}
             occurrence={o}
             onMarkComplete={onMarkComplete}
+            onUncomplete={ctx.onUncomplete}
             onEdit={() => {}}
           />
         ))}
@@ -10287,6 +10347,21 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     finally { setBusy(false); }
   }
 
+  async function uncompleteOccurrence(job, date) {
+    const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
+    const idx = notes.findIndex((n) => n.date === date);
+    if (idx === -1) return;
+    if (!confirm(`Un-complete this visit on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   async function markInvoicePaid(id) {
     setError(null);
     try {
@@ -10330,6 +10405,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
             job={completing.job}
             initialDate={completing.date}
             onSubmit={completeJob}
+            defaultAddToDraft={!!(me && me.auto_append_to_draft)}
             onCancel={() => { setError(null); setCompleting(null); }}
             busy={busy}
           />
@@ -10357,6 +10433,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     invoicesUsable: !isFree && features.invoices,
     quotesUsable: features.quotes,
     onMarkComplete: (job, date) => setCompleting({ job, date }),
+    onUncomplete: uncompleteOccurrence,
     onMarkPaid: markInvoicePaid,
   };
 

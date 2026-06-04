@@ -250,7 +250,7 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
 });
 
 router.post('/:id/complete', async (req, res, next) => {
-  const { date, note } = req.body || {};
+  const { date, note, addToDraft } = req.body || {};
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
   }
@@ -296,10 +296,11 @@ router.post('/:id/complete', async (req, res, next) => {
       const newStatus = job.type === 'single' ? 'completed' : job.status;
       const billedDates = Array.isArray(job.billed_dates) ? [...job.billed_dates] : [];
 
-      // If auto-append is on, also push the line onto the customer's open
-      // draft (or start one) and mark this date as billed so the scheduled
-      // rollup will not re-bill it.
-      const appendEnabled = await isAutoAppendEnabled(client, req.organization.id);
+      // Per-completion choice; falls back to the org default if the
+      // client did not pass an explicit flag (legacy callers).
+      const appendEnabled = typeof addToDraft === 'boolean'
+        ? addToDraft
+        : await isAutoAppendEnabled(client, req.organization.id);
       if (appendEnabled) {
         await appendCompletionToDraft(client, {
           orgId: req.organization.id,
