@@ -10,8 +10,9 @@ const router = express.Router();
 
 router.use(requireAuth, requireSystemAdmin);
 
-// Founder pricing config (singleton system_settings row).
-router.get('/founder-pricing', async (req, res, next) => {
+// System-wide settings: founder pricing + tracking. Single row, single
+// endpoint — staff page edits everything in one form.
+router.get('/site-settings', async (req, res, next) => {
   try {
     const { rows } = await query(`SELECT * FROM system_settings WHERE id = 1 LIMIT 1`);
     const row = rows[0] || {};
@@ -23,13 +24,14 @@ router.get('/founder-pricing', async (req, res, next) => {
       founder_total_seats: Number(row.founder_total_seats || 10),
       founder_price: Number(row.founder_price || 19),
       listed_price: Number(row.listed_price || 29),
+      meta_pixel_id: row.meta_pixel_id || '',
       seats_used: usedRows.rows[0]?.used || 0,
       updated_at: row.updated_at || null,
     });
   } catch (err) { next(err); }
 });
 
-router.put('/founder-pricing', async (req, res, next) => {
+router.put('/site-settings', async (req, res, next) => {
   const body = req.body || {};
   const coupon = typeof body.stripe_founder_coupon_id === 'string'
     ? body.stripe_founder_coupon_id.trim() || null
@@ -43,6 +45,9 @@ router.put('/founder-pricing', async (req, res, next) => {
   const listedPrice = Number.isFinite(Number(body.listed_price))
     ? Math.max(0, Number(body.listed_price))
     : 29;
+  const pixelId = typeof body.meta_pixel_id === 'string'
+    ? body.meta_pixel_id.trim() || null
+    : null;
   try {
     await query(
       `UPDATE system_settings
@@ -50,9 +55,10 @@ router.put('/founder-pricing', async (req, res, next) => {
              founder_total_seats = $2,
              founder_price = $3,
              listed_price = $4,
+             meta_pixel_id = $5,
              updated_at = NOW()
        WHERE id = 1`,
-      [coupon, totalSeats, founderPrice, listedPrice]
+      [coupon, totalSeats, founderPrice, listedPrice, pixelId]
     );
     res.json({ ok: true });
   } catch (err) { next(err); }

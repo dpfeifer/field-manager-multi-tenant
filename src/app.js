@@ -30,6 +30,7 @@ const onboardingRoutes = require('./routes/onboarding');
 const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
+const { getSystemSettings } = require('./utils/systemSettings');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -80,13 +81,14 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// Build the index.html we'll serve. We inject server-side env config
-// (Meta Pixel ID, etc.) into a placeholder so the static file stays
-// portable but production gets real tracking IDs.
-function buildIndexHtml() {
-  const raw = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-  const pixelId = process.env.META_PIXEL_ID;
-  const pixelScript = pixelId ? `
+// Read the raw shell once at startup; we inject the Meta Pixel script
+// at request time so staff can change the Pixel ID from the System page
+// without redeploying. Pixel ID is taken from system_settings first,
+// then process.env.META_PIXEL_ID as a fallback for legacy installs.
+const RAW_INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+function pixelScript(pixelId) {
+  if (!pixelId) return '';
+  return `
 <!-- Meta Pixel -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -103,17 +105,19 @@ fbq('track', 'PageView');
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
 <!-- End Meta Pixel -->
-` : '';
-  return raw.replace('%META_PIXEL_SCRIPT%', pixelScript);
+`;
 }
-let cachedIndexHtml = buildIndexHtml();
-// In dev, rebuild on every request so HTML edits show up immediately.
-function serveIndex(req, res) {
-  const html = process.env.NODE_ENV === 'production' ? cachedIndexHtml : buildIndexHtml();
+
+async function serveIndex(req, res) {
+  let pixelId = null;
+  try {
+    const settings = await getSystemSettings();
+    pixelId = settings.meta_pixel_id || process.env.META_PIXEL_ID || null;
+  } catch (err) {
+    pixelId = process.env.META_PIXEL_ID || null;
+  }
+  const html = RAW_INDEX_HTML.replace('%META_PIXEL_SCRIPT%', pixelScript(pixelId));
   res.set('Content-Type', 'text/html; charset=utf-8');
-  // Always revalidate so deploys reach users on their next visit instead of
-  // sitting behind a stale browser cache. Asset files in /public still get
-  // the normal express.static caching.
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);
 }
@@ -122,7 +126,7 @@ app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  serveIndex(req, res);
+  serveIndex(req, res).catch(next);
 });
 
 app.use(errorHandler);
