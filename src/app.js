@@ -30,7 +30,6 @@ const onboardingRoutes = require('./routes/onboarding');
 const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
-const { getSystemSettings } = require('./utils/systemSettings');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -81,52 +80,18 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// Read the raw shell once at startup; we inject the Meta Pixel script
-// at request time so staff can change the Pixel ID from the System page
-// without redeploying. Pixel ID is taken from system_settings first,
-// then process.env.META_PIXEL_ID as a fallback for legacy installs.
-const RAW_INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-function pixelScript(pixelId) {
-  if (!pixelId) return '';
-  return `
-<!-- Meta Pixel -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${pixelId}');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
-<!-- End Meta Pixel -->
-`;
-}
-
-async function serveIndex(req, res) {
-  let pixelId = null;
-  try {
-    const settings = await getSystemSettings();
-    pixelId = settings.meta_pixel_id || process.env.META_PIXEL_ID || null;
-  } catch (err) {
-    pixelId = process.env.META_PIXEL_ID || null;
-  }
-  const html = RAW_INDEX_HTML.replace('%META_PIXEL_SCRIPT%', pixelScript(pixelId));
+const INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+function serveIndex(req, res) {
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
-  res.send(html);
+  res.send(INDEX_HTML);
 }
 
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  serveIndex(req, res).catch(next);
+  serveIndex(req, res);
 });
 
 app.use(errorHandler);

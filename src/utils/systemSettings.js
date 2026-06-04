@@ -11,7 +11,6 @@ async function getSystemSettings() {
     founder_total_seats: Number(row.founder_total_seats || 10),
     founder_price: Number(row.founder_price || 19),
     listed_price: Number(row.listed_price || 29),
-    meta_pixel_id: row.meta_pixel_id || null,
     updated_at: row.updated_at || null,
   };
 }

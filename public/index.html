@@ -35,7 +35,6 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-  %META_PIXEL_SCRIPT%
 
   <!-- Structured data: tells search engines this is a SaaS product with pricing -->
   <script type="application/ld+json">
@@ -4295,12 +4294,6 @@ function SignupForm({ onSuccess }) {
       });
       const session = { ...data, slug: data.organization && data.organization.slug };
       saveSession(session);
-      // Conversion: a new org was created. Fire to Meta Pixel if loaded.
-      try {
-        if (typeof window.fbq === 'function') {
-          window.fbq('track', 'CompleteRegistration', { content_name: 'org_signup' });
-        }
-      } catch (e) { /* no-op */ }
       onSuccess(session);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
@@ -9481,25 +9474,6 @@ function BillingView({ session, me }) {
   const justSucceeded = params.get('success') === 'true';
   const justCanceled = params.get('canceled') === 'true';
 
-  // Meta Pixel conversion: fire Purchase exactly once when the visitor
-  // lands back from a successful Stripe checkout. Guarded by a session
-  // flag so a page refresh doesn't double-fire.
-  useEffect(() => {
-    if (!justSucceeded) return;
-    if (typeof window.fbq !== 'function') return;
-    try {
-      const key = 'fm_pixel_purchase_fired';
-      if (sessionStorage.getItem(key) === '1') return;
-      sessionStorage.setItem(key, '1');
-      const founderPriceGuess = founder && founder.active && founder.seats_remaining > 0
-        ? founder.founder_price : (founder ? founder.listed_price : 29);
-      window.fbq('track', 'Purchase', {
-        currency: 'USD',
-        value: founderPriceGuess,
-        content_name: 'pro_subscription',
-      });
-    } catch (e) { /* no-op */ }
-  }, [justSucceeded, founder]);
 
   const isAdmin = session.user.role === 'admin';
   const plan = (me && me.plan) || 'pro';
@@ -11916,7 +11890,6 @@ function SiteSettingsSection({ token }) {
   const [seats, setSeats] = useState(10);
   const [founderPrice, setFounderPrice] = useState(19);
   const [listedPrice, setListedPrice] = useState(29);
-  const [pixelId, setPixelId] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -11931,7 +11904,6 @@ function SiteSettingsSection({ token }) {
       setSeats(d.founder_total_seats);
       setFounderPrice(d.founder_price);
       setListedPrice(d.listed_price);
-      setPixelId(d.meta_pixel_id || '');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -11948,7 +11920,6 @@ function SiteSettingsSection({ token }) {
           founder_total_seats: seats,
           founder_price: founderPrice,
           listed_price: listedPrice,
-          meta_pixel_id: pixelId,
         },
       });
       setSaved(true);
@@ -12011,18 +11982,6 @@ function SiteSettingsSection({ token }) {
             />
           </div>
         </div>
-
-        <div className="section-heading" style={{ marginTop: 28 }}>Tracking</div>
-        <label>Meta Pixel ID</label>
-        <input
-          type="text"
-          value={pixelId}
-          onChange={(e) => setPixelId(e.target.value)}
-          placeholder="e.g. 123456789012345 — leave blank to disable"
-        />
-        <span className="hint" style={{ display: 'block', marginTop: 6 }}>
-          From Meta Events Manager → your Pixel → Settings. Fires a PageView on every public page load. Takes effect on the next page request, no redeploy needed.
-        </span>
 
         <div className="form-actions">
           <button type="submit" className="primary" disabled={busy}>
