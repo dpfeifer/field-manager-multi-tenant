@@ -2736,6 +2736,15 @@
       text-transform: uppercase; letter-spacing: 0.16em;
       color: var(--accent);
     }
+    .ed-plan-tag-inline {
+      position: static;
+      top: auto; right: auto;
+    }
+    .ed-plan-name-row {
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .ed-plan-name-row .ed-plan-name { margin-bottom: 0; }
     .ed-plan-name {
       font-size: 11px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.18em;
@@ -2763,7 +2772,6 @@
       color: var(--accent);
       background: color-mix(in srgb, var(--accent) 12%, transparent);
       padding: 4px 10px; border-radius: 999px;
-      top: 12px; right: 12px;
     }
     .ed-plan-founder-note {
       font-size: 13px; line-height: 1.45;
@@ -4550,9 +4558,11 @@ function LandingPricing() {
           <button className="ed-plan-cta" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
         </div>
         <div className="ed-plan ed-plan-pro">
-          {founderActive && <div className="ed-plan-tag ed-plan-tag-founder">Founder pricing · {founder.seats_remaining} left</div>}
-          {!founderActive && <div className="ed-plan-tag">Most chosen</div>}
-          <div className="ed-plan-name">Pro</div>
+          <div className="ed-plan-name-row">
+            <span className="ed-plan-name">Pro</span>
+            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Founder pricing · {founder.seats_remaining} left</span>}
+            {!founderActive && <span className="ed-plan-tag ed-plan-tag-inline">Most chosen</span>}
+          </div>
           <div className="ed-plan-price">
             {founderActive ? (
               <>
