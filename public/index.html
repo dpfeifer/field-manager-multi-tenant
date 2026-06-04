@@ -9481,6 +9481,26 @@ function BillingView({ session, me }) {
   const justSucceeded = params.get('success') === 'true';
   const justCanceled = params.get('canceled') === 'true';
 
+  // Meta Pixel conversion: fire Purchase exactly once when the visitor
+  // lands back from a successful Stripe checkout. Guarded by a session
+  // flag so a page refresh doesn't double-fire.
+  useEffect(() => {
+    if (!justSucceeded) return;
+    if (typeof window.fbq !== 'function') return;
+    try {
+      const key = 'fm_pixel_purchase_fired';
+      if (sessionStorage.getItem(key) === '1') return;
+      sessionStorage.setItem(key, '1');
+      const founderPriceGuess = founder && founder.active && founder.seats_remaining > 0
+        ? founder.founder_price : (founder ? founder.listed_price : 29);
+      window.fbq('track', 'Purchase', {
+        currency: 'USD',
+        value: founderPriceGuess,
+        content_name: 'pro_subscription',
+      });
+    } catch (e) { /* no-op */ }
+  }, [justSucceeded, founder]);
+
   const isAdmin = session.user.role === 'admin';
   const plan = (me && me.plan) || 'pro';
   const isFree = plan === 'free';
