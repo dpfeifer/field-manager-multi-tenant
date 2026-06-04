@@ -48,12 +48,8 @@ async function validateAssignedTo(orgId, ids) {
     `SELECT id FROM users WHERE organization_id = $1 AND deleted_at IS NULL AND id = ANY($2::uuid[])`,
     [orgId, cleaned]
   );
-  if (rows.length !== cleaned.length) {
-    const err = new Error('One or more assigned_to user IDs are not valid users in this organization');
-    err.status = 400;
-    throw err;
-  }
-  return cleaned;
+  const valid = new Set(rows.map((r) => r.id));
+  return cleaned.filter((id) => valid.has(id));
 }
 
 async function assertCustomerInOrg(orgId, customerId) {
