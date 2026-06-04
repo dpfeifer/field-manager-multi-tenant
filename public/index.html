@@ -1638,6 +1638,31 @@
       text-align: left;
       transition: filter 0.15s;
     }
+    .demo-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 24px;
+      background: #1d2638; color: #fff;
+      font-size: 13px;
+    }
+    .demo-banner-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #f0a05c; flex-shrink: 0;
+      animation: teamNotesPulse 1.6s ease-in-out infinite;
+    }
+    .demo-banner-text { flex: 1; }
+    .demo-banner-cta {
+      background: #fff; color: #1d2638;
+      border: none; border-radius: 999px;
+      padding: 6px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .demo-banner-cta:hover { transform: translateY(-1px); }
+    @media (max-width: 600px) {
+      .demo-banner { padding: 10px 14px; gap: 8px; font-size: 12px; }
+      .demo-banner-cta { font-size: 12px; padding: 5px 10px; }
+    }
     .team-notes-banner:hover { filter: brightness(1.05); }
     .team-notes-banner-dot {
       width: 8px; height: 8px; border-radius: 50%;
@@ -2445,6 +2470,20 @@
       background: color-mix(in srgb, var(--accent) 10%, transparent);
       border-radius: 999px;
     }
+    .ed-hero-cta-row {
+      display: flex; align-items: center; gap: 16px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .ed-hero-demo-link {
+      background: transparent; border: none;
+      color: var(--text-muted);
+      font-size: 14px; font-family: inherit;
+      cursor: pointer; padding: 8px 4px;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      transition: color 0.15s ease;
+    }
+    .ed-hero-demo-link:hover { color: var(--text); }
 
     /* Editorial collage: 9 sharp-edged photos sharing a middle horizontal
        seam. Within each row tiles touch left-to-right. Heights vary above
@@ -4749,7 +4788,10 @@ function LandingPage() {
             No more juggling a notebook, a calendar, and three text threads.
           </p>
           <div className="ed-hero-actions fade-in-delay-3">
-            <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+            <div className="ed-hero-cta-row">
+              <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
+              <button className="ed-hero-demo-link" onClick={() => navigate('/demo')}>Try the demo →</button>
+            </div>
             <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
             {founderActive && (
               <span className="ed-hero-founder-note">
@@ -9316,6 +9358,23 @@ function daysUntil(dateStr) {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
+function DemoBanner() {
+  const founder = useFounderStatus();
+  const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
+  return (
+    <div className="demo-banner">
+      <span className="demo-banner-dot" />
+      <span className="demo-banner-text">
+        You're trying a demo — nothing here is real.
+        {founderActive && <> Only <strong>{founder.seats_remaining}</strong> founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo.</>}
+      </span>
+      <button className="demo-banner-cta" onClick={() => navigate('/signup')}>
+        {founderActive ? 'Lock in founder pricing →' : 'Start free →'}
+      </button>
+    </div>
+  );
+}
+
 function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
   const founder = useFounderStatus();
   if (!status) return null;
@@ -9992,6 +10051,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         </div>
       )}
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} orgId={me && me.organization_id} session={session} />}
+      {me && me.is_demo && <DemoBanner />}
       <TeamNotesBanner session={session} />
       <div className="nav">
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
