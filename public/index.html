@@ -8716,7 +8716,29 @@ function CopyButton({ text, label = 'Copy' }) {
 function BookingFormFields({ cfg, setCfg, namespace = 'panel' }) {
   return (
     <>
-      <div className="section-heading" style={{ marginTop: 0 }}>Optional fields</div>
+      <div className="section-heading" style={{ marginTop: 0 }}>Page heading</div>
+      <label>Title</label>
+      <input
+        value={cfg.title || ''}
+        onChange={(e) => setCfg('title', e.target.value)}
+        placeholder="Book {job} with {your business}"
+        maxLength={120}
+      />
+      <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+        Shown as the big heading at the top of your public booking page. Leave blank to use the default.
+      </p>
+      <label>Subtitle</label>
+      <input
+        value={cfg.subtitle || ''}
+        onChange={(e) => setCfg('subtitle', e.target.value)}
+        placeholder="Fill out a few details and we'll get back to you."
+        maxLength={280}
+      />
+      <p className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+        One line under the title. Leave blank to use the default.
+      </p>
+
+      <div className="section-heading">Optional fields</div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontWeight: 'normal' }}>
         <input type="checkbox" checked={cfg.show_phone !== false} onChange={(e) => setCfg('show_phone', e.target.checked)} />
         <span>Show <strong>Phone</strong></span>
@@ -8892,10 +8914,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               show_notes: data.booking_form_config.show_notes !== false,
               show_referred_by: data.booking_form_config.show_referred_by === true,
               preferred_dates_mode: ['none', 'one', 'three'].includes(data.booking_form_config.preferred_dates_mode) ? data.booking_form_config.preferred_dates_mode : 'one',
+              title: data.booking_form_config.title || '',
+              subtitle: data.booking_form_config.subtitle || '',
               service_placeholder: data.booking_form_config.service_placeholder || '',
               notes_placeholder: data.booking_form_config.notes_placeholder || '',
             }
-          : { show_phone: true, show_address: true, show_notes: true, show_referred_by: false, preferred_dates_mode: 'one', service_placeholder: '', notes_placeholder: '' },
+          : { show_phone: true, show_address: true, show_notes: true, show_referred_by: false, preferred_dates_mode: 'one', title: '', subtitle: '', service_placeholder: '', notes_placeholder: '' },
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -11123,6 +11147,8 @@ function OnboardingPage({ session, onDone }) {
     show_notes: true,
     show_referred_by: false,
     preferred_dates_mode: 'one',
+    title: '',
+    subtitle: '',
     service_placeholder: '',
     notes_placeholder: '',
   });
@@ -13250,8 +13276,8 @@ function PublicBookingView({ slug }) {
     <div className="auth-shell" style={{ maxWidth: 560 }}>
       <div className="card">
         {org.logo_url && <img src={org.logo_url} alt={org.name} style={{ maxWidth: 80, maxHeight: 80, marginBottom: 12, borderRadius: 8 }} />}
-        <h1>Book {job} with {org.name}</h1>
-        <p className="subtitle">Fill out a few details and {org.name} will get back to you to confirm.</p>
+        <h1>{cfg.title || `Book ${job} with ${org.name}`}</h1>
+        <p className="subtitle">{cfg.subtitle || `Fill out a few details and ${org.name} will get back to you to confirm.`}</p>
         <form onSubmit={submit}>
           <label>Your name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />

@@ -60,6 +60,8 @@ router.get('/orgs/:slug', async (req, res, next) => {
         show_notes: cfg.show_notes !== false,
         show_referred_by: cfg.show_referred_by === true,
         preferred_dates_mode: ['none', 'one', 'three'].includes(cfg.preferred_dates_mode) ? cfg.preferred_dates_mode : 'one',
+        title: typeof cfg.title === 'string' ? cfg.title : '',
+        subtitle: typeof cfg.subtitle === 'string' ? cfg.subtitle : '',
         service_placeholder: typeof cfg.service_placeholder === 'string' ? cfg.service_placeholder : '',
         notes_placeholder: typeof cfg.notes_placeholder === 'string' ? cfg.notes_placeholder : '',
       },

@@ -78,6 +78,8 @@ function normalizeBookingFormConfig(value) {
     show_notes: v.show_notes !== false,
     show_referred_by: v.show_referred_by === true,
     preferred_dates_mode: mode,
+    title: typeof v.title === 'string' ? v.title.slice(0, 120) : '',
+    subtitle: typeof v.subtitle === 'string' ? v.subtitle.slice(0, 280) : '',
     service_placeholder: typeof v.service_placeholder === 'string' ? v.service_placeholder.slice(0, 200) : '',
     notes_placeholder: typeof v.notes_placeholder === 'string' ? v.notes_placeholder.slice(0, 200) : '',
   };
