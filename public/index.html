@@ -5919,6 +5919,7 @@ function RequestsView({ session }) {
   const [busy, setBusy] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
   const [declineReason, setDeclineReason] = useState('');
+  const [showQr, setShowQr] = useState(false);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -5985,15 +5986,39 @@ function RequestsView({ session }) {
         <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
           Share this URL on your website, social media, or business card so customers can submit booking requests.
         </p>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             readOnly
             value={`${window.location.origin}/book/${session.slug}`}
-            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+            style={{ flex: 1, minWidth: 200, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
           />
           <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+          <button type="button" className="secondary" onClick={() => setShowQr(true)}>QR code</button>
         </div>
       </div>
+      {showQr && (
+        <div className="modal-overlay" onClick={() => setShowQr(false)}>
+          <div className="modal-card" style={{ maxWidth: 420, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head" style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Scan to request a booking</h3>
+              <button className="modal-close" onClick={() => setShowQr(false)}>×</button>
+            </div>
+            <p className="hint" style={{ marginTop: 0 }}>
+              Hand someone your phone and let them scan, or take a screenshot to share.
+            </p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(`${window.location.origin}/book/${session.slug}`)}`}
+              alt="QR code linking to your public booking form"
+              width={320}
+              height={320}
+              style={{ display: 'block', margin: '12px auto', borderRadius: 8, background: '#fff' }}
+            />
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all', marginTop: 12 }}>
+              {`${window.location.origin}/book/${session.slug}`}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="filter-bar">
         <div className="chip-group">
           {['pending', 'accepted', 'declined', 'all'].map((f) => (
