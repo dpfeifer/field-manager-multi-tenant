@@ -30,6 +30,7 @@ const onboardingRoutes = require('./routes/onboarding');
 const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
+const { getSystemSettings } = require('./utils/systemSettings');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -80,18 +81,67 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-const INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-function serveIndex(req, res) {
+// Read the shell once; inject tracking scripts at request time so staff
+// can change the Meta Pixel ID or GA4 Measurement ID from the System
+// page without redeploying.
+const RAW_INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+
+function metaPixelScript(pixelId) {
+  if (!pixelId) return '';
+  return `
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel -->
+`;
+}
+
+function ga4Script(measurementId) {
+  if (!measurementId) return '';
+  return `
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${measurementId}"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${measurementId}');
+</script>
+<!-- End Google Analytics 4 -->
+`;
+}
+
+async function serveIndex(req, res) {
+  let pixelId = null;
+  let ga4Id = null;
+  try {
+    const settings = await getSystemSettings();
+    pixelId = settings.meta_pixel_id || null;
+    ga4Id = settings.ga4_measurement_id || null;
+  } catch (err) { /* defaults already null */ }
+  const html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', metaPixelScript(pixelId) + ga4Script(ga4Id));
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
-  res.send(INDEX_HTML);
+  res.send(html);
 }
 
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  serveIndex(req, res);
+  serveIndex(req, res).catch(next);
 });
 
 app.use(errorHandler);

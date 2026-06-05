@@ -35,22 +35,7 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-  <!-- Meta Pixel -->
-  <script>
-  !function(f,b,e,v,n,t,s)
-  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-  n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];
-  s.parentNode.insertBefore(t,s)}(window, document,'script',
-  'https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', '1044099914708853');
-  fbq('track', 'PageView');
-  </script>
-  <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=1044099914708853&ev=PageView&noscript=1"/></noscript>
-  <!-- End Meta Pixel -->
+  %TRACKING_SCRIPTS%
 
 
   <!-- Structured data: tells search engines this is a SaaS product with pricing -->
@@ -11936,6 +11921,8 @@ function SiteSettingsSection({ token }) {
   const [seats, setSeats] = useState(10);
   const [founderPrice, setFounderPrice] = useState(19);
   const [listedPrice, setListedPrice] = useState(29);
+  const [pixelId, setPixelId] = useState('');
+  const [ga4Id, setGa4Id] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -11950,6 +11937,8 @@ function SiteSettingsSection({ token }) {
       setSeats(d.founder_total_seats);
       setFounderPrice(d.founder_price);
       setListedPrice(d.listed_price);
+      setPixelId(d.meta_pixel_id || '');
+      setGa4Id(d.ga4_measurement_id || '');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -11966,6 +11955,8 @@ function SiteSettingsSection({ token }) {
           founder_total_seats: seats,
           founder_price: founderPrice,
           listed_price: listedPrice,
+          meta_pixel_id: pixelId,
+          ga4_measurement_id: ga4Id,
         },
       });
       setSaved(true);
@@ -12028,6 +12019,31 @@ function SiteSettingsSection({ token }) {
             />
           </div>
         </div>
+
+        <div className="section-heading" style={{ marginTop: 28 }}>Tracking</div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+          Pixel + analytics IDs are injected into every public page at request time. Leave a field blank to disable that script.
+        </p>
+        <label>Meta Pixel ID</label>
+        <input
+          type="text"
+          value={pixelId}
+          onChange={(e) => setPixelId(e.target.value)}
+          placeholder="e.g. 123456789012345"
+        />
+        <span className="hint" style={{ display: 'block', marginTop: 6, marginBottom: 16 }}>
+          From <strong>Meta Events Manager</strong> → your Pixel → top of the overview page.
+        </span>
+        <label>Google Analytics 4 Measurement ID</label>
+        <input
+          type="text"
+          value={ga4Id}
+          onChange={(e) => setGa4Id(e.target.value)}
+          placeholder="e.g. G-XXXXXXXXXX"
+        />
+        <span className="hint" style={{ display: 'block', marginTop: 6 }}>
+          From <strong>analytics.google.com</strong> → Admin (gear icon) → Data Streams → your web stream → Measurement ID. Starts with <code>G-</code>.
+        </span>
 
         <div className="form-actions">
           <button type="submit" className="primary" disabled={busy}>
