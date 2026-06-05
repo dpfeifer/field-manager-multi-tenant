@@ -1743,6 +1743,13 @@
     }
     .email-preview-body p { margin: 0 0 12px; }
     .email-preview-body a { color: #2c3e57; }
+    .email-preview-frame {
+      width: 100%; height: 520px; border: none; display: block;
+      background: #faf8f4;
+    }
+    @media (max-width: 600px) {
+      .email-preview-frame { height: 420px; }
+    }
     .email-preview-text {
       white-space: pre-wrap; word-wrap: break-word;
       background: var(--tinted); padding: 14px 16px;
@@ -12389,6 +12396,37 @@ function EmailTemplatesSection({ token }) {
   const [busy, setBusy] = useState(false);
   const [editorTab, setEditorTab] = useState('edit'); // 'edit' | 'preview'
   const [previewing, setPreviewing] = useState(null); // template for quick preview modal
+  const [renderedPreview, setRenderedPreview] = useState(null); // { subject, html, text } from server
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Whenever the Preview tab is active and the draft changes, fetch a
+  // freshly rendered preview from the server (uses the real shell
+  // wrapper, so what you see is what gets sent).
+  useEffect(() => {
+    if (!editingKey || editorTab !== 'preview' || !draft) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    apiRequest(`/api/system/email-templates/${editingKey}/preview`, {
+      method: 'POST', token, body: draft,
+    }).then((data) => { if (!cancelled) setRenderedPreview(data); })
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
+    return () => { cancelled = true; };
+  }, [editingKey, editorTab, draft, token]);
+
+  // Quick-preview modal fetches once on open.
+  useEffect(() => {
+    if (!previewing) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    apiRequest(`/api/system/email-templates/${previewing.template_key}/preview`, {
+      method: 'POST', token,
+      body: { subject: previewing.subject, intro_html: previewing.intro_html, intro_text: previewing.intro_text },
+    }).then((data) => { if (!cancelled) setRenderedPreview(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
+    return () => { cancelled = true; };
+  }, [previewing, token]);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -12467,19 +12505,24 @@ function EmailTemplatesSection({ token }) {
         ) : (
           <div className="form-card">
             <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
-              Preview uses sample data. Real sends substitute real customer / org values.
+              Preview uses sample data and the actual email shell — this is what the recipient sees.
             </p>
             <div className="email-preview">
               <div className="email-preview-meta">
-                <div><strong>Subject:</strong> {renderTemplateSample(draft.subject)}</div>
+                <div><strong>Subject:</strong> {renderedPreview ? renderedPreview.subject : '…'}</div>
               </div>
-              <div
-                className="email-preview-body"
-                dangerouslySetInnerHTML={{ __html: renderTemplateSample(draft.intro_html) }}
-              />
+              {previewLoading && !renderedPreview ? (
+                <div style={{ padding: 20, color: 'var(--text-muted)', textAlign: 'center' }}>Rendering…</div>
+              ) : (
+                <iframe
+                  className="email-preview-frame"
+                  title="Email preview"
+                  srcDoc={renderedPreview ? renderedPreview.html : ''}
+                />
+              )}
             </div>
             <div className="section-heading" style={{ marginTop: 16 }}>Plain text version</div>
-            <pre className="email-preview-text">{renderTemplateSample(draft.intro_text)}</pre>
+            <pre className="email-preview-text">{renderedPreview ? renderedPreview.text : ''}</pre>
             <div className="form-actions">
               <button className="primary" disabled={busy} onClick={saveEdit}>{busy ? 'Saving...' : 'Save'}</button>
               <button className="secondary" disabled={busy} onClick={() => { setEditingKey(null); setDraft(null); }}>Cancel</button>
@@ -12523,21 +12566,26 @@ function EmailTemplatesSection({ token }) {
         )}
       </div>
       {previewing && (
-        <div className="modal-overlay" onClick={() => setPreviewing(null)}>
-          <div className="modal-card" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => { setPreviewing(null); setRenderedPreview(null); }}>
+          <div className="modal-card" style={{ maxWidth: 760 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3 style={{ margin: 0 }}>{TEMPLATE_LABELS[previewing.template_key] || previewing.template_key}</h3>
-              <button className="modal-close" onClick={() => setPreviewing(null)}>×</button>
+              <button className="modal-close" onClick={() => { setPreviewing(null); setRenderedPreview(null); }}>×</button>
             </div>
-            <p className="hint" style={{ marginTop: 0 }}>Preview uses sample data.</p>
+            <p className="hint" style={{ marginTop: 0 }}>Preview uses sample data and the actual email shell.</p>
             <div className="email-preview">
               <div className="email-preview-meta">
-                <div><strong>Subject:</strong> {renderTemplateSample(previewing.subject)}</div>
+                <div><strong>Subject:</strong> {renderedPreview ? renderedPreview.subject : '…'}</div>
               </div>
-              <div
-                className="email-preview-body"
-                dangerouslySetInnerHTML={{ __html: renderTemplateSample(previewing.intro_html) }}
-              />
+              {previewLoading && !renderedPreview ? (
+                <div style={{ padding: 20, color: 'var(--text-muted)', textAlign: 'center' }}>Rendering…</div>
+              ) : (
+                <iframe
+                  className="email-preview-frame"
+                  title="Email preview"
+                  srcDoc={renderedPreview ? renderedPreview.html : ''}
+                />
+              )}
             </div>
           </div>
         </div>

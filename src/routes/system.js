@@ -291,6 +291,44 @@ router.put('/email-templates/:key', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Render a full email preview for the editor. Takes whatever draft the
+// staff has in the form and runs it through the exact same shell wrapper
+// the real send path uses, so what you see is what the recipient sees.
+router.post('/email-templates/:key/preview', async (req, res, next) => {
+  const key = req.params.key;
+  if (!DEFAULTS[key]) return res.status(404).json({ error: 'Unknown template key' });
+  const body = req.body || {};
+  const template = {
+    subject: body.subject || DEFAULTS[key].subject,
+    intro_html: body.intro_html || DEFAULTS[key].intro_html,
+    intro_text: body.intro_text || DEFAULTS[key].intro_text,
+  };
+  const appUrl = process.env.APP_URL || 'https://fieldmgr.com';
+  const sampleEnds = new Date(); sampleEnds.setDate(sampleEnds.getDate() + 3);
+  const trialEndsOn = sampleEnds.toLocaleDateString(undefined, {
+    weekday: 'long', month: 'short', day: 'numeric', year: 'numeric',
+  });
+  const vars = {
+    user_name: 'Sample User',
+    organization_name: 'Acme Lawn Care',
+    verify_url: `${appUrl}/verify-email?token=sample`,
+    billing_url: `${appUrl}/billing`,
+    trial_ends_on: trialEndsOn,
+  };
+  // Match the CTA + heading the real send sites use per template.
+  const ctaByKey = {
+    email_verification: { ctaLabel: 'Verify email', ctaUrl: vars.verify_url, heading: 'Verify your email' },
+    trial_reminder_3d:  { ctaLabel: 'Manage subscription', ctaUrl: vars.billing_url, heading: 'Your Field Manager trial ends in 3 days' },
+    trial_reminder_1d:  { ctaLabel: 'Manage subscription', ctaUrl: vars.billing_url, heading: 'Your Field Manager trial ends tomorrow' },
+    trial_expired:      { ctaLabel: 'Subscribe now', ctaUrl: vars.billing_url, heading: 'Your Field Manager trial has ended' },
+  };
+  try {
+    const { renderEditableTemplate } = require('../utils/emailTemplates');
+    const rendered = renderEditableTemplate(template, vars, ctaByKey[key] || {});
+    res.json({ subject: rendered.subject, html: rendered.html, text: rendered.text });
+  } catch (err) { next(err); }
+});
+
 router.delete('/email-templates/:key', async (req, res, next) => {
   if (!DEFAULTS[req.params.key]) return res.status(404).json({ error: 'Unknown template key' });
   try {
