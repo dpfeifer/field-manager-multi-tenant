@@ -9372,6 +9372,7 @@ const APP_ROUTES = {
   '/system/templates': 'system',
   '/system/pricing': 'system',
   '/system/settings': 'system',
+  '/system/overview': 'system',
   // /system/orgs/:id handled specially in AppShell (see startsWith check)
   '/profile': 'profile',
   '/support': 'support',
@@ -11874,6 +11875,7 @@ function SystemView({ session }) {
     : path === '/system/staff' ? 'staff'
     : path === '/system/templates' ? 'templates'
     : path === '/system/pricing' || path === '/system/settings' ? 'settings'
+    : path === '/system/overview' ? 'overview'
     : 'organizations';
   const isStaff = session.user && session.user.is_staff;
 
@@ -11889,6 +11891,10 @@ function SystemView({ session }) {
       </div>
       <div className="filter-bar">
         <div className="chip-group">
+          <button
+            className={`chip ${subView === 'overview' ? 'active' : ''}`}
+            onClick={() => navigate('/system/overview')}
+          >Overview</button>
           <button
             className={`chip ${subView === 'organizations' ? 'active' : ''}`}
             onClick={() => navigate('/system')}
@@ -11907,6 +11913,7 @@ function SystemView({ session }) {
           >Site settings</button>
         </div>
       </div>
+      {subView === 'overview' && <PlatformOverviewSection token={session.token} />}
       {subView === 'organizations' && <OrganizationsSection session={session} />}
       {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
       {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
@@ -12051,6 +12058,133 @@ function SiteSettingsSection({ token }) {
           </button>
         </div>
       </form>
+    </>
+  );
+}
+
+function PlatformOverviewSection({ token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true); setError(null);
+    apiRequest('/api/system/platform-stats', { token })
+      .then((d) => { if (!cancelled) setData(d); })
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (loading) return <div className="list-empty">Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!data) return null;
+
+  const c = data.counts || {};
+  const daily = data.daily_signups || [];
+  const maxDaily = daily.reduce((m, r) => Math.max(m, r.new_orgs || 0), 0);
+  // Generate the full 30-day window so days with zero signups still show.
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(formatYMD(d));
+  }
+  const byDay = Object.fromEntries(daily.map((r) => [r.day, r.new_orgs]));
+
+  return (
+    <>
+      <div className="stats-grid row-fixed-3">
+        <div className="stat-card accent">
+          <div className="label">Total orgs</div>
+          <div className="value">{c.total_orgs}</div>
+          <div className="subvalue">{c.active_demos} active demos (excluded)</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">On Pro (paying)</div>
+          <div className="value">{c.active}</div>
+          <div className="subvalue">{c.past_due} past due · {c.canceled} canceled</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">On trial</div>
+          <div className="value">{c.trialing}</div>
+          <div className="subvalue">14-day Pro trial</div>
+        </div>
+      </div>
+      <div className="stats-grid row-fixed-3">
+        <div className="stat-card">
+          <div className="label">New (last 7 days)</div>
+          <div className="value">{c.new_7d}</div>
+          <div className="subvalue">signups</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">New (last 30 days)</div>
+          <div className="value">{c.new_30d}</div>
+          <div className="subvalue">signups</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Founder seats claimed</div>
+          <div className="value">{c.founder_seats_used}</div>
+          <div className="subvalue">orgs locked into founder pricing</div>
+        </div>
+      </div>
+
+      <div className="reports-panel">
+        <div className="reports-panel-head">
+          <h3>Signups by day</h3>
+          <span>last 30 days</span>
+        </div>
+        {maxDaily === 0 ? (
+          <div className="line-items-empty">No signups in the last 30 days.</div>
+        ) : (
+          <div className="rv-chart">
+            {days.map((d, i) => {
+              const count = byDay[d] || 0;
+              const pct = maxDaily > 0 ? (count / maxDaily) * 100 : 0;
+              const dateObj = new Date(d + 'T00:00:00');
+              const label = i % 3 === 0 ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+              return (
+                <div key={d} className="rv-col" title={`${dateObj.toLocaleDateString()}: ${count} new`}>
+                  <div className="rv-col-track">
+                    <div className="rv-col-bar" style={{ height: `${pct}%` }} />
+                  </div>
+                  <div className="rv-col-label">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="reports-panel">
+        <div className="reports-panel-head">
+          <h3>Recent signups</h3>
+          <span>newest 10</span>
+        </div>
+        {data.recent_signups.length === 0 ? (
+          <div className="line-items-empty">No orgs yet.</div>
+        ) : (
+          <div className="list">
+            {data.recent_signups.map((o) => (
+              <div key={o.id} className="row">
+                <div className="info">
+                  <div className="name">
+                    {o.name}
+                    {o.is_founder && <span className="hint" style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 600 }}>· founder</span>}
+                  </div>
+                  <div className="meta">
+                    {o.slug} · status: <strong style={{ color: 'var(--text)' }}>{o.subscription_status}</strong> · {o.created_at ? formatDateString(o.created_at.split('T')[0]) : '—'}
+                  </div>
+                </div>
+                <div className="actions">
+                  <button className="secondary" onClick={() => navigate(`/system/orgs/${o.id}`)}>Open</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </>
   );
 }

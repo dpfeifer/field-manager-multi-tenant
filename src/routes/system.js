@@ -69,6 +69,48 @@ router.put('/site-settings', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Platform-wide stats for the staff Overview tab.
+router.get('/platform-stats', async (req, res, next) => {
+  try {
+    const [counts, recent, daily] = await Promise.all([
+      query(
+        `SELECT
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE)::int AS total_orgs,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND subscription_status = 'trialing')::int AS trialing,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND subscription_status = 'active')::int AS active,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND subscription_status = 'past_due')::int AS past_due,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND subscription_status = 'canceled')::int AS canceled,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND founder_pricing_applied_at IS NOT NULL)::int AS founder_seats_used,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND created_at >= NOW() - INTERVAL '7 days')::int AS new_7d,
+           COUNT(*) FILTER (WHERE deleted_at IS NULL AND is_demo = FALSE AND created_at >= NOW() - INTERVAL '30 days')::int AS new_30d,
+           COUNT(*) FILTER (WHERE is_demo = TRUE AND deleted_at IS NULL)::int AS active_demos
+         FROM organizations`
+      ),
+      query(
+        `SELECT id, slug, name, subscription_status, created_at,
+                founder_pricing_applied_at IS NOT NULL AS is_founder
+         FROM organizations
+         WHERE deleted_at IS NULL AND is_demo = FALSE
+         ORDER BY created_at DESC
+         LIMIT 10`
+      ),
+      query(
+        `SELECT to_char(created_at::date, 'YYYY-MM-DD') AS day, COUNT(*)::int AS new_orgs
+         FROM organizations
+         WHERE deleted_at IS NULL AND is_demo = FALSE
+           AND created_at >= NOW() - INTERVAL '30 days'
+         GROUP BY day
+         ORDER BY day`
+      ),
+    ]);
+    res.json({
+      counts: counts.rows[0],
+      recent_signups: recent.rows,
+      daily_signups: daily.rows,
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/organizations', async (req, res, next) => {
   // Hide demo orgs from the list by default — they churn fast and would
   // drown out real signups. Pass ?include_demo=1 to see them.
