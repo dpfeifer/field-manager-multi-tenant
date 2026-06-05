@@ -1728,6 +1728,28 @@
       padding: 4px 8px; border-radius: 8px;
     }
     .modal-close:hover { background: var(--row-hover); color: var(--text); }
+    .email-preview {
+      border: 1px solid var(--border); border-radius: 10px;
+      background: #fff; overflow: hidden;
+    }
+    .email-preview-meta {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: var(--tinted); font-size: 13px; color: var(--text-muted);
+    }
+    .email-preview-meta strong { color: var(--text); margin-right: 6px; }
+    .email-preview-body {
+      padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.55; color: #2d2a26;
+    }
+    .email-preview-body p { margin: 0 0 12px; }
+    .email-preview-body a { color: #2c3e57; }
+    .email-preview-text {
+      white-space: pre-wrap; word-wrap: break-word;
+      background: var(--tinted); padding: 14px 16px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+      color: var(--text); max-height: 360px; overflow-y: auto;
+    }
 
     /* Update-available toast — appears when /api/version reports a newer build */
     .version-banner {
@@ -12336,6 +12358,28 @@ const TEMPLATE_LABELS = {
   trial_expired: 'Trial ended notice',
 };
 
+// Sample values used to render the live preview in the email-template
+// editor. Real sends substitute real customer / org data.
+const TEMPLATE_PREVIEW_SAMPLE = {
+  user_name: 'Sample User',
+  user_email: 'sample@example.com',
+  organization_name: 'Acme Lawn Care',
+  verify_url: 'https://fieldmgr.com/verify-email?token=sample',
+  billing_url: 'https://fieldmgr.com/billing',
+  trial_ends_on: (() => {
+    const d = new Date(); d.setDate(d.getDate() + 3);
+    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  })(),
+};
+
+function renderTemplateSample(source) {
+  if (!source) return '';
+  return Object.entries(TEMPLATE_PREVIEW_SAMPLE).reduce(
+    (s, [k, v]) => s.split(`{{${k}}}`).join(v),
+    source
+  );
+}
+
 function EmailTemplatesSection({ token }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12343,6 +12387,8 @@ function EmailTemplatesSection({ token }) {
   const [editingKey, setEditingKey] = useState(null);
   const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [editorTab, setEditorTab] = useState('edit'); // 'edit' | 'preview'
+  const [previewing, setPreviewing] = useState(null); // template for quick preview modal
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -12358,6 +12404,7 @@ function EmailTemplatesSection({ token }) {
   function startEdit(t) {
     setDraft({ subject: t.subject, intro_html: t.intro_html, intro_text: t.intro_text });
     setEditingKey(t.template_key);
+    setEditorTab('edit');
   }
 
   async function saveEdit() {
@@ -12385,31 +12432,60 @@ function EmailTemplatesSection({ token }) {
     const vars = TEMPLATE_VARIABLES[editingKey] || [];
     return (
       <>
-        <div className="section-heading">Edit: {TEMPLATE_LABELS[editingKey]}</div>
-        {error && <div className="error">{error}</div>}
-        <div className="form-card">
-          <p className="hint" style={{ marginBottom: 16 }}>
-            Available variables (insert as <code>{`{{variable}}`}</code>): {vars.map((v) => <code key={v} style={{ marginRight: 6 }}>{`{{${v}}}`}</code>)}
-          </p>
-          <label>Subject</label>
-          <input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
-          <label>HTML body</label>
-          <textarea
-            rows={8} value={draft.intro_html}
-            onChange={(e) => setDraft({ ...draft, intro_html: e.target.value })}
-            style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-          />
-          <label>Plain text body</label>
-          <textarea
-            rows={6} value={draft.intro_text}
-            onChange={(e) => setDraft({ ...draft, intro_text: e.target.value })}
-            style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-          />
-          <div className="form-actions">
-            <button className="primary" disabled={busy} onClick={saveEdit}>{busy ? 'Saving...' : 'Save'}</button>
-            <button className="secondary" disabled={busy} onClick={() => { setEditingKey(null); setDraft(null); }}>Cancel</button>
+        <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12 }}>
+          <span>Edit: {TEMPLATE_LABELS[editingKey]}</span>
+          <div className="chip-group" style={{ marginBottom: 0 }}>
+            <button type="button" className={`chip ${editorTab === 'edit' ? 'active' : ''}`} onClick={() => setEditorTab('edit')}>Edit</button>
+            <button type="button" className={`chip ${editorTab === 'preview' ? 'active' : ''}`} onClick={() => setEditorTab('preview')}>Preview</button>
           </div>
         </div>
+        {error && <div className="error">{error}</div>}
+        {editorTab === 'edit' ? (
+          <div className="form-card">
+            <p className="hint" style={{ marginBottom: 16 }}>
+              Available variables (insert as <code>{`{{variable}}`}</code>): {vars.map((v) => <code key={v} style={{ marginRight: 6 }}>{`{{${v}}}`}</code>)}
+            </p>
+            <label>Subject</label>
+            <input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+            <label>HTML body</label>
+            <textarea
+              rows={8} value={draft.intro_html}
+              onChange={(e) => setDraft({ ...draft, intro_html: e.target.value })}
+              style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+            />
+            <label>Plain text body</label>
+            <textarea
+              rows={6} value={draft.intro_text}
+              onChange={(e) => setDraft({ ...draft, intro_text: e.target.value })}
+              style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+            />
+            <div className="form-actions">
+              <button className="primary" disabled={busy} onClick={saveEdit}>{busy ? 'Saving...' : 'Save'}</button>
+              <button className="secondary" disabled={busy} onClick={() => { setEditingKey(null); setDraft(null); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className="form-card">
+            <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+              Preview uses sample data. Real sends substitute real customer / org values.
+            </p>
+            <div className="email-preview">
+              <div className="email-preview-meta">
+                <div><strong>Subject:</strong> {renderTemplateSample(draft.subject)}</div>
+              </div>
+              <div
+                className="email-preview-body"
+                dangerouslySetInnerHTML={{ __html: renderTemplateSample(draft.intro_html) }}
+              />
+            </div>
+            <div className="section-heading" style={{ marginTop: 16 }}>Plain text version</div>
+            <pre className="email-preview-text">{renderTemplateSample(draft.intro_text)}</pre>
+            <div className="form-actions">
+              <button className="primary" disabled={busy} onClick={saveEdit}>{busy ? 'Saving...' : 'Save'}</button>
+              <button className="secondary" disabled={busy} onClick={() => { setEditingKey(null); setDraft(null); }}>Cancel</button>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -12436,6 +12512,7 @@ function EmailTemplatesSection({ token }) {
                 <div className="meta">{t.subject}</div>
               </div>
               <div className="actions">
+                <button className="secondary" onClick={() => setPreviewing(t)}>Preview</button>
                 <button className="secondary" onClick={() => startEdit(t)}>Edit</button>
                 {!t.is_default && (
                   <button className="secondary" onClick={() => resetToDefault(t.template_key)}>Reset</button>
@@ -12445,6 +12522,26 @@ function EmailTemplatesSection({ token }) {
           ))
         )}
       </div>
+      {previewing && (
+        <div className="modal-overlay" onClick={() => setPreviewing(null)}>
+          <div className="modal-card" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3 style={{ margin: 0 }}>{TEMPLATE_LABELS[previewing.template_key] || previewing.template_key}</h3>
+              <button className="modal-close" onClick={() => setPreviewing(null)}>×</button>
+            </div>
+            <p className="hint" style={{ marginTop: 0 }}>Preview uses sample data.</p>
+            <div className="email-preview">
+              <div className="email-preview-meta">
+                <div><strong>Subject:</strong> {renderTemplateSample(previewing.subject)}</div>
+              </div>
+              <div
+                className="email-preview-body"
+                dangerouslySetInnerHTML={{ __html: renderTemplateSample(previewing.intro_html) }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
