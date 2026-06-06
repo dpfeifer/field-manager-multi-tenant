@@ -7080,6 +7080,23 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Honor ?open=<jobId> in the URL — used by Dashboard "Open" buttons so a
+  // tap on an upcoming/overdue card lands the user directly on that job.
+  useEffect(() => {
+    if (jobs.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (!openId) return;
+    const target = jobs.find((j) => j.id === openId);
+    if (!target) return;
+    setEditing(target);
+    setMode(target.type === 'recurring' ? 'schedule' : 'edit');
+    // Strip the query param so reload / back nav doesn't keep reopening.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('open');
+    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+  }, [jobs]);
+
   async function createJob(values) {
     setBusy(true); setError(null);
     const wasFirst = jobs.length === 0;
@@ -10386,7 +10403,7 @@ function DashboardWidgetToday({ ctx }) {
               occurrence={o}
               onMarkComplete={onMarkComplete}
               onUncomplete={ctx.onUncomplete}
-              onEdit={() => {}}
+              onEdit={(job) => navigate(`/jobs?open=${job.id}`)}
             />
           ))
         )}
@@ -10408,7 +10425,7 @@ function DashboardWidgetTomorrow({ ctx }) {
             occurrence={o}
             onMarkComplete={onMarkComplete}
             onUncomplete={ctx.onUncomplete}
-            onEdit={() => {}}
+            onEdit={(job) => navigate(`/jobs?open=${job.id}`)}
           />
         ))}
         {tomorrowOccurrences.length > 6 && (
@@ -10432,7 +10449,7 @@ function DashboardWidgetOverdue({ ctx }) {
             occurrence={o}
             onMarkComplete={onMarkComplete}
             onUncomplete={ctx.onUncomplete}
-            onEdit={() => {}}
+            onEdit={(job) => navigate(`/jobs?open=${job.id}`)}
           />
         ))}
         {overdueOccurrences.length > 10 && (
