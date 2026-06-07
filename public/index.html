@@ -9464,7 +9464,12 @@ function DemoBanner() {
         You're trying a demo — nothing here is real.
         {founderActive && <> Limited-time founder pricing — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
       </span>
-      <button className="demo-banner-cta" onClick={() => navigate('/signup')}>
+      <button className="demo-banner-cta" onClick={() => {
+        // Demo session is still in localStorage. Clear it before sending the
+        // visitor to signup so the AppShell doesn't intercept the route.
+        clearSession();
+        window.location.href = '/signup';
+      }}>
         {founderActive ? 'Lock in founder pricing →' : 'Start free →'}
       </button>
     </div>
