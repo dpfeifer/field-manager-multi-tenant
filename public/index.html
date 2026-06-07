@@ -4651,7 +4651,7 @@ function LandingPricing({ founder }) {
         <div className="ed-plan ed-plan-pro">
           <div className="ed-plan-name-row">
             <span className="ed-plan-name">Pro</span>
-            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Founder pricing · {founder.seats_remaining} left</span>}
+            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Founder pricing · Limited time</span>}
             {!founderActive && <span className="ed-plan-tag ed-plan-tag-inline">Most chosen</span>}
           </div>
           <div className="ed-plan-price">
@@ -4667,7 +4667,7 @@ function LandingPricing({ founder }) {
           </div>
           {founderActive && (
             <p className="ed-plan-founder-note">
-              {founder.seats_remaining} founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo. Locked in for life.
+              Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
             </p>
           )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
@@ -4819,7 +4819,7 @@ function LandingPage() {
             <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
             {founderActive && (
               <span className="ed-hero-founder-note">
-                {founder.seats_remaining} founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo. Locked in for life.
+                Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
               </span>
             )}
           </div>
@@ -9458,7 +9458,7 @@ function DemoBanner() {
       <span className="demo-banner-dot" />
       <span className="demo-banner-text">
         You're trying a demo — nothing here is real.
-        {founderActive && <> Only <strong>{founder.seats_remaining}</strong> founder {founder.seats_remaining === 1 ? 'seat' : 'seats'} left at ${Math.round(founder.founder_price)}/mo.</>}
+        {founderActive && <> Limited-time founder pricing — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
       </span>
       <button className="demo-banner-cta" onClick={() => navigate('/signup')}>
         {founderActive ? 'Lock in founder pricing →' : 'Start free →'}
