@@ -5016,6 +5016,11 @@ function LandingPage() {
 
       <header className="ed-hero">
         <div className="ed-hero-text">
+          {founderActive && (
+            <div className="sales-hero-badge fade-in">
+              ⏰ Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life
+            </div>
+          )}
           <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
           <h1 className="ed-hero-headline fade-in-delay-1">
             Stop running your business<br />out of a <em>spreadsheet</em>.
@@ -5027,16 +5032,17 @@ function LandingPage() {
               : <>${Math.round((founder && founder.listed_price) || 29)}/mo</>}.
           </p>
           <div className="ed-hero-actions fade-in-delay-3">
-            <div className="ed-hero-cta-row">
-              <button className="primary" onClick={() => navigate('/signup')}>Start free<Icon name="arrow" /></button>
-              <button className="ed-hero-demo-link" onClick={() => navigate('/demo')}>Try the demo →</button>
+            <div className="sales-hero-actions" style={{ marginBottom: 12 }}>
+              <button className="sales-cta sales-cta-lg" onClick={() => navigate('/signup')}>
+                Start free — no card <Icon name="arrow" />
+              </button>
+              <button className="sales-cta-secondary" onClick={() => navigate('/demo')}>
+                Try the live demo →
+              </button>
             </div>
-            <span className="ed-hero-note">No credit card required · Up to five customers for free<br />$29/mo when you scale</span>
-            {founderActive && (
-              <span className="ed-hero-founder-note">
-                Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
-              </span>
-            )}
+            <p className="sales-hero-trust" style={{ margin: 0 }}>
+              No credit card · Set up in under 2 minutes · Cancel anytime
+            </p>
           </div>
         </div>
         <div className="ed-collage" aria-hidden="true">
