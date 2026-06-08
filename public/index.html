@@ -2148,6 +2148,15 @@
       flex-shrink: 0; padding-left: 8px;
     }
     .compact-row-clickable:hover .compact-row-chevron { color: var(--text); }
+    .back-link {
+      background: none; border: none; padding: 0;
+      font-family: inherit; font-size: 13px; line-height: 1.4;
+      color: var(--text-muted); cursor: pointer;
+      margin-bottom: 8px;
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--text); text-decoration: underline; }
     .csv-preview-wrap { overflow-x: auto; margin: 12px 0; }
     .csv-preview-table {
       width: 100%; border-collapse: collapse; font-size: 12px;
@@ -4107,6 +4116,14 @@ function EmptyState({ icon, title, body, action }) {
   );
 }
 
+// Standard back-navigation link. Renders above the page header to give
+// the user a one-click way out of any detail / edit view.
+function BackLink({ onClick, children }) {
+  return (
+    <button type="button" className="back-link" onClick={onClick}>← {children}</button>
+  );
+}
+
 function Icon({ name }) {
   const d = ICONS[name];
   if (!d) return null;
@@ -5680,9 +5697,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
   return (
     <div>
-      <button className="link-button" onClick={onBack} style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-        ← All {terms.customersLower}
-      </button>
+      <BackLink onClick={onBack}>All {terms.customersLower}</BackLink>
       <div className="page-header">
         <h2>{customerDisplayName(customer)}</h2>
         <div className="actions" style={{ display: 'flex', gap: 8 }}>
@@ -6079,6 +6094,7 @@ function CustomersView({ session, planContext }) {
   if (mode === 'create') {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
         <div className="page-header"><h2>New {terms.customerLower}</h2></div>
         <PlanError error={error} session={session} />
         <div className="form-card">
@@ -6091,6 +6107,7 @@ function CustomersView({ session, planContext }) {
   if (mode === 'edit' && editing) {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
         <div className="page-header"><h2>Edit {terms.customerLower}</h2></div>
         <PlanError error={error} session={session} />
         <div className="form-card">
@@ -7343,9 +7360,9 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
 
   return (
     <div>
+      <BackLink onClick={onBack}>All {terms.jobsLower}</BackLink>
       <div className="page-header">
         <h2>Schedule</h2>
-        <button className="secondary" onClick={onBack}>Back to {terms.jobsLower}</button>
       </div>
       <div className="schedule-summary">
         <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
@@ -7656,6 +7673,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   if (mode === 'create') {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
         <div className="page-header"><h2>New {terms.jobLower}</h2></div>
         <PlanError error={error} session={session} />
         {customers.length === 0 ? (
@@ -7663,7 +7681,6 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>
               You need at least one {terms.customerLower} before you can create a {terms.jobLower}. Add a {terms.customerLower} first.
             </p>
-            <div className="form-actions"><button className="secondary" onClick={() => setMode('list')}>Back</button></div>
           </div>
         ) : (
           <div className="form-card">
@@ -7683,6 +7700,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   if (mode === 'edit' && editing) {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
         <div className="page-header"><h2>Edit {terms.jobLower}</h2></div>
         <PlanError error={error} session={session} />
         <div className="form-card">
@@ -8321,12 +8339,12 @@ function InvoicesView({ session }) {
   if (mode === 'create') {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All invoices</BackLink>
         <div className="page-header"><h2>New invoice</h2></div>
         {error && <div className="error">{error}</div>}
         {customers.length === 0 ? (
           <div className="form-card">
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>You need a customer first. Add one in the Customers tab.</p>
-            <div className="form-actions"><button className="secondary" onClick={() => setMode('list')}>Back</button></div>
           </div>
         ) : (
           <div className="form-card">
@@ -8340,6 +8358,7 @@ function InvoicesView({ session }) {
   if (mode === 'edit' && editing) {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All invoices</BackLink>
         <div className="page-header"><h2>Edit invoice #{editing.invoice_number}</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
@@ -8823,6 +8842,7 @@ function QuotesView({ session, features = { invoices: true } }) {
   if (mode === 'create') {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All quotes</BackLink>
         <div className="page-header"><h2>New quote</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
@@ -8835,6 +8855,7 @@ function QuotesView({ session, features = { invoices: true } }) {
   if (mode === 'edit' && editing) {
     return (
       <div>
+        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All quotes</BackLink>
         <div className="page-header"><h2>Edit quote</h2></div>
         {error && <div className="error">{error}</div>}
         <div className="form-card">
