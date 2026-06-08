@@ -3834,6 +3834,216 @@
     }
     .landing-footer a:hover { color: var(--text); text-decoration: underline; }
 
+    /* ─────────── Sales-focused landing (/start) ─────────── */
+    .sales-landing { background: var(--bg); color: var(--text); }
+    .sales-hero {
+      max-width: 980px; margin: 0 auto;
+      padding: 96px 32px 64px; text-align: center;
+    }
+    .sales-hero-badge {
+      display: inline-block;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      color: var(--accent); font-weight: 600; font-size: 13px;
+      padding: 8px 16px; border-radius: 999px; margin-bottom: 28px;
+      letter-spacing: 0.01em;
+    }
+    .sales-hero-headline {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(40px, 6vw, 76px);
+      line-height: 1.04; letter-spacing: -0.035em;
+      margin: 0 0 24px; color: var(--text);
+    }
+    .sales-hero-headline em {
+      font-style: italic; color: var(--accent); font-weight: 500;
+    }
+    .sales-hero-sub {
+      font-size: clamp(16px, 1.6vw, 19px); line-height: 1.55;
+      color: var(--text-muted); max-width: 680px; margin: 0 auto 32px;
+    }
+    .sales-hero-actions {
+      display: flex; gap: 16px; justify-content: center; align-items: center;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .sales-hero-trust {
+      font-size: 13px; color: var(--text-muted); margin: 0;
+    }
+    .sales-cta {
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: 999px;
+      padding: 14px 26px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 10px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    }
+    .sales-cta-lg { padding: 18px 32px; font-size: 17px; }
+    .sales-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25); }
+    .sales-cta-secondary {
+      background: transparent; border: 1px solid var(--border-strong);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 13px 24px; font-size: 15px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s, transform 0.2s;
+    }
+    .sales-cta-secondary:hover { background: var(--tinted); transform: translateY(-1px); }
+
+    .sales-section {
+      max-width: 1100px; margin: 0 auto;
+      padding: 80px 32px;
+    }
+    .sales-eyebrow {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.22em;
+      color: var(--accent); margin: 0 0 16px; text-align: center;
+    }
+    .sales-h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.1; letter-spacing: -0.025em;
+      margin: 0 auto 32px; text-align: center; max-width: 820px;
+    }
+
+    .sales-pain { max-width: 760px; text-align: center; }
+    .sales-pain-list {
+      list-style: none; padding: 0; margin: 24px 0 24px;
+      font-size: clamp(15px, 1.5vw, 17px); line-height: 1.75;
+      color: var(--text);
+    }
+    .sales-pain-list li {
+      padding: 10px 0; border-bottom: 1px dashed var(--border);
+    }
+    .sales-pain-stinger {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(18px, 2vw, 22px); color: var(--accent);
+      margin: 20px 0 0;
+    }
+
+    .sales-three {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+      margin-top: 24px;
+    }
+    .sales-feature {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px;
+    }
+    .sales-feature-icon {
+      font-size: 28px; margin-bottom: 12px;
+    }
+    .sales-feature h3 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 20px; margin: 0 0 8px; letter-spacing: -0.01em;
+    }
+    .sales-feature p {
+      font-size: 14.5px; line-height: 1.6; color: var(--text-muted); margin: 0;
+    }
+    @media (max-width: 860px) {
+      .sales-three { grid-template-columns: 1fr; gap: 16px; }
+    }
+
+    .sales-story { max-width: 720px; text-align: center; }
+    .sales-quote {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(20px, 2.2vw, 26px); line-height: 1.5;
+      color: var(--text); margin: 16px 0;
+      padding: 0 16px;
+      border-left: 3px solid var(--accent);
+    }
+    .sales-quote-attr {
+      font-size: 14px; color: var(--text-muted); margin: 16px 0 0;
+    }
+
+    .sales-pricing-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      max-width: 900px; margin: 24px auto 0;
+    }
+    .sales-plan {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px;
+      display: flex; flex-direction: column;
+      position: relative;
+    }
+    .sales-plan-pro {
+      border: 2px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 4%, var(--card));
+    }
+    .sales-plan-flag {
+      position: absolute; top: -14px; left: 24px;
+      background: var(--accent); color: white;
+      padding: 5px 14px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .sales-plan-name {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--text-muted); margin-bottom: 16px;
+    }
+    .sales-plan-pro .sales-plan-name { color: var(--accent); }
+    .sales-plan-price {
+      display: flex; align-items: baseline; gap: 6px; margin-bottom: 16px;
+    }
+    .sales-plan-amt {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 56px; letter-spacing: -0.03em; line-height: 1;
+    }
+    .sales-plan-strike {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 30px; color: var(--text-muted);
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+    }
+    .sales-plan-suf { font-size: 15px; color: var(--text-muted); }
+    .sales-plan-note {
+      font-size: 13px; color: var(--accent); font-weight: 500;
+      margin: 0 0 16px;
+    }
+    .sales-plan-list {
+      list-style: none; padding: 0; margin: 0 0 24px; flex: 1;
+    }
+    .sales-plan-list li {
+      padding: 8px 0; padding-left: 22px; position: relative;
+      font-size: 14.5px; line-height: 1.5;
+    }
+    .sales-plan-list li::before {
+      content: "✓"; position: absolute; left: 0; top: 8px;
+      color: var(--accent); font-weight: 700;
+    }
+    .sales-pricing-fine {
+      max-width: 640px; margin: 28px auto 0;
+      font-size: 13px; line-height: 1.6; color: var(--text-muted); text-align: center;
+    }
+    @media (max-width: 720px) {
+      .sales-pricing-grid { grid-template-columns: 1fr; }
+    }
+
+    .sales-faq { max-width: 760px; }
+    .sales-faq-list {
+      display: flex; flex-direction: column; gap: 12px; margin-top: 24px;
+    }
+    .sales-faq-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 20px;
+    }
+    .sales-faq-item summary {
+      cursor: pointer; font-weight: 600; font-size: 15px;
+      list-style: none; display: flex; justify-content: space-between;
+      align-items: center;
+    }
+    .sales-faq-item summary::after {
+      content: "+"; color: var(--text-muted); font-size: 20px; line-height: 1;
+    }
+    .sales-faq-item[open] summary::after { content: "−"; }
+    .sales-faq-item p {
+      margin: 12px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--text-muted);
+    }
+
+    .sales-final {
+      text-align: center; padding-top: 64px; padding-bottom: 96px;
+    }
+    .sales-final-sub {
+      font-size: 16px; color: var(--text-muted); max-width: 640px;
+      margin: 0 auto 28px; line-height: 1.55;
+    }
+
     @media (max-width: 720px) {
       .landing-nav { padding: 16px 20px; }
       .landing-hero { padding: 60px 20px 48px; }
@@ -4942,6 +5152,212 @@ function LandingPage() {
           <a href="/staff">Staff</a>
         </div>
         <div style={{ marginTop: 16 }}>© Field Manager</div>
+      </footer>
+    </div>
+  );
+}
+
+// Sales-focused alternate landing at /start. Aggressive copy, urgency,
+// pain → solution arc, multiple CTAs. Editorial /  stays where it is.
+function SalesLandingPage() {
+  const founder = useFounderStatus();
+  const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
+  const founderPrice = founder ? Math.round(founder.founder_price) : 19;
+  const listedPrice = founder ? Math.round(founder.listed_price) : 29;
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('is-revealed'));
+      return;
+    }
+    const obs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('is-revealed'); obs.unobserve(e.target); }
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    document.querySelectorAll('[data-reveal]').forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  function PrimaryCTA({ label = 'Start free — no card', size = 'md' }) {
+    return (
+      <button
+        className={`sales-cta sales-cta-${size}`}
+        onClick={() => navigate('/signup')}
+      >
+        {label} <Icon name="arrow" />
+      </button>
+    );
+  }
+  function SecondaryCTA({ label = 'Try the live demo →' }) {
+    return (
+      <button className="sales-cta-secondary" onClick={() => navigate('/demo')}>{label}</button>
+    );
+  }
+
+  return (
+    <div className="landing sales-landing">
+      <nav className="ed-nav">
+        <div className="ed-brand">Field Manager</div>
+        <div className="ed-nav-actions">
+          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <header className="sales-hero">
+        {founderActive && (
+          <div className="sales-hero-badge">⏰ Limited-time founder pricing — ${founderPrice}/mo, locked in for life</div>
+        )}
+        <h1 className="sales-hero-headline">
+          Stop running your business<br/>out of a <em>spreadsheet</em>.
+        </h1>
+        <p className="sales-hero-sub">
+          Field Manager is the calendar, customer book, and invoice tool for small service operators — built by one. Free until you scale, ${listedPrice}/mo flat after.
+        </p>
+        <div className="sales-hero-actions">
+          <PrimaryCTA size="lg" />
+          <SecondaryCTA />
+        </div>
+        <p className="sales-hero-trust">No credit card · Set up in under 2 minutes · Cancel anytime</p>
+      </header>
+
+      {/* Pain points */}
+      <section className="sales-section sales-pain" data-reveal>
+        <p className="sales-eyebrow">If you've ever…</p>
+        <ul className="sales-pain-list">
+          <li>… looked at a text thread and not remembered if you billed them yet</li>
+          <li>… forgotten which customer wanted biweekly vs. weekly</li>
+          <li>… added a recurring job to your calendar and watched it slip three times</li>
+          <li>… written an invoice on the back of a receipt at the kitchen table</li>
+          <li>… opened a spreadsheet on your phone and tried to type while standing in a yard</li>
+        </ul>
+        <p className="sales-pain-stinger">…you're losing hours every week to admin instead of doing the work.</p>
+      </section>
+
+      {/* Solution — three columns */}
+      <section className="sales-section sales-solution" data-reveal>
+        <p className="sales-eyebrow">One app. One place. One rhythm.</p>
+        <h2 className="sales-h2">Everything in one calendar, one customer book, one invoice queue.</h2>
+        <div className="sales-three">
+          <div className="sales-feature">
+            <div className="sales-feature-icon">📅</div>
+            <h3>The day, on autopilot</h3>
+            <p>Set a recurring schedule once — weekly mowing, biweekly cleaning, monthly tune-ups. Field Manager fills your calendar. Mark visits complete with one tap from the truck.</p>
+          </div>
+          <div className="sales-feature">
+            <div className="sales-feature-icon">👥</div>
+            <h3>Customers, where you left them</h3>
+            <p>Address, phone, gate code, dog's name, whatever you need. Search across them in two seconds. Public booking link so new customers come to you, not your DMs.</p>
+          </div>
+          <div className="sales-feature">
+            <div className="sales-feature-icon">💵</div>
+            <h3>Invoices that bill themselves</h3>
+            <p>Mark a visit complete with one click → the line lands on the customer's draft invoice. Send when ready. Public pay link, optional auto-rollup at month-end.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Operator story */}
+      <section className="sales-section sales-story" data-reveal>
+        <p className="sales-eyebrow">Built by an operator</p>
+        <blockquote className="sales-quote">
+          I run a lawn-care business. Every tool I tried was built for a 50-truck fleet, a dispatcher, and a sales call to find out the price. Field Manager is the opposite. Small. Fast. ${listedPrice}/mo flat, free until you scale. I use it on my own crew every day.
+        </blockquote>
+        <p className="sales-quote-attr">— Dustin, founder</p>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="sales-section sales-pricing" data-reveal>
+        <p className="sales-eyebrow">Pricing that respects your time</p>
+        <h2 className="sales-h2">Free until you scale. No per-seat fees. No sales call.</h2>
+        <div className="sales-pricing-grid">
+          <div className="sales-plan">
+            <div className="sales-plan-name">Free</div>
+            <div className="sales-plan-price"><span className="sales-plan-amt">$0</span><span className="sales-plan-suf">forever</span></div>
+            <ul className="sales-plan-list">
+              <li>Up to 5 customers</li>
+              <li>Up to 20 jobs (lifetime)</li>
+              <li>Recurring schedules</li>
+              <li>Quotes + public booking link</li>
+              <li>CSV import + export</li>
+            </ul>
+            <PrimaryCTA label="Start free" />
+          </div>
+          <div className="sales-plan sales-plan-pro">
+            {founderActive && <div className="sales-plan-flag">⏰ Limited-time founder pricing</div>}
+            <div className="sales-plan-name">Pro</div>
+            <div className="sales-plan-price">
+              {founderActive ? (
+                <>
+                  <span className="sales-plan-strike">${listedPrice}</span>
+                  <span className="sales-plan-amt">${founderPrice}</span>
+                </>
+              ) : (
+                <span className="sales-plan-amt">${listedPrice}</span>
+              )}
+              <span className="sales-plan-suf">/mo</span>
+            </div>
+            {founderActive && (
+              <p className="sales-plan-note">Founder pricing locks in for life. Once it's gone, it's gone.</p>
+            )}
+            <ul className="sales-plan-list">
+              <li>Everything in Free</li>
+              <li>Unlimited customers + jobs</li>
+              <li>Invoicing with public pay links</li>
+              <li>Reports + projections</li>
+              <li>Unlimited teammates</li>
+              <li>Priority email support</li>
+            </ul>
+            <PrimaryCTA label="Try Pro free for 14 days" />
+          </div>
+        </div>
+        <p className="sales-pricing-fine">14-day Pro trial on every new account. When it ends, keep Pro or drop to Free — your data stays put either way. Cancel any time, export everything any time.</p>
+      </section>
+
+      {/* FAQ */}
+      <section className="sales-section sales-faq" data-reveal>
+        <p className="sales-eyebrow">Before you sign up</p>
+        <h2 className="sales-h2">Common questions, short answers.</h2>
+        <div className="sales-faq-list">
+          {[
+            { q: 'Will it work for a one-person operation?', a: 'Yes — it was designed for one-person and small-team operations. Big-fleet tools assume a dispatcher and 20 trucks. This doesn\'t.' },
+            { q: 'What if I have a crew?', a: 'Add unlimited teammates on Pro. Assign jobs by person, employees only see what they\'re scheduled for.' },
+            { q: 'Can my customers pay me through this?', a: 'Yes. Drop your Stripe Payment Link, PayPal.me, or Square invoice URL in Settings → Payments and we add a Pay now button to every invoice.' },
+            { q: 'What about taxes and bookkeeping?', a: 'You can apply per-invoice tax and discount. Export every customer, job, invoice, and quote as CSV any time — point your accountant at it.' },
+            { q: 'What if I cancel?', a: 'Cancel any time. Your data stays put for 30 days, exportable. No hostage data.' },
+            { q: 'Why so cheap compared to Jobber / Housecall?', a: 'They\'re built for 20-truck fleets and price accordingly. This is built for the operator answering their own phone.' },
+          ].map((item, i) => (
+            <details key={i} className="sales-faq-item">
+              <summary>{item.q}</summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="sales-section sales-final" data-reveal>
+        <h2 className="sales-h2">Stop running your business out of a notebook.</h2>
+        <p className="sales-final-sub">
+          Free for your first five customers. {founderActive ? `Limited-time founder pricing — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+        </p>
+        <div className="sales-hero-actions">
+          <PrimaryCTA size="lg" />
+          <SecondaryCTA />
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div>
+          <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
+          <span style={{ margin: '0 8px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
+          <span style={{ margin: '0 8px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+        </div>
+        <p>© Field Manager</p>
       </footer>
     </div>
   );
@@ -13792,6 +14208,7 @@ function App() {
     return <AuthShell onSession={handleAuthSuccess} />;
   }
 
+  if (path === '/start') return <SalesLandingPage />;
   return <LandingPage />;
 }
 
