@@ -5151,6 +5151,23 @@ function LandingPage() {
         </p>
       </section>
 
+      <section className="sales-section sales-final" data-reveal>
+        <h2 className="sales-h2">Stop running your business out of a notebook.</h2>
+        <p className="sales-final-sub">
+          Free for your first five customers. {founderActive
+            ? <>Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
+            : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
+        </p>
+        <div className="sales-hero-actions">
+          <button className="sales-cta sales-cta-lg" onClick={() => navigate('/signup')}>
+            Start free — no card <Icon name="arrow" />
+          </button>
+          <button className="sales-cta-secondary" onClick={() => navigate('/demo')}>
+            Try the live demo →
+          </button>
+        </div>
+      </section>
+
       <footer className="landing-footer">
         <div>
           <button className="link-button" onClick={() => navigate('/signin')}>Sign in</button>
