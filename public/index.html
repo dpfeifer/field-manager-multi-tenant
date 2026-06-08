@@ -5017,9 +5017,14 @@ function LandingPage() {
       <header className="ed-hero">
         <div className="ed-hero-text">
           <span className="ed-eyebrow fade-in">Field Manager · Est. 2026</span>
-          <HeroHeadline />
+          <h1 className="ed-hero-headline fade-in-delay-1">
+            Stop running your business<br />out of a <em>spreadsheet</em>.
+          </h1>
           <p className="ed-hero-lede fade-in-delay-2">
-            No more juggling a notebook, a calendar, and three text threads.
+            Field Manager is the calendar, customer book, and invoice tool for small service operators — built by one. All at an introductory price of{' '}
+            {founderActive
+              ? <><span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, marginRight: 4 }}>${Math.round((founder && founder.listed_price) || 29)}</span>${Math.round((founder && founder.founder_price) || 19)}/mo</>
+              : <>${Math.round((founder && founder.listed_price) || 29)}/mo</>}.
           </p>
           <div className="ed-hero-actions fade-in-delay-3">
             <div className="ed-hero-cta-row">
