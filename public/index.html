@@ -3038,6 +3038,46 @@
       background: #2f6b46; color: #fff;
       font-size: 11px; font-weight: 700;
     }
+    .cm-booking {
+      display: grid; grid-template-columns: auto 1fr; gap: 16px;
+      padding: 14px;
+      align-items: stretch;
+    }
+    .cm-booking-qr {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 12px 10px; background: var(--tinted);
+      border-radius: 8px;
+    }
+    .cm-booking-qr-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .cm-booking-form {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 4px 0;
+    }
+    .cm-booking-row { display: flex; flex-direction: column; gap: 2px; }
+    .cm-booking-lbl {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .cm-booking-line {
+      height: 8px; background: var(--border); border-radius: 3px;
+      width: 100%;
+    }
+    .cm-booking-line-tall { height: 20px; }
+    .cm-booking-cta {
+      margin-top: 6px;
+      background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      .cm-booking { grid-template-columns: 1fr; }
+      .cm-booking-qr { padding: 14px; }
+    }
     .cm-list {
       padding: 6px 14px 14px;
     }
@@ -4821,6 +4861,29 @@ function ChapterMock({ kind }) {
       </div>
     );
   }
+  if (kind === 'booking') {
+    return (
+      <div className="cm-frame cm-booking">
+        <div className="cm-booking-qr">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=2&data=https%3A%2F%2Ffieldmgr.com%2Fbook%2Facme"
+            alt=""
+            width={140}
+            height={140}
+            style={{ display: 'block', background: '#fff', borderRadius: 6 }}
+          />
+          <span className="cm-booking-qr-label">Scan to book</span>
+        </div>
+        <div className="cm-booking-form">
+          <div className="cm-booking-row"><span className="cm-booking-lbl">Name</span><span className="cm-booking-line"/></div>
+          <div className="cm-booking-row"><span className="cm-booking-lbl">Email</span><span className="cm-booking-line"/></div>
+          <div className="cm-booking-row"><span className="cm-booking-lbl">Address</span><span className="cm-booking-line"/></div>
+          <div className="cm-booking-row"><span className="cm-booking-lbl">What do you need?</span><span className="cm-booking-line cm-booking-line-tall"/></div>
+          <div className="cm-booking-cta">Request a quote</div>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 
@@ -4890,7 +4953,7 @@ function LandingPricing({ founder }) {
         <div className="ed-plan ed-plan-pro">
           <div className="ed-plan-name-row">
             <span className="ed-plan-name">Pro</span>
-            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Founder pricing · Limited time</span>}
+            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Spring pricing · Limited time</span>}
             {!founderActive && <span className="ed-plan-tag ed-plan-tag-inline">Most chosen</span>}
           </div>
           <div className="ed-plan-price">
@@ -4906,7 +4969,7 @@ function LandingPricing({ founder }) {
           </div>
           {founderActive && (
             <p className="ed-plan-founder-note">
-              Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
+              Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
             </p>
           )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
@@ -5047,7 +5110,7 @@ function LandingPage() {
         <div className="ed-hero-text">
           {founderActive && (
             <div className="sales-hero-badge fade-in">
-              ⏰ Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life
+              ⏰ Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life
             </div>
           )}
           <h1 className="ed-hero-headline fade-in-delay-1">
@@ -5132,14 +5195,14 @@ function LandingPage() {
         </article>
         <article className="ed-chapter" data-reveal>
           <div className="ed-chapter-body-col">
-            <p className="ed-chapter-kicker">The dashboard is your day</p>
-            <h2 className="ed-chapter-title">No managers. No dashboards-of-dashboards.</h2>
+            <p className="ed-chapter-kicker">Customers come to you</p>
+            <h2 className="ed-chapter-title">A booking link your customers actually use.</h2>
             <p className="ed-chapter-prose">
-              Big-fleet software wants you to onboard a dispatcher. We don't. Reports live on a single page, and only when you ask.
+              Drop a link on your business card or stick a QR code on your truck. Customers fill out the form, the request lands in your Requests tab, and one tap creates the customer and the job. No more sorting through DMs at 9pm.
             </p>
           </div>
           <div className="ed-chapter-mock">
-            <ChapterMock kind="dashboard" />
+            <ChapterMock kind="booking" />
           </div>
         </article>
       </section>
@@ -5171,7 +5234,7 @@ function LandingPage() {
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
           Free for your first five customers. {founderActive
-            ? <>Limited-time founder pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
+            ? <>Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
             : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
         </p>
         <div className="sales-hero-actions">
@@ -5251,7 +5314,7 @@ function SalesLandingPage() {
       {/* Hero */}
       <header className="sales-hero">
         {founderActive && (
-          <div className="sales-hero-badge">⏰ Limited-time founder pricing — ${founderPrice}/mo, locked in for life</div>
+          <div className="sales-hero-badge">⏰ Limited-time spring pricing — ${founderPrice}/mo, locked in for life</div>
         )}
         <h1 className="sales-hero-headline">
           Stop running your business<br/>out of a <em>spreadsheet</em>.
@@ -5329,7 +5392,7 @@ function SalesLandingPage() {
             <PrimaryCTA label="Start free" />
           </div>
           <div className="sales-plan sales-plan-pro">
-            {founderActive && <div className="sales-plan-flag">⏰ Limited-time founder pricing</div>}
+            {founderActive && <div className="sales-plan-flag">⏰ Limited-time spring pricing</div>}
             <div className="sales-plan-name">Pro</div>
             <div className="sales-plan-price">
               {founderActive ? (
@@ -5343,7 +5406,7 @@ function SalesLandingPage() {
               <span className="sales-plan-suf">/mo</span>
             </div>
             {founderActive && (
-              <p className="sales-plan-note">Founder pricing locks in for life. Once it's gone, it's gone.</p>
+              <p className="sales-plan-note">Spring pricing locks in for life. Once it's gone, it's gone.</p>
             )}
             <ul className="sales-plan-list">
               <li>Everything in Free</li>
@@ -5384,7 +5447,7 @@ function SalesLandingPage() {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Free for your first five customers. {founderActive ? `Limited-time founder pricing — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+          Free for your first five customers. {founderActive ? `Limited-time spring pricing — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
         </p>
         <div className="sales-hero-actions">
           <PrimaryCTA size="lg" />
@@ -9935,7 +9998,7 @@ function DemoBanner() {
       <span className="demo-banner-dot" />
       <span className="demo-banner-text">
         You're trying a demo — nothing here is real.
-        {founderActive && <> Limited-time founder pricing — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
+        {founderActive && <> Limited-time spring pricing — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
       </span>
       <button className="demo-banner-cta" onClick={() => {
         // Demo session is still in localStorage. Clear it before sending the
@@ -9943,7 +10006,7 @@ function DemoBanner() {
         clearSession();
         window.location.href = '/signup';
       }}>
-        {founderActive ? 'Lock in founder pricing →' : 'Start free →'}
+        {founderActive ? 'Lock in spring pricing →' : 'Start free →'}
       </button>
     </div>
   );
@@ -9975,13 +10038,13 @@ function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
     color = 'var(--text-muted)';
     body = isAdmin
       ? (founderActive
-          ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to take advantage of our founder pricing.</>
+          ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to take advantage of our spring pricing.</>
           : <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to keep Pro after the trial.</>)
       : <>This organization is on a Pro trial — {trialDaysLeft} days left.</>;
   } else if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     body = isAdmin
       ? (founderActive
-          ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to lock in founder pricing</button>, or do nothing to drop to Free.</>
+          ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to lock in spring pricing</button>, or do nothing to drop to Free.</>
           : <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep Pro</button>, or do nothing to drop to Free.</>)
       : <>This organization's Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}.</>;
   } else if (trialEnded && !dismissed) {
@@ -12531,9 +12594,9 @@ function SiteSettingsSection({ token }) {
       {error && <div className="error">{error}</div>}
       {saved && <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>}
       <form onSubmit={save} className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Founder pricing</div>
+        <div className="section-heading" style={{ marginTop: 0 }}>Spring pricing</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 16 }}>
-          Auto-apply a Stripe coupon to the first N paying signups. The discounted price shows on the public landing page until all seats are claimed.
+          Auto-apply a Stripe coupon to the first N paying signups, marketed as a Spring pricing promotion. The discounted price shows on the public landing page until all seats are claimed.
         </p>
         <p className="hint" style={{ marginTop: 0 }}>
           <strong style={{ color: 'var(--text)' }}>{seatsUsed}</strong> of <strong style={{ color: 'var(--text)' }}>{seats}</strong> seats claimed · <strong style={{ color: 'var(--text)' }}>{seatsLeft}</strong> remaining
@@ -12544,7 +12607,7 @@ function SiteSettingsSection({ token }) {
           type="text"
           value={coupon}
           onChange={(e) => setCoupon(e.target.value)}
-          placeholder="e.g. AbCdEfGh — leave blank to disable founder pricing"
+          placeholder="e.g. AbCdEfGh — leave blank to disable spring pricing"
         />
         <span className="hint" style={{ display: 'block', marginTop: 6 }}>
           Create the coupon in your Stripe dashboard (Coupons → New), set duration to "Forever" and the amount off to the difference between your listed and founder price. Paste its ID here.
@@ -12560,7 +12623,7 @@ function SiteSettingsSection({ token }) {
             />
           </div>
           <div>
-            <label>Founder price ($/mo)</label>
+            <label>Spring price ($/mo)</label>
             <input
               type="number" min="0" step="1"
               value={founderPrice}
@@ -12674,9 +12737,9 @@ function PlatformOverviewSection({ token }) {
           <div className="subvalue">signups</div>
         </div>
         <div className="stat-card">
-          <div className="label">Founder seats claimed</div>
+          <div className="label">Spring seats claimed</div>
           <div className="value">{c.founder_seats_used}</div>
-          <div className="subvalue">orgs locked into founder pricing</div>
+          <div className="subvalue">orgs locked into spring pricing</div>
         </div>
       </div>
 
