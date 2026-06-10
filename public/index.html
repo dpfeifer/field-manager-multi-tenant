@@ -339,6 +339,15 @@
 
     /* Auth screens */
     .auth-shell { max-width: 480px; margin: 80px auto; padding: 0 16px; }
+    .auth-back-link {
+      display: block; margin: 24px auto 0;
+      background: none; border: none;
+      font-family: inherit; font-size: 13px;
+      color: var(--text-muted); cursor: pointer;
+      padding: 6px 12px;
+      transition: color 0.15s;
+    }
+    .auth-back-link:hover { color: var(--text); text-decoration: underline; }
     .card {
       background: var(--card);
       border-radius: 16px;
@@ -5678,6 +5687,7 @@ function AuthShell({ onSession }) {
         </div>
         {mode === 'login' ? <LoginForm onSuccess={onSession} /> : <SignupForm onSuccess={onSession} />}
       </div>
+      <button className="auth-back-link" onClick={() => navigate('/')}>← Back to Field Manager</button>
     </div>
   );
 }
