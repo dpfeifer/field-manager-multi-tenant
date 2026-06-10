@@ -31,6 +31,7 @@ const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
 const { getSystemSettings } = require('./utils/systemSettings');
+const { query } = require('./config/db');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -123,6 +124,65 @@ gtag('config', '${measurementId}');
 `;
 }
 
+function escapeHtmlAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Build invoice-specific social meta so a shared /i/<id> link does not
+// show the big landing-page hero image. Falls back to neutral copy if
+// the invoice can't be resolved.
+async function invoiceMetaForPath(pathname) {
+  const m = pathname.match(/^\/i\/([0-9a-f-]{36})$/i);
+  if (!m) return null;
+  try {
+    const { rows } = await query(
+      `SELECT i.invoice_number,
+              o.name AS organization_name,
+              s.company_name
+       FROM invoices i
+       JOIN organizations o ON o.id = i.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = i.organization_id
+       WHERE i.id = $1
+         AND i.deleted_at IS NULL
+         AND i.status IN ('sent', 'paid')
+       LIMIT 1`,
+      [m[1]]
+    );
+    if (rows.length === 0) {
+      return { title: 'Invoice — Field Manager', description: 'View and pay your invoice.' };
+    }
+    const r = rows[0];
+    const company = r.company_name || r.organization_name || 'Field Manager';
+    return {
+      title: `Invoice #${r.invoice_number} from ${company}`,
+      description: 'Tap to view and pay your invoice.',
+    };
+  } catch (err) {
+    return { title: 'Invoice — Field Manager', description: 'View and pay your invoice.' };
+  }
+}
+
+function applyInvoiceMeta(html, meta) {
+  if (!meta) return html;
+  const t = escapeHtmlAttr(meta.title);
+  const d = escapeHtmlAttr(meta.description);
+  return html
+    // Title swap (browser tab + SEO)
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>${t}</title>`)
+    // OG meta swaps
+    .replace(/<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${t}" />`)
+    .replace(/<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${d}" />`)
+    // Strip the big hero image so previews fall back to text + favicon
+    .replace(/<meta property="og:image[^"]*" content="[^"]*"\s*\/?>/g, '')
+    // Twitter card: drop to summary (small icon) instead of summary_large_image
+    .replace(/<meta name="twitter:card" content="[^"]*"\s*\/?>/, '<meta name="twitter:card" content="summary" />')
+    .replace(/<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${t}" />`)
+    .replace(/<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${d}" />`)
+    .replace(/<meta name="twitter:image" content="[^"]*"\s*\/?>/, '');
+}
+
 async function serveIndex(req, res) {
   let pixelId = null;
   let ga4Id = null;
@@ -131,7 +191,9 @@ async function serveIndex(req, res) {
     pixelId = settings.meta_pixel_id || null;
     ga4Id = settings.ga4_measurement_id || null;
   } catch (err) { /* defaults already null */ }
-  const html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', metaPixelScript(pixelId) + ga4Script(ga4Id));
+  let html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', metaPixelScript(pixelId) + ga4Script(ga4Id));
+  const invoiceMeta = await invoiceMetaForPath(req.path);
+  if (invoiceMeta) html = applyInvoiceMeta(html, invoiceMeta);
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);
