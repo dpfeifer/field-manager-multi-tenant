@@ -11950,10 +11950,13 @@ function FeatureRow({ enabled, onToggle, label, description }) {
 
 function ProfileView({ session, onSessionUpdate }) {
   const [name, setName] = useState(session.user.name || '');
+  const [email, setEmail] = useState(session.user.email || '');
+  const [emailPassword, setEmailPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nameBusy, setNameBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
   const [pwBusy, setPwBusy] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -11976,6 +11979,23 @@ function ProfileView({ session, onSessionUpdate }) {
       setSuccess('Name updated.');
     } catch (err) { setError(err.message); }
     finally { setNameBusy(false); }
+  }
+
+  async function saveEmail(e) {
+    e.preventDefault();
+    setError(null); setSuccess(null);
+    if (!emailPassword) { setError('Enter your current password to confirm the email change.'); return; }
+    setEmailBusy(true);
+    try {
+      const updated = await apiRequest('/api/auth/me', {
+        method: 'PUT', slug: session.slug, token: session.token,
+        body: { email, current_password: emailPassword },
+      });
+      onSessionUpdate({ ...session, user: { ...session.user, email: updated.email } });
+      setEmailPassword('');
+      setSuccess('Email updated.');
+    } catch (err) { setError(err.message); }
+    finally { setEmailBusy(false); }
   }
 
   async function changePassword(e) {
@@ -12010,8 +12030,6 @@ function ProfileView({ session, onSessionUpdate }) {
         <form onSubmit={saveName}>
           <label>Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} />
-          <label>Email</label>
-          <input value={session.user.email} disabled />
           <label>Role</label>
           <input value={session.user.role} disabled />
           <label>Organization</label>
@@ -12019,6 +12037,33 @@ function ProfileView({ session, onSessionUpdate }) {
           <div className="form-actions">
             <button type="submit" className="primary" disabled={nameBusy}>
               {nameBusy ? 'Saving...' : 'Save name'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Change email</div>
+        <form onSubmit={saveEmail}>
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <label>Current password <span className="hint">(confirms it's you)</span></label>
+          <input
+            type="password"
+            value={emailPassword}
+            onChange={(e) => setEmailPassword(e.target.value)}
+            autoComplete="current-password"
+            required={email !== session.user.email}
+            disabled={email === session.user.email}
+          />
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={emailBusy || email === session.user.email}>
+              {emailBusy ? 'Saving...' : 'Save email'}
             </button>
           </div>
         </form>

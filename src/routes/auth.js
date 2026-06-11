@@ -53,12 +53,14 @@ router.put('/me', requireAuth, async (req, res, next) => {
   const body = req.body || {};
   const wantsPasswordChange = Object.prototype.hasOwnProperty.call(body, 'new_password');
   const wantsNameChange = Object.prototype.hasOwnProperty.call(body, 'name');
+  const wantsEmailChange = Object.prototype.hasOwnProperty.call(body, 'email');
 
-  if (!wantsPasswordChange && !wantsNameChange) {
+  if (!wantsPasswordChange && !wantsNameChange && !wantsEmailChange) {
     return res.status(400).json({ error: 'Nothing to update' });
   }
 
   try {
+    // Password change requires the current password.
     if (wantsPasswordChange) {
       if (!body.current_password || !body.new_password) {
         return res.status(400).json({ error: 'current_password and new_password are required' });
@@ -80,6 +82,44 @@ router.put('/me', requireAuth, async (req, res, next) => {
         'UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1',
         [req.user.sub, newHash]
       );
+    }
+
+    // Email change also requires the current password (so a hijacked
+    // session can't lock the rightful owner out).
+    if (wantsEmailChange) {
+      const newEmail = String(body.email || '').trim().toLowerCase();
+      if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+        return res.status(400).json({ error: 'Please enter a valid email address.' });
+      }
+      if (!body.current_password) {
+        return res.status(400).json({ error: 'current_password is required to change email' });
+      }
+      const { rows: meRows } = await query(
+        'SELECT password_hash, email, organization_id FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+        [req.user.sub]
+      );
+      if (meRows.length === 0) return res.status(404).json({ error: 'Not found' });
+      const me = meRows[0];
+      if (newEmail !== me.email) {
+        const ok = await bcrypt.compare(body.current_password, me.password_hash);
+        if (!ok) return res.status(401).json({ error: 'Current password is incorrect' });
+
+        const conflict = await query(
+          `SELECT 1 FROM users
+           WHERE organization_id = $1 AND email = $2 AND id <> $3 AND deleted_at IS NULL
+           LIMIT 1`,
+          [me.organization_id, newEmail, req.user.sub]
+        );
+        if (conflict.rows.length > 0) {
+          return res.status(409).json({ error: 'Another teammate is already using that email.' });
+        }
+        await query(
+          `UPDATE users
+           SET email = $2, email_verified_at = NULL, updated_at = NOW()
+           WHERE id = $1`,
+          [req.user.sub, newEmail]
+        );
+      }
     }
 
     if (wantsNameChange) {
