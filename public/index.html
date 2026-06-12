@@ -10616,18 +10616,25 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   }, [session.slug, session.token]);
 
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [draftQuotesCount, setDraftQuotesCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [b, m, c] = await Promise.all([
+        const [b, m, c, q] = await Promise.all([
           apiRequest('/api/billing/status', { slug: session.slug, token: session.token }),
           apiRequest('/api/auth/me', { slug: session.slug, token: session.token }),
           apiRequest('/api/booking-requests/count', { slug: session.slug, token: session.token })
             .catch(() => ({ pending: 0 })),
+          apiRequest('/api/quotes/count', { slug: session.slug, token: session.token })
+            .catch(() => ({ draft: 0 })),
         ]);
-        if (!cancelled) { setBilling(b); setMe(m); setPendingRequestsCount(c.pending || 0); }
+        if (!cancelled) {
+          setBilling(b); setMe(m);
+          setPendingRequestsCount(c.pending || 0);
+          setDraftQuotesCount(q.draft || 0);
+        }
       } catch (err) {
         console.error('appshell load failed', err);
       }
@@ -10733,7 +10740,12 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
           </button>
         )}
         {['admin', 'lead'].includes(session.user.role) && features.quotes && (
-          <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}><Icon name="quotes" />Quotes</button>
+          <button className={view === 'quotes' ? 'active' : ''} onClick={() => navigate('/quotes')}>
+            <Icon name="quotes" />Quotes
+            {draftQuotesCount > 0 && (
+              <span className="nav-badge">{draftQuotesCount}</span>
+            )}
+          </button>
         )}
         {session.user.role === 'admin' && (isFree || features.reports) && (
           <button
@@ -10761,7 +10773,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         )}
       </div>
       <div className="content">
-        {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} />}
+        {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} draftQuotesCount={draftQuotesCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} defaultAddToDraft={!!(me && me.auto_append_to_draft)} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && features.requests && <RequestsView session={session} />}
@@ -10796,6 +10808,7 @@ const DEFAULT_DASHBOARD_WIDGETS = [
   { id: 'overdue', enabled: true },
   { id: 'outstanding', enabled: true },
   { id: 'pending_requests', enabled: true },
+  { id: 'draft_quotes', enabled: true },
   { id: 'quick_actions', enabled: true },
   { id: 'top_customers', enabled: false },
 ];
@@ -11072,6 +11085,19 @@ function DashboardWidgetPendingRequests({ ctx }) {
   );
 }
 
+function DashboardWidgetDraftQuotes({ ctx }) {
+  const { draftQuotesCount, quotesUsable } = ctx;
+  if (!quotesUsable || !draftQuotesCount) return null;
+  return (
+    <div className="dash-pending-requests">
+      <div>
+        <strong>{draftQuotesCount}</strong> draft {draftQuotesCount === 1 ? 'quote' : 'quotes'} waiting to send
+      </div>
+      <button className="primary" onClick={() => navigate('/quotes')}>Follow up</button>
+    </div>
+  );
+}
+
 function DashboardWidgetQuickActions({ ctx }) {
   const { terms, invoicesUsable, quotesUsable } = ctx;
   return (
@@ -11132,11 +11158,12 @@ const DASHBOARD_WIDGET_REGISTRY = {
   overdue: { label: 'Overdue', help: 'Past-due occurrences from the last 90 days. Hidden when empty.', render: DashboardWidgetOverdue },
   outstanding: { label: 'Outstanding invoices', help: 'Unpaid sent invoices. Hidden when none.', render: DashboardWidgetOutstanding },
   pending_requests: { label: 'Pending booking requests', help: 'Banner with count + Review button. Hidden when none.', render: DashboardWidgetPendingRequests },
+  draft_quotes: { label: 'Draft quotes', help: 'Banner with count of unsent draft quotes + Follow up button. Hidden when none.', render: DashboardWidgetDraftQuotes },
   quick_actions: { label: 'Quick actions', help: 'Buttons to start a new job, customer, invoice, or quote.', render: DashboardWidgetQuickActions },
   top_customers: { label: 'Top customers', help: 'Highest lifetime paid totals.', render: DashboardWidgetTopCustomers },
 };
 
-function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
+function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, features = {} }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -11271,6 +11298,7 @@ function DashboardView({ session, me, pendingRequestsCount, features = {} }) {
     outstandingInvoices, outstandingTotal, weekRevenue, next7DaysProjected,
     newCustomersThisWeek,
     pendingRequestsCount: pendingRequestsCount || 0,
+    draftQuotesCount: draftQuotesCount || 0,
     teamNotes, refreshTeamNotes,
     features, isFree,
     invoicesUsable: !isFree && features.invoices,

@@ -46,6 +46,18 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/count', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT COUNT(*)::int AS draft
+       FROM quotes
+       WHERE organization_id = $1 AND deleted_at IS NULL AND status = 'draft'`,
+      [req.organization.id]
+    );
+    res.json({ draft: rows[0].draft });
+  } catch (err) { next(err); }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
