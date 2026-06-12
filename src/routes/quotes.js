@@ -174,6 +174,25 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   }
 });
 
+// Used by the "Copy link" / "View" buttons so a draft becomes publicly
+// visible the moment the operator shares it — same auto-bump that
+// send-email applies. Idempotent for already-sent quotes.
+router.post('/:id/mark-sent', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, status FROM quotes
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+      [req.params.id, req.organization.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const quote = rows[0];
+    if (quote.status === 'draft') {
+      await query("UPDATE quotes SET status = 'sent', updated_at = NOW() WHERE id = $1", [quote.id]);
+    }
+    res.json({ ok: true, status: quote.status === 'draft' ? 'sent' : quote.status });
+  } catch (err) { next(err); }
+});
+
 router.post('/:id/send-email', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
     const { rows } = await query(

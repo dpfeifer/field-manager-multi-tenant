@@ -8801,15 +8801,32 @@ function QuotesView({ session, features = { invoices: true } }) {
   const canMutate = ['admin', 'lead'].includes(session.user.role);
   const [copiedQuoteId, setCopiedQuoteId] = useState(null);
 
-  async function copyQuoteLink(quoteId) {
-    const url = `${window.location.origin}/q/${quoteId}`;
+  async function ensureSent(q) {
+    if (q.status !== 'draft') return;
+    await apiRequest(`/api/quotes/${q.id}/mark-sent`, {
+      method: 'POST', slug: session.slug, token: session.token,
+    });
+    await refresh();
+  }
+
+  async function copyQuoteLink(q) {
+    const url = `${window.location.origin}/q/${q.id}`;
     try {
+      await ensureSent(q);
       await navigator.clipboard.writeText(url);
-      setCopiedQuoteId(quoteId);
-      setTimeout(() => setCopiedQuoteId((curr) => (curr === quoteId ? null : curr)), 2000);
-    } catch {
+      setCopiedQuoteId(q.id);
+      setTimeout(() => setCopiedQuoteId((curr) => (curr === q.id ? null : curr)), 2000);
+    } catch (err) {
+      if (err && err.message) { setError(err.message); return; }
       window.prompt('Copy this link:', url);
     }
+  }
+
+  async function viewQuoteLink(q) {
+    try {
+      await ensureSent(q);
+      navigate(`/q/${q.id}?from=app`);
+    } catch (err) { setError(err.message); }
   }
 
   function exportQuotes() {
@@ -9081,14 +9098,10 @@ function QuotesView({ session, features = { invoices: true } }) {
                 {canMutate && (
                   <div className="actions">
                     <button className="primary" onClick={() => emailQuote(q)}>Email</button>
-                    {(q.status === 'sent' || q.status === 'accepted' || q.status === 'declined') && (
-                      <button className="secondary" onClick={() => copyQuoteLink(q.id)}>
-                        {copiedQuoteId === q.id ? 'Copied!' : 'Copy link'}
-                      </button>
-                    )}
-                    {(q.status === 'sent' || q.status === 'accepted' || q.status === 'declined') && (
-                      <button className="secondary" onClick={() => navigate(`/q/${q.id}?from=app`)}>View</button>
-                    )}
+                    <button className="secondary" onClick={() => copyQuoteLink(q)}>
+                      {copiedQuoteId === q.id ? 'Copied!' : 'Copy link'}
+                    </button>
+                    <button className="secondary" onClick={() => viewQuoteLink(q)}>View</button>
                     {!q.customer_id && (
                       <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to {terms.customerLower}</button>
                     )}
