@@ -20,7 +20,7 @@ router.get('/', async (req, res, next) => {
               service_description, preferred_date, preferred_time_window, preferred_slots, notes,
               referred_by,
               status, declined_reason,
-              created_customer_id, created_job_id,
+              created_customer_id, created_job_id, created_quote_id,
               created_at, accepted_at, declined_at
        FROM booking_requests
        WHERE ${where}
@@ -52,39 +52,53 @@ router.post('/:id/accept', requireRole('admin', 'lead'), async (req, res, next) 
     const br = reqRow.rows[0];
     if (br.status !== 'pending') return res.status(400).json({ error: `Request is already ${br.status}` });
 
-    const { first_name, last_name } = splitName(br.requester_name);
-    const customerInsert = await query(
-      `INSERT INTO customers
-        (organization_id, first_name, last_name, phone, email, address, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id`,
-      [req.organization.id, first_name, last_name, br.requester_phone, br.requester_email, br.requester_address, br.notes]
-    );
-    const customerId = customerInsert.rows[0].id;
+    // Roll their submitted notes + any preferred-date hints into the
+    // quote's notes field so the operator sees the full context.
+    const noteParts = [];
+    if (br.notes) noteParts.push(br.notes);
+    if (br.preferred_date) {
+      const windowSuffix = br.preferred_time_window ? ` (${br.preferred_time_window})` : '';
+      noteParts.push(`Preferred date: ${br.preferred_date}${windowSuffix}`);
+    }
+    if (Array.isArray(br.preferred_slots) && br.preferred_slots.length > 0) {
+      const formatted = br.preferred_slots
+        .filter((s) => s && s.date)
+        .map((s) => `• ${s.date}${s.window ? ` (${s.window})` : ''}`)
+        .join('\n');
+      if (formatted) noteParts.push(`Preferred slots:\n${formatted}`);
+    }
+    if (br.referred_by) noteParts.push(`Referred by: ${br.referred_by}`);
+    const combinedNotes = noteParts.join('\n\n') || null;
 
-    const jobDate = br.preferred_date || new Date().toISOString().slice(0, 10);
-    const jobTitle = br.service_description.length > 80
-      ? br.service_description.slice(0, 80) + '…'
-      : br.service_description;
-    const jobInsert = await query(
-      `INSERT INTO jobs
-        (organization_id, customer_id, title, description, type, date)
-       VALUES ($1, $2, $3, $4, 'single', $5)
+    const quoteInsert = await query(
+      `INSERT INTO quotes
+        (organization_id, customer_id, description, notes, line_items, status,
+         prospect_name, prospect_email, prospect_phone, prospect_address)
+       VALUES ($1, NULL, $2, $3, '[]'::jsonb, 'draft',
+               $4, $5, $6, $7)
        RETURNING id`,
-      [req.organization.id, customerId, jobTitle, br.service_description, jobDate]
+      [
+        req.organization.id,
+        br.service_description,
+        combinedNotes,
+        br.requester_name,
+        br.requester_email,
+        br.requester_phone,
+        br.requester_address,
+      ]
     );
-    const jobId = jobInsert.rows[0].id;
+    const quoteId = quoteInsert.rows[0].id;
 
     await query(
       `UPDATE booking_requests
        SET status = 'accepted',
-           created_customer_id = $2, created_job_id = $3,
+           created_quote_id = $2,
            accepted_at = NOW(), updated_at = NOW()
        WHERE id = $1`,
-      [br.id, customerId, jobId]
+      [br.id, quoteId]
     );
 
-    res.json({ ok: true, customer_id: customerId, job_id: jobId });
+    res.json({ ok: true, quote_id: quoteId });
   } catch (err) { next(err); }
 });
 

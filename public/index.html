@@ -6483,7 +6483,7 @@ function RequestsView({ session }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   async function accept(id) {
-    if (!confirm(`Accept this request? This will create a new ${terms.customerLower} and ${terms.jobLower}.`)) return;
+    if (!confirm(`Accept this request? This will create a draft quote with the prospect's info — you can convert them to a ${terms.customerLower} later.`)) return;
     setBusy(true); setError(null);
     try {
       await apiRequest(`/api/booking-requests/${id}/accept`, {
@@ -6525,7 +6525,7 @@ function RequestsView({ session }) {
         <h2>Requests</h2>
       </div>
       <p className="subtitle" style={{ marginTop: -8, marginBottom: 16 }}>
-        Booking requests submitted by visitors to your public link. Accept to create a {terms.customerLower} and {terms.jobLower}.
+        Booking requests submitted by visitors to your public link. Accept to start a draft quote with the prospect's info.
       </p>
       <div className="form-card" style={{ marginBottom: 16 }}>
         <label style={{ marginTop: 0 }}>Your public booking link</label>
@@ -6638,9 +6638,13 @@ function RequestsView({ session }) {
                 {r.status === 'declined' && r.declined_reason && (
                   <div className="secondary-meta" style={{ fontStyle: 'italic' }}>Decline note: {r.declined_reason}</div>
                 )}
-                {r.status === 'accepted' && r.created_job_id && (
+                {r.status === 'accepted' && (r.created_quote_id || r.created_job_id) && (
                   <div className="secondary-meta">
-                    Created <button className="link-button" onClick={() => navigate('/jobs')}>{terms.jobLower} ↗</button>
+                    {r.created_quote_id ? (
+                      <>Created <button className="link-button" onClick={() => navigate('/quotes')}>quote ↗</button></>
+                    ) : (
+                      <>Created <button className="link-button" onClick={() => navigate('/jobs')}>{terms.jobLower} ↗</button></>
+                    )}
                   </div>
                 )}
                 {decliningId === r.id && (
