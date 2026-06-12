@@ -9101,7 +9101,6 @@ function QuotesView({ session, features = { invoices: true } }) {
                     <button className="secondary" onClick={() => copyQuoteLink(q)}>
                       {copiedQuoteId === q.id ? 'Copied!' : 'Copy link'}
                     </button>
-                    <button className="secondary" onClick={() => viewQuoteLink(q)}>View</button>
                     {!q.customer_id && (
                       <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to {terms.customerLower}</button>
                     )}
@@ -9113,8 +9112,12 @@ function QuotesView({ session, features = { invoices: true } }) {
                         <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create {terms.jobLower}</button>
                       </>
                     )}
-                    <button className="secondary" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
-                    <button className="danger" onClick={() => deleteQuote(q.id)}>Delete</button>
+                    <div className="inv-util-break" aria-hidden="true" />
+                    <div className="inv-util-group">
+                      <button className="inv-util" onClick={() => viewQuoteLink(q)}>View</button>
+                      <button className="inv-util" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
+                      <button className="inv-util inv-util-danger" onClick={() => deleteQuote(q.id)}>Delete</button>
+                    </div>
                   </div>
                 )}
               </div>
