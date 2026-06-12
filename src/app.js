@@ -164,6 +164,37 @@ async function invoiceMetaForPath(pathname) {
   }
 }
 
+// Same idea for /q/<id> — the public quote page. Avoids the landing-page
+// hero leaking into Messages/WhatsApp previews when a quote link is shared.
+async function quoteMetaForPath(pathname) {
+  const m = pathname.match(/^\/q\/([0-9a-f-]{36})$/i);
+  if (!m) return null;
+  try {
+    const { rows } = await query(
+      `SELECT o.name AS organization_name, s.company_name
+       FROM quotes q
+       JOIN organizations o ON o.id = q.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = q.organization_id
+       WHERE q.id = $1
+         AND q.deleted_at IS NULL
+         AND q.status IN ('sent', 'accepted', 'declined')
+       LIMIT 1`,
+      [m[1]]
+    );
+    if (rows.length === 0) {
+      return { title: 'Quote — Field Manager', description: 'View and respond to your quote.' };
+    }
+    const r = rows[0];
+    const company = r.company_name || r.organization_name || 'Field Manager';
+    return {
+      title: `Quote from ${company}`,
+      description: 'Tap to view the estimate and accept or decline.',
+    };
+  } catch (err) {
+    return { title: 'Quote — Field Manager', description: 'View and respond to your quote.' };
+  }
+}
+
 // Same idea for /book/<slug> — the public booking form. We surface the
 // company name so a shared link reads like "Book a service with Acme
 // Lawn Care" instead of the generic landing-page social preview.
@@ -221,7 +252,9 @@ async function serveIndex(req, res) {
     ga4Id = settings.ga4_measurement_id || null;
   } catch (err) { /* defaults already null */ }
   let html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', metaPixelScript(pixelId) + ga4Script(ga4Id));
-  const social = (await invoiceMetaForPath(req.path)) || (await bookingMetaForPath(req.path));
+  const social = (await invoiceMetaForPath(req.path))
+    || (await quoteMetaForPath(req.path))
+    || (await bookingMetaForPath(req.path));
   if (social) html = applySocialMeta(html, social);
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');

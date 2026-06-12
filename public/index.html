@@ -8799,6 +8799,18 @@ function QuotesView({ session, features = { invoices: true } }) {
   const [sort, setSort] = useState('newest');
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
+  const [copiedQuoteId, setCopiedQuoteId] = useState(null);
+
+  async function copyQuoteLink(quoteId) {
+    const url = `${window.location.origin}/q/${quoteId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedQuoteId(quoteId);
+      setTimeout(() => setCopiedQuoteId((curr) => (curr === quoteId ? null : curr)), 2000);
+    } catch {
+      window.prompt('Copy this link:', url);
+    }
+  }
 
   function exportQuotes() {
     const headers = ['recipient', 'is_prospect', 'description', 'status', 'total', 'created_at'];
@@ -9069,6 +9081,14 @@ function QuotesView({ session, features = { invoices: true } }) {
                 {canMutate && (
                   <div className="actions">
                     <button className="primary" onClick={() => emailQuote(q)}>Email</button>
+                    {(q.status === 'sent' || q.status === 'accepted' || q.status === 'declined') && (
+                      <button className="secondary" onClick={() => copyQuoteLink(q.id)}>
+                        {copiedQuoteId === q.id ? 'Copied!' : 'Copy link'}
+                      </button>
+                    )}
+                    {(q.status === 'sent' || q.status === 'accepted' || q.status === 'declined') && (
+                      <button className="secondary" onClick={() => navigate(`/q/${q.id}?from=app`)}>View</button>
+                    )}
                     {!q.customer_id && (
                       <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to {terms.customerLower}</button>
                     )}
@@ -13750,6 +13770,230 @@ function PublicInvoiceView({ id }) {
   );
 }
 
+function PublicQuoteView({ id }) {
+  const [quote, setQuote] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [showDecline, setShowDecline] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/public/quotes/${id}`);
+      if (!res.ok) {
+        setError(res.status === 404 ? 'Quote not found.' : `Error ${res.status}`);
+        return;
+      }
+      const data = await res.json();
+      setQuote(data);
+      document.title = `Quote — ${data.company_name || data.organization_name}`;
+    } catch (err) { setError(err.message); }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function accept() {
+    if (!confirm('Accept this quote? The business will be notified and will follow up to schedule.')) return;
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch(`/api/public/quotes/${id}/accept`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Error ${res.status}`);
+      }
+      await load();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  async function submitDecline() {
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch(`/api/public/quotes/${id}/decline`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: declineReason }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Error ${res.status}`);
+      }
+      setShowDecline(false); setDeclineReason('');
+      await load();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  if (error && !quote) {
+    return (
+      <div className="public-shell">
+        <div className="invoice-doc">
+          <h1>Quote unavailable</h1>
+          <p className="subtitle">{error}</p>
+        </div>
+      </div>
+    );
+  }
+  if (!quote) {
+    return <div className="public-shell"><div className="invoice-doc">Loading...</div></div>;
+  }
+
+  const total = (quote.line_items || []).reduce((s, li) => s + (parseFloat(li.amount) || 0), 0);
+  const companyName = quote.company_name || quote.organization_name;
+  const recipientName = quote.customer_business_name
+    || [quote.customer_first_name, quote.customer_last_name].filter(Boolean).join(' ')
+    || quote.prospect_name
+    || '';
+  const recipientEmail = quote.customer_email || quote.prospect_email;
+  const recipientPhone = quote.customer_phone || quote.prospect_phone;
+  const recipientAddress = quote.customer_address || quote.prospect_address;
+
+  const fromApp = (typeof window !== 'undefined') &&
+    new URLSearchParams(window.location.search).get('from') === 'app';
+
+  function goBack() {
+    if (window.history.length > 1) window.history.back();
+    else navigate('/quotes');
+  }
+
+  return (
+    <div className="public-shell">
+      {fromApp && (
+        <div style={{ maxWidth: 800, margin: '12px auto 0', padding: '0 16px' }}>
+          <button
+            type="button"
+            className="link-button"
+            onClick={goBack}
+            style={{ fontSize: 14, padding: '6px 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >← Back</button>
+        </div>
+      )}
+      <div className="invoice-doc">
+        <header className="invoice-header">
+          <div className="company">
+            {quote.logo_url && <img src={quote.logo_url} alt={companyName} />}
+            <div>
+              <h1>{companyName}</h1>
+              {quote.company_address && <p className="addr">{quote.company_address}</p>}
+              {quote.company_phone && <p className="addr">{quote.company_phone}</p>}
+              {quote.company_email && <p className="addr">{quote.company_email}</p>}
+            </div>
+          </div>
+          <div className="meta">
+            <div className="num">Quote</div>
+            <div className="date">{formatDateString(quote.created_at.split('T')[0])}</div>
+            <span className={`badge ${quote.status}`}>{quote.status}</span>
+          </div>
+        </header>
+
+        <div className="invoice-meta-blocks">
+          <div>
+            <h3>Prepared for</h3>
+            <p>{recipientName || '—'}</p>
+            {recipientAddress && <p className="muted">{recipientAddress}</p>}
+            {recipientEmail && <p className="muted">{recipientEmail}</p>}
+            {recipientPhone && <p className="muted">{recipientPhone}</p>}
+          </div>
+          <div>
+            <h3>Status</h3>
+            <p style={{ textTransform: 'capitalize' }}>{quote.status}</p>
+          </div>
+        </div>
+
+        {quote.description && (
+          <div className="invoice-description">{quote.description}</div>
+        )}
+
+        <table className="invoice-items">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th className="r">Qty</th>
+              <th className="r">Rate</th>
+              <th className="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(quote.line_items || []).map((item, i) => (
+              <tr key={i}>
+                <td>{item.description}</td>
+                <td className="r">{item.quantity}</td>
+                <td className="r">{formatPrice(item.rate)}</td>
+                <td className="r">{formatPrice(item.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ marginTop: 12 }}>
+          <div className="invoice-total">Estimated total {formatPrice(total)}</div>
+        </div>
+
+        {quote.notes && (
+          <div style={{ marginTop: 24, padding: 16, background: 'var(--tinted)', borderRadius: 8, whiteSpace: 'pre-line', fontSize: 14 }}>
+            {quote.notes}
+          </div>
+        )}
+
+        {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
+
+        {quote.status === 'sent' && !showDecline && (
+          <div className="invoice-pay-cta no-print" style={{ marginTop: 24, textAlign: 'center', display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="primary"
+              onClick={accept}
+              disabled={busy}
+              style={{ padding: '14px 32px', fontSize: 16, fontWeight: 600, borderRadius: 10 }}
+            >
+              Accept quote
+            </button>
+            <button
+              className="secondary"
+              onClick={() => setShowDecline(true)}
+              disabled={busy}
+              style={{ padding: '14px 24px', fontSize: 15, borderRadius: 10 }}
+            >
+              Decline
+            </button>
+          </div>
+        )}
+
+        {quote.status === 'sent' && showDecline && (
+          <div className="no-print" style={{ marginTop: 24, padding: 16, background: 'var(--tinted)', borderRadius: 8 }}>
+            <label>Reason (optional)</label>
+            <textarea
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              rows={3}
+              placeholder="Anything you'd like them to know?"
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="danger" onClick={submitDecline} disabled={busy}>Confirm decline</button>
+              <button className="secondary" onClick={() => { setShowDecline(false); setDeclineReason(''); }} disabled={busy}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {quote.status === 'accepted' && (
+          <div className="no-print" style={{ marginTop: 24, padding: 16, background: '#e8f5e9', color: '#1b5e20', borderRadius: 8, textAlign: 'center', fontWeight: 500 }}>
+            You accepted this quote. {companyName} will follow up to schedule.
+          </div>
+        )}
+
+        {quote.status === 'declined' && (
+          <div className="no-print" style={{ marginTop: 24, padding: 16, background: 'var(--tinted)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)' }}>
+            You declined this quote.
+          </div>
+        )}
+
+        <div className="invoice-actions no-print">
+          <button className="secondary" onClick={() => window.print()}>Print or save as PDF</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StaffLoginForm({ onSession }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14388,6 +14632,8 @@ function App() {
 
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
+  const quoteMatch = path.match(/^\/q\/([^/]+)/);
+  if (quoteMatch) return <PublicQuoteView id={quoteMatch[1]} />;
   const bookMatch = path.match(/^\/book\/([^/]+)/);
   if (bookMatch) return <PublicBookingView slug={bookMatch[1].toLowerCase()} />;
   const profileMatch = path.match(/^\/o\/([^/]+)/);

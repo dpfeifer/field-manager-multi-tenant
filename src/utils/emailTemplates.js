@@ -99,6 +99,7 @@ function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, ta
 
 function quoteTemplate({ quote, org, settings, total, recipientName }) {
   const companyName = settings.company_name || org.name;
+  const quoteUrl = `${process.env.APP_URL || 'https://fieldmgr.com'}/q/${quote.id}`;
   const bodyHtml = `
     <p style="margin:0 0 8px; color:#6d6a64; font-size:14px;">Estimate from ${escapeHtml(companyName)}</p>
     <p style="margin:0 0 24px; color:#6d6a64; font-size:14px;">Hi ${escapeHtml(recipientName || 'there')}, here's the quote we discussed.</p>
@@ -124,14 +125,18 @@ function quoteTemplate({ quote, org, settings, total, recipientName }) {
 
     ${quote.notes ? `<p style="margin:24px 0; color:#6d6a64; font-size:14px; white-space:pre-line;">${escapeHtml(quote.notes)}</p>` : ''}
 
-    <p style="margin:24px 0 0; color:#6d6a64; font-size:14px;">Reply to this email to accept the quote or ask questions.</p>
+    <div style="margin-top:24px;">
+      <a href="${quoteUrl}" style="display:inline-block; background:#4a5e7a; color:#ffffff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:600; font-size:14px;">View &amp; respond</a>
+    </div>
+
+    <p style="margin:24px 0 0; color:#6d6a64; font-size:14px;">Open the link above to accept or decline. You can also reply to this email with questions.</p>
   `;
   const footerHtml = `
     ${escapeHtml(companyName)}${settings.address ? `<br/>${escapeHtml(settings.address)}` : ''}<br/>
     ${settings.phone ? escapeHtml(settings.phone) + ' · ' : ''}${settings.email ? escapeHtml(settings.email) : ''}
   `;
   const html = shellHTML({ heading: `Quote from ${companyName} — ${moneyUSD(total)}`, bodyHtml, footerHtml });
-  const text = `${companyName}\n\n${quote.description ? quote.description + '\n\n' : ''}Estimated total: ${moneyUSD(total)}\n\nReply to this email to accept or ask questions.\n`;
+  const text = `${companyName}\n\n${quote.description ? quote.description + '\n\n' : ''}Estimated total: ${moneyUSD(total)}\n\nView & respond: ${quoteUrl}\n`;
   return { subject: `Quote from ${companyName} — ${moneyUSD(total)}`, html, text };
 }
 

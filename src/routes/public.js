@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { sendEmail } = require('../utils/email');
 
 const router = express.Router();
@@ -251,5 +251,217 @@ router.get('/invoices/:id', async (req, res, next) => {
     res.json(rows[0]);
   } catch (err) { next(err); }
 });
+
+// Public quote viewer + accept/decline. Mirrors the invoice public flow:
+// only sent/accepted/declined quotes are visible (drafts stay private),
+// and accepting auto-promotes a prospect quote into a real customer so
+// the operator just sees a fully-converted record in the app.
+const QUOTE_PUBLIC_SELECT = `
+  SELECT
+    q.id, q.status, q.description, q.notes, q.line_items, q.created_at,
+    q.prospect_name, q.prospect_email, q.prospect_phone, q.prospect_address,
+    q.customer_id,
+    c.first_name AS customer_first_name,
+    c.last_name AS customer_last_name,
+    c.business_name AS customer_business_name,
+    c.email AS customer_email,
+    c.phone AS customer_phone,
+    c.address AS customer_address,
+    o.name AS organization_name,
+    s.company_name, s.logo_url,
+    s.address AS company_address,
+    s.phone AS company_phone,
+    s.email AS company_email
+  FROM quotes q
+  JOIN organizations o ON o.id = q.organization_id
+  LEFT JOIN customers c ON c.id = q.customer_id
+  LEFT JOIN organization_settings s ON s.organization_id = q.organization_id
+`;
+
+router.get('/quotes/:id', async (req, res, next) => {
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows } = await query(
+      `${QUOTE_PUBLIC_SELECT}
+       WHERE q.id = $1
+         AND q.deleted_at IS NULL
+         AND q.status IN ('sent', 'accepted', 'declined')
+       LIMIT 1`,
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+async function notifyOrgOfQuoteAction({ orgId, subject, html, text }) {
+  const { rows: settingsRows } = await query(
+    `SELECT s.email AS settings_email, s.company_name, o.name AS organization_name
+     FROM organizations o
+     LEFT JOIN organization_settings s ON s.organization_id = o.id
+     WHERE o.id = $1 LIMIT 1`,
+    [orgId]
+  );
+  const row = settingsRows[0] || {};
+  let notifyTo = row.settings_email;
+  if (!notifyTo) {
+    const { rows: adminRows } = await query(
+      `SELECT email FROM users WHERE organization_id = $1 AND role = 'admin' AND deleted_at IS NULL ORDER BY created_at LIMIT 1`,
+      [orgId]
+    );
+    notifyTo = adminRows[0] && adminRows[0].email;
+  }
+  if (!notifyTo) return;
+  sendEmail({ to: notifyTo, subject, html, text })
+    .catch((err) => console.warn('quote notification failed:', err.message));
+}
+
+router.post('/quotes/:id/accept', async (req, res, next) => {
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const result = await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `SELECT q.*, o.name AS organization_name, s.company_name
+         FROM quotes q
+         JOIN organizations o ON o.id = q.organization_id
+         LEFT JOIN organization_settings s ON s.organization_id = q.organization_id
+         WHERE q.id = $1 AND q.deleted_at IS NULL LIMIT 1`,
+        [id]
+      );
+      if (rows.length === 0) {
+        const err = new Error('Not found'); err.status = 404; throw err;
+      }
+      const quote = rows[0];
+      if (quote.status !== 'sent') {
+        const err = new Error(`Quote is already ${quote.status}`); err.status = 400; throw err;
+      }
+
+      // Auto-promote: a prospect quote becomes a real customer the moment
+      // the recipient accepts. The operator gets a notification with a
+      // ready-to-invoice record instead of a half-converted prospect.
+      let promotedCustomerId = null;
+      if (!quote.customer_id) {
+        const { first_name, last_name } = splitName(quote.prospect_name);
+        const ins = await client.query(
+          `INSERT INTO customers
+            (organization_id, first_name, last_name, phone, email, address)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id`,
+          [quote.organization_id, first_name || null, last_name || null,
+           quote.prospect_phone, quote.prospect_email, quote.prospect_address]
+        );
+        promotedCustomerId = ins.rows[0].id;
+        await client.query(
+          `UPDATE quotes SET
+             customer_id = $2,
+             prospect_name = NULL,
+             prospect_email = NULL,
+             prospect_phone = NULL,
+             prospect_address = NULL,
+             status = 'accepted',
+             updated_at = NOW()
+           WHERE id = $1`,
+          [quote.id, promotedCustomerId]
+        );
+      } else {
+        await client.query(
+          `UPDATE quotes SET status = 'accepted', updated_at = NOW() WHERE id = $1`,
+          [quote.id]
+        );
+      }
+      return { quote, promotedCustomerId };
+    });
+
+    const q = result.quote;
+    const orgDisplay = q.company_name || q.organization_name;
+    const accepterName = q.prospect_name
+      || [q.customer_first_name, q.customer_last_name].filter(Boolean).join(' ')
+      || 'A recipient';
+    const appUrl = process.env.APP_URL || 'https://fieldmgr.com';
+    const total = (q.line_items || []).reduce((sum, li) => sum + (parseFloat(li.amount) || 0), 0);
+    const promotedNote = result.promotedCustomerId
+      ? `<p style="margin:12px 0 0;">They were also added to your ${orgDisplay} customer list.</p>`
+      : '';
+    const html = `
+      <!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif; padding:24px; max-width:600px;">
+        <h2 style="margin:0 0 16px;">Quote accepted</h2>
+        <p style="margin:0 0 6px;"><strong>${escapeHtml(accepterName)}</strong> accepted your quote ($${total.toFixed(2)}).</p>
+        ${q.description ? `<p style="margin:12px 0 0;">${escapeHtml(q.description)}</p>` : ''}
+        ${promotedNote}
+        <p style="margin:24px 0 0;"><a href="${appUrl}/quotes" style="display:inline-block; background:#4a5e7a; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none;">Open in Field Manager</a></p>
+      </body></html>
+    `;
+    const text = `${accepterName} accepted your quote for ${orgDisplay} ($${total.toFixed(2)}).\n\n${q.description || ''}\n\nOpen: ${appUrl}/quotes`;
+    notifyOrgOfQuoteAction({
+      orgId: q.organization_id,
+      subject: `${accepterName} accepted your quote`,
+      html, text,
+    });
+
+    res.json({ ok: true, promoted_customer_id: result.promotedCustomerId });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/quotes/:id/decline', async (req, res, next) => {
+  const id = req.params.id;
+  if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Not found' });
+  const reason = (req.body && req.body.reason ? String(req.body.reason).trim().slice(0, 500) : '') || null;
+  try {
+    const { rows } = await query(
+      `SELECT q.id, q.status, q.organization_id, q.description, q.prospect_name,
+              c.first_name AS customer_first_name, c.last_name AS customer_last_name,
+              o.name AS organization_name, s.company_name
+       FROM quotes q
+       JOIN organizations o ON o.id = q.organization_id
+       LEFT JOIN customers c ON c.id = q.customer_id
+       LEFT JOIN organization_settings s ON s.organization_id = q.organization_id
+       WHERE q.id = $1 AND q.deleted_at IS NULL LIMIT 1`,
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const quote = rows[0];
+    if (quote.status !== 'sent') return res.status(400).json({ error: `Quote is already ${quote.status}` });
+
+    await query(
+      `UPDATE quotes SET status = 'declined', updated_at = NOW() WHERE id = $1`,
+      [id]
+    );
+
+    const orgDisplay = quote.company_name || quote.organization_name;
+    const declinerName = quote.prospect_name
+      || [quote.customer_first_name, quote.customer_last_name].filter(Boolean).join(' ')
+      || 'A recipient';
+    const appUrl = process.env.APP_URL || 'https://fieldmgr.com';
+    const html = `
+      <!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif; padding:24px; max-width:600px;">
+        <h2 style="margin:0 0 16px;">Quote declined</h2>
+        <p style="margin:0 0 6px;"><strong>${escapeHtml(declinerName)}</strong> declined your quote.</p>
+        ${quote.description ? `<p style="margin:12px 0 0;">${escapeHtml(quote.description)}</p>` : ''}
+        ${reason ? `<p style="margin:12px 0 0;"><strong>Reason:</strong><br/>${escapeHtml(reason).replace(/\n/g, '<br/>')}</p>` : ''}
+        <p style="margin:24px 0 0;"><a href="${appUrl}/quotes" style="display:inline-block; background:#4a5e7a; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none;">Open in Field Manager</a></p>
+      </body></html>
+    `;
+    const text = `${declinerName} declined your quote for ${orgDisplay}.${reason ? `\n\nReason: ${reason}` : ''}\n\nOpen: ${appUrl}/quotes`;
+    notifyOrgOfQuoteAction({
+      orgId: quote.organization_id,
+      subject: `${declinerName} declined your quote`,
+      html, text,
+    });
+
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+function splitName(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first_name: '', last_name: '' };
+  if (parts.length === 1) return { first_name: parts[0], last_name: '' };
+  return { first_name: parts[0], last_name: parts.slice(1).join(' ') };
+}
 
 module.exports = router;
