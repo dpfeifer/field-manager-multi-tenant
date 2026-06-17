@@ -106,7 +106,15 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.25.7/babel.min.js"></script>
+  <script>
+    // Force classic JSX runtime so compiled output uses React.createElement
+    // instead of `import { jsx } from "react/jsx-runtime"`. We load React as
+    // a UMD global, so the ESM import line breaks the page on load.
+    Babel.registerPreset('react-classic', {
+      presets: [[Babel.availablePresets['react'], { runtime: 'classic' }]],
+    });
+  </script>
   <style>
     :root {
       --bg: #f7f4ec;
@@ -4129,7 +4137,7 @@
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
+<script type="text/babel" data-presets="react-classic">
 const { useState, useEffect, useCallback, useRef } = React;
 
 const ICONS = {
