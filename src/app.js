@@ -135,10 +135,6 @@ function consentAndTrackingScript(pixelId, ga4Id) {
   function getConsent() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
   function setConsent(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
 
-  var choice = getConsent();
-  if (choice === 'granted') { loadAll(); return; }
-  if (choice === 'denied') { return; }
-
   function showBanner() {
     if (document.getElementById('fm-consent')) return;
     var bar = document.createElement('div');
@@ -158,13 +154,29 @@ function consentAndTrackingScript(pixelId, ga4Id) {
       '</div>';
     document.body.appendChild(bar);
     document.getElementById('fm-consent-accept').onclick = function () { setConsent('granted'); loadAll(); bar.remove(); };
-    document.getElementById('fm-consent-decline').onclick = function () { setConsent('denied'); bar.remove(); };
+    document.getElementById('fm-consent-decline').onclick = function () {
+      // Scripts loaded earlier this session can't be fully unloaded, so if
+      // the visitor is revoking a prior acceptance, reload to apply it.
+      var wasLoaded = !!(window.fbq || window.__fmGa4Loaded);
+      setConsent('denied');
+      bar.remove();
+      if (wasLoaded) location.reload();
+    };
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', showBanner);
-  } else {
-    showBanner();
+  // Persistent re-open hook for the footer "Cookie settings" link. Defined
+  // regardless of the stored choice so visitors can always revisit it.
+  window.fmOpenConsent = showBanner;
+
+  var choice = getConsent();
+  if (choice === 'granted') {
+    loadAll();
+  } else if (choice !== 'denied') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showBanner);
+    } else {
+      showBanner();
+    }
   }
 })();
 </script>

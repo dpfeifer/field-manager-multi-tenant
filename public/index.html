@@ -5271,6 +5271,7 @@ function LandingPage() {
           <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
           <span style={{ margin: '0 12px' }}>·</span>
           <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+          <CookieSettingsLink sep={12} />
           <span style={{ margin: '0 12px' }}>·</span>
           <a href="/staff">Staff</a>
         </div>
@@ -5479,6 +5480,7 @@ function SalesLandingPage() {
           <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
           <span style={{ margin: '0 8px' }}>·</span>
           <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+          <CookieSettingsLink sep={8} />
         </div>
         <p>© Field Manager</p>
       </footer>
@@ -5509,6 +5511,21 @@ const EDITORIAL_FAQ = [
   },
 ];
 
+// Re-opens the cookie/tracking consent banner so visitors can change a
+// prior choice without clearing browser data. window.fmOpenConsent is
+// defined by the injected consent manager (src/app.js) and only exists
+// when analytics/advertising trackers are actually configured, so the
+// link hides itself when there is nothing to manage.
+function CookieSettingsLink({ sep = 12 }) {
+  if (typeof window === 'undefined' || typeof window.fmOpenConsent !== 'function') return null;
+  return (
+    <span>
+      <span style={{ margin: `0 ${sep}px` }}>·</span>
+      <button className="link-button" onClick={() => window.fmOpenConsent()}>Cookie settings</button>
+    </span>
+  );
+}
+
 function LegalShell({ title, eyebrow, updated, children }) {
   return (
     <div className="landing landing-editorial">
@@ -5534,6 +5551,7 @@ function LegalShell({ title, eyebrow, updated, children }) {
           <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
           <span style={{ margin: '0 12px' }}>·</span>
           <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+          <CookieSettingsLink sep={12} />
         </div>
         <div style={{ marginTop: 16 }}>© Field Manager</div>
       </footer>
