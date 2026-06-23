@@ -87,40 +87,88 @@ app.use('/api', (req, res) => {
 // page without redeploying.
 const RAW_INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
 
-function metaPixelScript(pixelId) {
-  if (!pixelId) return '';
+// Consent-gated analytics/advertising loader (CIPA / prior-consent model).
+//
+// The Meta Pixel and GA4 are the exact technologies targeted by the CIPA
+// "wiretapping" suits, so we must NOT let them fire until the visitor has
+// affirmatively accepted. This injects a small vanilla-JS manager that:
+//   - loads the trackers immediately if consent was granted on a prior visit
+//   - loads nothing if consent was declined
+//   - otherwise shows a bottom banner and only loads them after Accept
+// The pixel/GA4 IDs are still configurable from the System page; we just
+// gate when their code runs. Returns '' when neither ID is set — no
+// trackers means no consent banner is needed.
+function consentAndTrackingScript(pixelId, ga4Id) {
+  if (!pixelId && !ga4Id) return '';
+  // JSON.stringify yields a quoted JS string literal or `null`, which is
+  // both XSS-safe inside the <script> and the exact runtime value we want.
+  const pixelLiteral = JSON.stringify(pixelId || null);
+  const ga4Literal = JSON.stringify(ga4Id || null);
   return `
-<!-- Meta Pixel -->
+<!-- Consent-gated analytics (CIPA prior-consent) -->
 <script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${pixelId}');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
-<!-- End Meta Pixel -->
-`;
-}
+(function () {
+  var PIXEL_ID = ${pixelLiteral};
+  var GA4_ID = ${ga4Literal};
+  var KEY = 'fm_consent';
 
-function ga4Script(measurementId) {
-  if (!measurementId) return '';
-  return `
-<!-- Google Analytics 4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${measurementId}"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${measurementId}');
+  function loadMetaPixel(id) {
+    if (!id || window.fbq) return;
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', id);
+    fbq('track', 'PageView');
+  }
+  function loadGA4(id) {
+    if (!id || window.__fmGa4Loaded) return;
+    window.__fmGa4Loaded = true;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', id);
+  }
+  function loadAll() { loadMetaPixel(PIXEL_ID); loadGA4(GA4_ID); }
+
+  function getConsent() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function setConsent(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+
+  var choice = getConsent();
+  if (choice === 'granted') { loadAll(); return; }
+  if (choice === 'denied') { return; }
+
+  function showBanner() {
+    if (document.getElementById('fm-consent')) return;
+    var bar = document.createElement('div');
+    bar.id = 'fm-consent';
+    bar.setAttribute('role', 'dialog');
+    bar.setAttribute('aria-live', 'polite');
+    bar.setAttribute('aria-label', 'Cookie and tracking consent');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#1f2937;color:#f9fafb;padding:16px 20px;box-shadow:0 -2px 12px rgba(0,0,0,.25);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    bar.innerHTML =
+      '<div style="max-width:1000px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between">' +
+        '<div style="flex:1 1 320px;min-width:240px">We use cookies and similar tracking technologies for analytics and advertising. These do not run until you accept. See our ' +
+          '<a href="/privacy" style="color:#93c5fd;text-decoration:underline">Privacy Policy</a>.</div>' +
+        '<div style="display:flex;gap:10px;flex-shrink:0">' +
+          '<button id="fm-consent-decline" type="button" style="cursor:pointer;border:1px solid #6b7280;background:transparent;color:#f9fafb;padding:9px 16px;border-radius:8px;font:inherit;font-weight:600">Decline</button>' +
+          '<button id="fm-consent-accept" type="button" style="cursor:pointer;border:0;background:#2563eb;color:#fff;padding:9px 18px;border-radius:8px;font:inherit;font-weight:600">Accept</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(bar);
+    document.getElementById('fm-consent-accept').onclick = function () { setConsent('granted'); loadAll(); bar.remove(); };
+    document.getElementById('fm-consent-decline').onclick = function () { setConsent('denied'); bar.remove(); };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showBanner);
+  } else {
+    showBanner();
+  }
+})();
 </script>
-<!-- End Google Analytics 4 -->
+<!-- End consent-gated analytics -->
 `;
 }
 
@@ -251,7 +299,7 @@ async function serveIndex(req, res) {
     pixelId = settings.meta_pixel_id || null;
     ga4Id = settings.ga4_measurement_id || null;
   } catch (err) { /* defaults already null */ }
-  let html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', metaPixelScript(pixelId) + ga4Script(ga4Id));
+  let html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', consentAndTrackingScript(pixelId, ga4Id));
   const social = (await invoiceMetaForPath(req.path))
     || (await quoteMetaForPath(req.path))
     || (await bookingMetaForPath(req.path));
