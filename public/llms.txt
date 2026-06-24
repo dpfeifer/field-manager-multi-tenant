@@ -2,7 +2,7 @@
 
 > Field Manager is a multi-tenant SaaS that helps small service businesses run their week — customers, recurring schedules, quotes, and invoices — without the bloat of enterprise field-service software.
 
-Field Manager is built by Drexler LLC and operated at https://fieldmgr.com. It targets one-person shops and family crews in service trades: lawn care, cleaning, handyman, pet care, painting, barber shops, pool service, photography, plumbing, catering, tutoring, construction, snow removal, mobile detailing, and similar.
+Field Manager is operated at https://fieldmgr.com. It targets one-person shops and family crews in service trades: lawn care, cleaning, handyman, pet care, painting, barber shops, pool service, photography, plumbing, catering, tutoring, construction, snow removal, mobile detailing, and similar.
 
 ## Positioning
 
