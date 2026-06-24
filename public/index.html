@@ -4009,6 +4009,11 @@
     .sales-quote-attr {
       font-size: 14px; color: var(--text-muted); margin: 16px 0 0;
     }
+    .sales-story-statement {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(20px, 2.4vw, 28px); line-height: 1.5;
+      letter-spacing: -0.015em; color: var(--text); margin: 0;
+    }
 
     .sales-pricing-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
@@ -5146,6 +5151,13 @@ function LandingPage() {
         </div>
       </header>
 
+      <section className="sales-section sales-story" data-reveal>
+        <p className="sales-eyebrow">Built by an operator</p>
+        <p className="sales-story-statement">
+          I run a lawn-care business, and I didn't build this for empire-sized fleets or franchisees — I built it for the person who answers their own phone, drives their own truck, and remembers the dog's name at every account they service.
+        </p>
+      </section>
+
       <section className="ed-chapters">
         <article className="ed-chapter" data-reveal>
           <div className="ed-chapter-body-col">
@@ -5195,14 +5207,6 @@ function LandingPage() {
             <ChapterMock kind="booking" />
           </div>
         </article>
-      </section>
-
-      <section className="sales-section sales-story" data-reveal>
-        <p className="sales-eyebrow">Built by an operator</p>
-        <blockquote className="sales-quote">
-          I run a lawn-care business, and I didn't build this for empire-sized fleets or franchisees — I built it for the person who answers their own phone, drives their own truck, and remembers the dog's name at every account they service. Every tool I tried was made for a 50-truck fleet, a dispatcher, and a sales call just to learn the price. Field Manager is the opposite. Small. Fast. ${Math.round((founder && founder.listed_price) || 29)}/mo flat, free until you scale. I use it on my own crew every day.
-        </blockquote>
-        <p className="sales-quote-attr">— Dustin, founder</p>
       </section>
 
       <ProcessFlowSection />
