@@ -6036,13 +6036,21 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
               {quotes.length === 0 ? (
                 <div className="list-empty">No quotes.</div>
               ) : quotes.map((q) => (
-                <div key={q.id} className="compact-row">
+                <div
+                  key={q.id}
+                  className="compact-row compact-row-clickable"
+                  onClick={() => navigate(`/quotes?open=${q.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/quotes?open=${q.id}`); } }}
+                >
                   <div className="info">
                     <div className="name">
                       {q.description || 'Quote'} <span className="price">{formatPrice(lineItemsTotal(q.line_items))}</span>
                     </div>
                     <div className="meta"><span className={`badge ${q.status}`}>{q.status}</span></div>
                   </div>
+                  <span className="compact-row-chevron">›</span>
                 </div>
               ))}
             </div>
@@ -9044,6 +9052,22 @@ function QuotesView({ session, features = { invoices: true } }) {
   }, [session.slug, session.token]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Honor ?open=<quoteId> — used by the customer-detail quote rows to open
+  // a specific quote for editing.
+  useEffect(() => {
+    if (quotes.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (!openId) return;
+    const target = quotes.find((q) => q.id === openId);
+    if (!target) return;
+    setEditing(target);
+    setMode('edit');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('open');
+    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+  }, [quotes]);
 
   async function createQuote(values) {
     setBusy(true); setError(null);
