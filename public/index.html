@@ -2438,9 +2438,13 @@
       .ed-nav-pricing { display: none; }
     }
     .ed-brand {
+      display: inline-flex; align-items: center; gap: 9px;
       font-family: var(--serif); font-weight: 600;
       font-size: 20px; letter-spacing: -0.01em;
       color: var(--text);
+    }
+    .ed-brand-icon {
+      width: 26px; height: 26px; display: block; flex-shrink: 0;
     }
     .ed-nav-actions { display: flex; align-items: center; gap: 18px; }
     .ed-nav-link {
@@ -5094,7 +5098,7 @@ function LandingPage() {
   return (
     <div className="landing landing-editorial">
       <nav className="ed-nav">
-        <div className="ed-brand">Field Manager</div>
+        <div className="ed-brand"><img src="/favicon.svg" alt="" className="ed-brand-icon" />Field Manager</div>
         <div className="ed-nav-actions">
           <button
             className="ed-nav-link ed-nav-pricing"
@@ -5307,7 +5311,7 @@ function SalesLandingPage() {
   return (
     <div className="landing sales-landing">
       <nav className="ed-nav">
-        <div className="ed-brand">Field Manager</div>
+        <div className="ed-brand"><img src="/favicon.svg" alt="" className="ed-brand-icon" />Field Manager</div>
         <div className="ed-nav-actions">
           <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
           <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
@@ -5515,7 +5519,7 @@ function LegalShell({ title, eyebrow, updated, children }) {
   return (
     <div className="landing landing-editorial">
       <nav className="ed-nav">
-        <button className="ed-brand" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Field Manager</button>
+        <button className="ed-brand" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}><img src="/favicon.svg" alt="" className="ed-brand-icon" />Field Manager</button>
         <div className="ed-nav-actions">
           <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
           <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
