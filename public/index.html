@@ -5800,6 +5800,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('jobs');
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -5850,6 +5851,48 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch (err) { setError(err.message); }
+  }
+
+  // Invoice actions — mirror the main invoice list so invoices are
+  // actionable straight from the customer view. Each re-fetches just this
+  // customer's invoices on success.
+  async function refreshInvoices() {
+    try {
+      const i = await apiRequest('/api/invoices', { slug: session.slug, token: session.token });
+      setInvoices(i.filter((x) => x.customer_id === customer.id));
+    } catch (err) { setError(err.message); }
+  }
+  async function invTransition(id, path) {
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${id}/${path}`, { method: 'POST', slug: session.slug, token: session.token });
+      await refreshInvoices();
+    } catch (err) { setError(err.message); }
+  }
+  async function invDelete(id) {
+    if (!confirm('Delete this invoice?')) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${id}`, { method: 'DELETE', slug: session.slug, token: session.token });
+      await refreshInvoices();
+    } catch (err) { setError(err.message); }
+  }
+  async function invCopyLink(invoiceId) {
+    const url = `${window.location.origin}/i/${invoiceId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(invoiceId);
+      setTimeout(() => setCopiedId((c) => (c === invoiceId ? null : c)), 2000);
+    } catch { window.prompt('Copy this link:', url); }
+  }
+  async function invEmail(inv) {
+    if (!confirm(`Email invoice #${inv.invoice_number} to ${inv.customer_email || 'the customer'}?`)) return;
+    setError(null);
+    try {
+      await apiRequest(`/api/invoices/${inv.id}/send-email`, { method: 'POST', slug: session.slug, token: session.token });
+      await refreshInvoices();
+      alert('Invoice emailed.');
     } catch (err) { setError(err.message); }
   }
 
@@ -5943,15 +5986,46 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
               {invoices.length === 0 ? (
                 <div className="list-empty">No invoices.</div>
               ) : invoices.map((inv) => (
-                <div key={inv.id} className="compact-row">
+                <div key={inv.id} className="row">
                   <div className="info">
                     <div className="name">
-                      Invoice #{inv.invoice_number} <span className="price">{formatPrice(lineItemsTotal(inv.line_items))}</span>
+                      Invoice #{inv.invoice_number} <span className="price">{formatPrice(invoiceMath(inv).total)}</span>
                     </div>
                     <div className="meta">
                       {formatDateString(inv.date)} · <span className={`badge ${inv.status}`}>{inv.status}</span>
                     </div>
                   </div>
+                  {canMutate && (
+                    <div className="actions">
+                      {inv.status === 'draft' && (
+                        <button className="primary" onClick={() => invTransition(inv.id, 'send')}>Mark as sent</button>
+                      )}
+                      {inv.status === 'sent' && (
+                        <button className="primary" onClick={() => invTransition(inv.id, 'mark-paid')}>Mark paid</button>
+                      )}
+                      {inv.status === 'paid' && (
+                        <button className="secondary" onClick={() => invTransition(inv.id, 'mark-unpaid')}>Mark unpaid</button>
+                      )}
+                      {(inv.status === 'sent' || inv.status === 'paid') && (
+                        <button className="secondary" onClick={() => invCopyLink(inv.id)}>
+                          {copiedId === inv.id ? 'Copied!' : 'Copy link'}
+                        </button>
+                      )}
+                      {(inv.status === 'draft' || inv.status === 'sent') && (
+                        <button className="secondary" onClick={() => invEmail(inv)}>
+                          Email<span className="hide-on-mobile"> to {terms.customerLower}</span>
+                        </button>
+                      )}
+                      <div className="inv-util-break" aria-hidden="true" />
+                      <div className="inv-util-group">
+                        {(inv.status === 'sent' || inv.status === 'paid') && (
+                          <button className="inv-util" onClick={() => navigate(`/i/${inv.id}?from=app`)}>View</button>
+                        )}
+                        <button className="inv-util" onClick={() => navigate(`/invoices?open=${inv.id}`)}>Edit</button>
+                        <button className="inv-util inv-util-danger" onClick={() => invDelete(inv.id)}>Delete</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -8452,6 +8526,22 @@ function InvoicesView({ session }) {
   }, [session.slug, session.token]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Honor ?open=<invoiceId> — used by the customer-detail "Edit" action to
+  // jump straight into editing a specific invoice.
+  useEffect(() => {
+    if (invoices.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (!openId) return;
+    const target = invoices.find((inv) => inv.id === openId);
+    if (!target) return;
+    setEditing(target);
+    setMode('edit');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('open');
+    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+  }, [invoices]);
 
   async function createInvoice(values) {
     setBusy(true); setError(null);
