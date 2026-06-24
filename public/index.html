@@ -2653,27 +2653,7 @@
       .ed-tile-2, .ed-tile-8, .ed-tile-9 { display: none; }
     }
 
-    /* bridge & chapters */
-    .ed-bridge {
-      max-width: 720px; margin: 0 auto;
-      padding: 80px 32px;
-      text-align: center;
-    }
-    @media (max-width: 600px) {
-      .ed-bridge { padding: 48px 20px; }
-    }
-    .ed-bridge-rule {
-      font-size: 11px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.24em;
-      color: var(--accent); margin: 0 0 28px;
-    }
-    .ed-bridge-body {
-      font-family: var(--serif); font-weight: 400;
-      font-size: clamp(22px, 2.6vw, 30px);
-      line-height: 1.45; letter-spacing: -0.015em;
-      color: var(--text); margin: 0;
-    }
-
+    /* chapters */
     .ed-chapters {
       max-width: 1080px; margin: 0 auto;
       padding: 40px 32px 96px;
@@ -5166,13 +5146,6 @@ function LandingPage() {
         </div>
       </header>
 
-      <section className="ed-bridge" data-reveal>
-        <p className="ed-bridge-rule">— Welcome to the small operation —</p>
-        <p className="ed-bridge-body">
-          We didn't build for empire-sized fleets or franchisees. We built for the person who answers their own phone, drives their own truck, and remembers the dog's name at every account they service.
-        </p>
-      </section>
-
       <section className="ed-chapters">
         <article className="ed-chapter" data-reveal>
           <div className="ed-chapter-body-col">
@@ -5227,7 +5200,7 @@ function LandingPage() {
       <section className="sales-section sales-story" data-reveal>
         <p className="sales-eyebrow">Built by an operator</p>
         <blockquote className="sales-quote">
-          I run a lawn-care business. Every tool I tried was built for a 50-truck fleet, a dispatcher, and a sales call to find out the price. Field Manager is the opposite. Small. Fast. ${Math.round((founder && founder.listed_price) || 29)}/mo flat, free until you scale. I use it on my own crew every day.
+          I run a lawn-care business, and I didn't build this for empire-sized fleets or franchisees — I built it for the person who answers their own phone, drives their own truck, and remembers the dog's name at every account they service. Every tool I tried was made for a 50-truck fleet, a dispatcher, and a sales call just to learn the price. Field Manager is the opposite. Small. Fast. ${Math.round((founder && founder.listed_price) || 29)}/mo flat, free until you scale. I use it on my own crew every day.
         </blockquote>
         <p className="sales-quote-attr">— Dustin, founder</p>
       </section>
