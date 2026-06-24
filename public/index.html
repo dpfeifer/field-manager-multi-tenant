@@ -4634,7 +4634,7 @@ function SignupForm({ onSuccess }) {
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
       <label>Email</label>
       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <label>Password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+      <label>Password <span className="hint">(at least 8 characters)</span></label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       {error && <div className="error">{error}</div>}
       <button type="submit" className="primary block" disabled={busy}>
@@ -12176,7 +12176,7 @@ function ProfileView({ session, onSessionUpdate }) {
         <form onSubmit={changePassword}>
           <label>Current password</label>
           <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-          <label>New password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+          <label>New password <span className="hint">(at least 8 characters)</span></label>
           <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
           <label>Confirm new password</label>
           <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
@@ -13620,7 +13620,7 @@ function ResetPasswordPage() {
         <h1>Reset password</h1>
         <p className="subtitle">Choose a new password to finish setup.</p>
         <form onSubmit={submit}>
-          <label>New password <span className="hint">(8+ chars, upper, lower, number, special)</span></label>
+          <label>New password <span className="hint">(at least 8 characters)</span></label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus />
           <label>Confirm new password</label>
           <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />

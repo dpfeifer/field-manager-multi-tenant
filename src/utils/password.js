@@ -11,18 +11,9 @@ function validatePassword(password) {
   if (password.length > MAX_LENGTH) {
     return `Password must be at most ${MAX_LENGTH} characters`;
   }
-  if (!/[A-Z]/.test(password)) {
-    return 'Password must contain an uppercase letter';
-  }
-  if (!/[a-z]/.test(password)) {
-    return 'Password must contain a lowercase letter';
-  }
-  if (!/[0-9]/.test(password)) {
-    return 'Password must contain a number';
-  }
-  if (!/[^A-Za-z0-9]/.test(password)) {
-    return 'Password must contain a special character';
-  }
+  // Length-only requirement (NIST 800-63B): forced composition rules
+  // (upper/lower/number/special) add signup friction without improving
+  // security, so we require length and let users pick any characters.
   return null;
 }
 
