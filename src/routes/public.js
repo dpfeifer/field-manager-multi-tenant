@@ -28,6 +28,50 @@ router.get('/founder-status', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Public contact form (no auth). Used by the /contact page that the Terms
+// and Privacy pages link to instead of showing an email address. Emails
+// the team and sets reply-to so we can respond to the sender directly.
+router.post('/contact', async (req, res, next) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim().slice(0, 200);
+  const email = String(b.email || '').trim().slice(0, 200);
+  const message = String(b.message || '').trim().slice(0, 5000);
+
+  if (b.website) return res.json({ ok: true }); // honeypot
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email is required' });
+  }
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  try {
+    const to = process.env.SUPPORT_EMAIL || 'dustin@drxlr.com';
+    const html = `
+<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding:24px; max-width:640px; color:#2d2a26;">
+  <h2 style="margin:0 0 12px; font-size:20px;">New contact form message</h2>
+  <div style="background:#f7f4ec; border:1px solid #ece6d8; border-radius:10px; padding:16px; margin:0 0 18px; font-size:13px; line-height:1.7;">
+    <div><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</div>
+  </div>
+  <div style="white-space:pre-wrap; font-size:14px; line-height:1.6;">${escapeHtml(message)}</div>
+  <hr style="border:0; border-top:1px solid #ece6d8; margin:24px 0;" />
+  <p style="font-size:12px; color:#6d6a64;">Reply directly to this email to respond to ${escapeHtml(email)}.</p>
+</body></html>`;
+    const text = `New contact form message\n\nFrom: ${name} <${email}>\n\n${message}\n`;
+    const result = await sendEmail({
+      to,
+      replyTo: email,
+      subject: `[FM Contact] Message from ${name}`,
+      html,
+      text,
+    });
+    if (!result.sent) {
+      console.error('contact: sendEmail failed', result);
+      return res.status(500).json({ error: 'Could not send your message. Please try again in a moment.' });
+    }
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 router.get('/orgs/:slug', async (req, res, next) => {
   const slug = (req.params.slug || '').toLowerCase();
   if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });

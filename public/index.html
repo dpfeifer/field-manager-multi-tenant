@@ -3172,6 +3172,22 @@
       text-underline-offset: 3px;
     }
     .legal-body a:hover { opacity: 0.8; }
+    .contact-form { max-width: 480px; }
+    .contact-form label {
+      display: block; font-size: 13px; font-weight: 600;
+      margin: 18px 0 6px; color: var(--text);
+    }
+    .contact-form input, .contact-form textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: inherit; font-size: 15px;
+      padding: 10px 12px; border: 1px solid var(--border-strong);
+      border-radius: 8px; background: var(--card); color: var(--text);
+    }
+    .contact-form textarea { resize: vertical; }
+    .contact-form .error {
+      color: #b91c1c; font-size: 14px; margin-top: 12px;
+    }
+    .contact-form button { margin-top: 18px; }
     @media (max-width: 600px) {
       .legal-page { padding: 32px 20px 64px; }
       .legal-head { margin-bottom: 40px; padding-bottom: 32px; }
@@ -5536,7 +5552,7 @@ function LegalShell({ title, eyebrow, updated, children }) {
         <header className="legal-head">
           <p className="ed-eyebrow">{eyebrow}</p>
           <h1 className="legal-title">{title}</h1>
-          <p className="legal-updated">Last updated {updated}</p>
+          {updated && <p className="legal-updated">Last updated {updated}</p>}
         </header>
         <div className="legal-body">{children}</div>
       </article>
@@ -5547,11 +5563,63 @@ function LegalShell({ title, eyebrow, updated, children }) {
           <button className="link-button" onClick={() => navigate('/terms')}>Terms</button>
           <span style={{ margin: '0 12px' }}>·</span>
           <button className="link-button" onClick={() => navigate('/privacy')}>Privacy</button>
+          <span style={{ margin: '0 12px' }}>·</span>
+          <button className="link-button" onClick={() => navigate('/contact')}>Contact</button>
           <CookieSettingsLink sep={12} />
         </div>
         <div style={{ marginTop: 16 }}>© Field Manager</div>
       </footer>
     </div>
+  );
+}
+
+function ContactPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null); setBusy(true);
+    try {
+      await apiRequest('/api/public/contact', {
+        method: 'POST',
+        body: { name, email, message, website },
+      });
+      setSent(true);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <LegalShell title="Contact us" eyebrow="We'd love to hear from you">
+      {sent ? (
+        <p>Thanks — your message is on its way. We'll get back to you by email soon.</p>
+      ) : (
+        <form className="contact-form" onSubmit={submit}>
+          <p>Have a question about Field Manager? Send us a note and we'll reply by email.</p>
+          <label>Your name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <label>Message</label>
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} required />
+          <input
+            type="text" value={website} onChange={(e) => setWebsite(e.target.value)}
+            tabIndex={-1} autoComplete="off" aria-hidden="true"
+            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1 }}
+          />
+          {error && <div className="error">{error}</div>}
+          <button type="submit" className="primary block" disabled={busy}>
+            {busy ? 'Sending...' : 'Send message'}
+          </button>
+        </form>
+      )}
+    </LegalShell>
   );
 }
 
@@ -5624,7 +5692,7 @@ function TermsPage() {
 
       <h2>13. Contact</h2>
       <p>
-        Questions about these Terms? Email <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>.
+        Questions about these Terms? <a href="/contact" onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact us</a>.
       </p>
     </LegalShell>
   );
@@ -5667,7 +5735,7 @@ function PrivacyPage() {
 
       <h2>6. Your rights</h2>
       <p>
-        You can access, correct, export, or delete your data at any time from within the app, or by emailing <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>. If you are in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA respectively — including the right to lodge a complaint with a supervisory authority.
+        You can access, correct, export, or delete your data at any time from within the app, or by <a href="/contact" onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>contacting us</a>. If you are in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA respectively — including the right to lodge a complaint with a supervisory authority.
       </p>
 
       <h2>7. Data retention</h2>
@@ -5697,7 +5765,7 @@ function PrivacyPage() {
 
       <h2>12. Contact</h2>
       <p>
-        Questions about your data or this Policy? Email <a href="mailto:support@fieldmgr.com">support@fieldmgr.com</a>.
+        Questions about your data or this Policy? <a href="/contact" onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact us</a>.
       </p>
     </LegalShell>
   );
@@ -14693,6 +14761,7 @@ function App() {
   if (path === '/verify-email') return <VerifyEmailPage />;
   if (path === '/terms') return <TermsPage />;
   if (path === '/privacy') return <PrivacyPage />;
+  if (path === '/contact') return <ContactPage />;
   if (path === '/demo') return <DemoLauncher onSession={(s) => { saveSession(s); setSession(s); navigate('/dashboard'); }} />;
 
   function handleLogout() { clearSession(); setSession(null); navigate('/'); }
