@@ -5228,7 +5228,7 @@ function LandingPage() {
                 <span className="ed-faq-q">{item.q}</span>
                 <span className="ed-faq-toggle" aria-hidden="true" />
               </summary>
-              <div className="ed-faq-a">{item.a}</div>
+              <div className="ed-faq-a">{typeof item.a === 'function' ? item.a(founder) : item.a}</div>
             </details>
           ))}
         </div>
@@ -5492,7 +5492,14 @@ const EDITORIAL_FAQ = [
   },
   {
     q: 'How does the pricing actually work?',
-    a: "Free forever for five customers or fewer and twenty jobs total. Pro is $29 flat — no per-seat, no per-customer, no overages.",
+    a: (founder) => {
+      const active = !!(founder && founder.active && founder.seats_remaining > 0);
+      const listed = founder ? Math.round(founder.listed_price) : 29;
+      const promo = founder ? Math.round(founder.founder_price) : 19;
+      return active
+        ? `Free forever for five customers or fewer and twenty jobs total. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
+        : `Free forever for five customers or fewer and twenty jobs total. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
+    },
   },
   {
     q: 'What if I want to leave?',
