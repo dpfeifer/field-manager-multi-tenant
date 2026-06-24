@@ -3172,7 +3172,7 @@
       text-underline-offset: 3px;
     }
     .legal-body a:hover { opacity: 0.8; }
-    .contact-form { max-width: 480px; }
+    .contact-form { max-width: 480px; margin: 0 auto; }
     .contact-form label {
       display: block; font-size: 13px; font-weight: 600;
       margin: 18px 0 6px; color: var(--text);
@@ -5550,7 +5550,7 @@ function LegalShell({ title, eyebrow, updated, children }) {
       </nav>
       <article className="legal-page">
         <header className="legal-head">
-          <p className="ed-eyebrow">{eyebrow}</p>
+          {eyebrow && <p className="ed-eyebrow">{eyebrow}</p>}
           <h1 className="legal-title">{title}</h1>
           {updated && <p className="legal-updated">Last updated {updated}</p>}
         </header>
@@ -5596,12 +5596,11 @@ function ContactPage() {
   }
 
   return (
-    <LegalShell title="Contact us" eyebrow="We'd love to hear from you">
+    <LegalShell title="Contact us">
       {sent ? (
-        <p>Thanks — your message is on its way. We'll get back to you by email soon.</p>
+        <p style={{ textAlign: 'center' }}>Thanks — your message is on its way. We'll get back to you by email soon.</p>
       ) : (
         <form className="contact-form" onSubmit={submit}>
-          <p>Have a question about Field Manager? Send us a note and we'll reply by email.</p>
           <label>Your name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required />
           <label>Email</label>
