@@ -930,6 +930,39 @@
     .row .info .secondary-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
     .row .info .price { display: inline-block; margin-left: 8px; color: var(--text); font-weight: 500; }
 
+    /* Redesigned job rows: title + price, customer, schedule chips (next-due
+       highlighted), assignee avatars + a quiet last-done line. Clearer
+       hierarchy than the generic flat .row. */
+    .job-card {
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+      transition: background 0.12s;
+    }
+    .job-card:hover { background: var(--row-hover); }
+    .job-card .info { min-width: 0; }
+    .job-card .job-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .job-card .job-title { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; color: var(--text); }
+    .job-card .job-price { font-weight: 600; font-size: 14px; color: var(--text); }
+    .job-card .job-customer { font-size: 13px; color: var(--text); font-weight: 500; margin-top: 6px; }
+    .job-card .job-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 9px; }
+    .job-chip {
+      font-size: 11.5px; line-height: 1; padding: 5px 10px; border-radius: 999px;
+      background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+      color: var(--text-muted); font-weight: 500; white-space: nowrap;
+    }
+    .job-chip-next { background: var(--success-bg); color: var(--success); font-weight: 600; }
+    .job-chip-range { background: transparent; padding: 5px 0; color: var(--text-muted); }
+    .job-foot { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .job-avatars { display: flex; }
+    .job-avatar {
+      width: 24px; height: 24px; border-radius: 50%; color: #fff;
+      font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--card); margin-left: -7px; flex-shrink: 0;
+    }
+    .job-avatar:first-child { margin-left: 0; }
+    .job-lastdone { font-size: 12px; color: var(--text-muted); }
+    .job-lastdone b { font-weight: 600; }
+
     .section-heading {
       margin: 28px 0 10px; font-size: 12px; font-weight: 600;
       color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
@@ -4524,6 +4557,43 @@ function formatSchedule(j) {
   return '';
 }
 
+// Short cadence label — the chip form of formatSchedule, without dates.
+function jobCadenceLabel(j) {
+  if (j.type === 'single') return 'One-time';
+  if (j.type === 'recurring') {
+    const day = dayOfWeekName(j.start_date);
+    if (j.recurrence_pattern === 'weekly') return `Every ${day}`;
+    if (j.recurrence_pattern === 'biweekly') return `Every other ${day}`;
+    if (j.recurrence_pattern === 'monthly') return `Monthly · ${ordinal(parseDate(j.start_date).getDate())}`;
+  }
+  return '';
+}
+
+// "Jun 27" — compact month/day; accepts a YYYY-MM-DD string or a Date.
+function formatShortDate(d) {
+  const date = typeof d === 'string' ? parseDate(d) : d;
+  if (!date || isNaN(date)) return '';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// "Colton Pfeifer" -> "CP", "Samantha" -> "SA".
+function nameInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Stable avatar color hashed from a seed (user id), so a person keeps the
+// same color across rows.
+const AVATAR_PALETTE = ['#b07a4f', '#6b8e9e', '#7a9471', '#9e7a8e', '#8a7fae', '#a8894f', '#5f8a7d'];
+function avatarColor(seed) {
+  const s = String(seed || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
 function formatTimeOfDay(hhmm) {
   if (!hhmm) return '';
   const s = String(hhmm);
@@ -8115,25 +8185,44 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             const isCompletedSingle = j.type === 'single' && j.status === 'completed';
             const nextDue = j.type === 'recurring' ? nextDueDate(j) : null;
             const last = lastCompletion(j);
+            const cadence = jobCadenceLabel(j);
+            const assignees = (j.assigned_to || []).map((id) => users.find((u) => u.id === id)).filter(Boolean);
+            const shownAvatars = assignees.slice(0, 4);
+            const extraAvatars = assignees.length - shownAvatars.length;
             return (
-              <div key={j.id} className="row">
+              <div key={j.id} className="job-card">
                 <div className="info">
-                  <div className="name">
-                    {j.title}
-                    {j.default_price != null && <span className="price">{formatPrice(j.default_price)}</span>}
+                  <div className="job-top">
+                    <span className="job-title">{j.title}</span>
+                    {j.default_price != null && <span className="job-price">{formatPrice(j.default_price)}</span>}
                   </div>
-                  <div className="meta">
-                    {jobCustomerName(j)} • {formatSchedule(j)}
-                    {nextDue && <> • Next due: {formatDateString(nextDue)}</>}
-                    {isCompletedSingle && <> • Completed {formatDateString(j.date)}</>}
+                  <div className="job-customer">{jobCustomerName(j)}</div>
+                  <div className="job-chips">
+                    {cadence && <span className="job-chip">{cadence}</span>}
+                    {nextDue && <span className="job-chip job-chip-next">Next due {formatShortDate(nextDue)}</span>}
+                    {isCompletedSingle && <span className="job-chip job-chip-next">Completed {formatShortDate(j.date)}</span>}
+                    {j.type === 'single' && !isCompletedSingle && <span className="job-chip job-chip-next">Due {formatShortDate(j.date)}</span>}
+                    {j.type === 'recurring' && j.end_date && <span className="job-chip job-chip-range">through {formatShortDate(j.end_date)}</span>}
                   </div>
-                  {j.assigned_to && j.assigned_to.length > 0 && (
-                    <div className="secondary-meta">Assigned: {userNames(j.assigned_to)}</div>
-                  )}
-                  {last && (
-                    <div className="secondary-meta">
-                      Last done: {formatDateString(last.date)} by {last.completedByName}
-                      {last.note && <> — “{last.note}”</>}
+                  {(assignees.length > 0 || last) && (
+                    <div className="job-foot">
+                      {shownAvatars.length > 0 && (
+                        <div className="job-avatars">
+                          {shownAvatars.map((u) => (
+                            <span key={u.id} className="job-avatar" style={{ background: avatarColor(u.id) }} title={u.name || u.email}>
+                              {nameInitials(u.name || u.email)}
+                            </span>
+                          ))}
+                          {extraAvatars > 0 && (
+                            <span className="job-avatar" style={{ background: 'var(--text-muted)' }}>+{extraAvatars}</span>
+                          )}
+                        </div>
+                      )}
+                      {last ? (
+                        <span className="job-lastdone">Last done <b>{formatShortDate(last.date)}</b>{last.completedByName ? ` · ${last.completedByName}` : ''}</span>
+                      ) : (
+                        <span className="job-lastdone">Not started yet</span>
+                      )}
                     </div>
                   )}
                 </div>
