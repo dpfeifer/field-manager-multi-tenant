@@ -6808,6 +6808,22 @@ function RequestsView({ session }) {
               height={320}
               style={{ display: 'block', margin: '12px auto', borderRadius: 8, background: '#fff' }}
             />
+            {typeof navigator !== 'undefined' && navigator.share && (
+              <button
+                type="button"
+                className="primary"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  navigator.share({
+                    title: 'Request a booking',
+                    text: 'Book with us:',
+                    url: `${window.location.origin}/book/${session.slug}`,
+                  }).catch(() => {});
+                }}
+              >
+                Share link
+              </button>
+            )}
             <div style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all', marginTop: 12 }}>
               {`${window.location.origin}/book/${session.slug}`}
             </div>
