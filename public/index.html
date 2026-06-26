@@ -849,6 +849,12 @@
     }
     .team-row .team-role { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .team-row .actions { margin: 0; }
+    .team-row .team-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .team-avatar {
+      width: 36px; height: 36px; border-radius: 50%; color: #fff;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
     /* Invoice utility actions — View / Edit / Delete sit inline as a
        quieter "secondary" cluster below the primary customer-facing
        actions. Differentiated by smaller size, lighter weight, and a
@@ -2297,7 +2303,7 @@
         column-gap: 12px;
         row-gap: 8px;
       }
-      .row.team-row .info { grid-column: 1; grid-row: 1; }
+      .row.team-row .team-id { grid-column: 1; grid-row: 1; }
       .row.team-row .team-role {
         grid-column: 2; grid-row: 1;
         align-self: start; justify-self: end;
@@ -12730,7 +12736,9 @@ function TeamView({ session }) {
             const isResetting = resettingId === u.id;
             return (
               <div key={u.id} className="row team-row">
-                <div className="info">
+                <div className="team-id">
+                  <span className="team-avatar" style={{ background: avatarColor(u.id) }} aria-hidden="true">{nameInitials(displayName || u.email)}</span>
+                  <div className="info">
                   <div className="name">
                     {displayName}{isMe && <span className="hint" style={{ marginLeft: 8 }}>(you)</span>}
                     {u.invite_pending && (
@@ -12751,6 +12759,7 @@ function TeamView({ session }) {
                       <button className="secondary" onClick={() => { setResettingId(null); setResetPassword(''); }} style={{ marginLeft: 6 }}>Cancel</button>
                     </div>
                   )}
+                  </div>
                 </div>
                 <div className="team-role">
                   {editingRoleId === u.id ? (
