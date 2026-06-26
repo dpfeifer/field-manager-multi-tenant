@@ -838,7 +838,7 @@
     .row:hover { background: var(--row-hover); }
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
-    .row .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .row .actions, .job-card .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     /* Team row: 3-column grid so badge and action buttons feel like one
        cluster, with the badge anchored just to the left of the buttons. */
     .row.team-row {
@@ -2285,14 +2285,14 @@
       .form-grid { grid-template-columns: 1fr; }
       .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
       .page-header h2 { font-size: 18px; }
-      .row, .occurrence-row, .compact-row { flex-wrap: wrap; }
+      .row, .occurrence-row, .compact-row, .job-card { flex-wrap: wrap; }
       /* Generic list rows (invoices, customers, etc.) — let action clusters
          wrap to multiple lines so nothing gets clipped. */
-      .row .actions {
+      .row .actions, .job-card .actions {
         flex-wrap: wrap; width: 100%; margin-top: 8px;
         min-width: 0; gap: 6px;
       }
-      .row .actions button { flex: 0 0 auto; }
+      .row .actions button, .job-card .actions button { flex: 0 0 auto; }
       /* Team row mobile: role badge to top-right, action buttons in a
          single inline row underneath. Horizontal scroll catches the case
          where four buttons (Resend + Reset + Change role + Remove) won't
@@ -2332,7 +2332,7 @@
       }
       /* On mobile, left-align the action cluster so each util button
          sits at the left edge instead of pulling to the right. */
-      .row .actions { justify-content: flex-start; }
+      .row .actions, .job-card .actions { justify-content: flex-start; }
       /* Drop the trailing "to <customer>" so the Email button is short
          enough to stay inline with Mark paid + Copy link. */
       .hide-on-mobile { display: none; }
