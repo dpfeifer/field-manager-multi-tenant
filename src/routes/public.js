@@ -146,6 +146,63 @@ router.get('/profile/:slug', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Public hosted landing page served at /<slug>. Returns the landing config
+// plus the org identity and booking-form config so the page renders in one
+// fetch. 404s unless the org exists and the landing page is enabled.
+router.get('/landing/:slug', async (req, res, next) => {
+  const slug = (req.params.slug || '').toLowerCase();
+  if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows } = await query(
+      `SELECT o.slug, o.name AS organization_name,
+              s.company_name, s.logo_url, s.about, s.address, s.phone, s.email,
+              s.customer_label, s.customer_label_plural,
+              s.job_label, s.job_label_plural,
+              s.booking_form_config, s.landing_page_config
+       FROM organizations o
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE o.slug = $1 AND o.deleted_at IS NULL LIMIT 1`,
+      [slug]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const row = rows[0];
+    const cfg = row.landing_page_config || {};
+    if (cfg.enabled !== true) return res.status(404).json({ error: 'Not found' });
+    const bfc = row.booking_form_config || {};
+    res.json({
+      slug: row.slug,
+      name: row.company_name || row.organization_name,
+      logo_url: row.logo_url,
+      about: row.about,
+      address: row.address,
+      phone: row.phone,
+      email: row.email,
+      customer_label: row.customer_label || 'Customer',
+      customer_label_plural: row.customer_label_plural || 'Customers',
+      job_label: row.job_label || 'Job',
+      job_label_plural: row.job_label_plural || 'Jobs',
+      booking_form_config: {
+        show_phone: bfc.show_phone !== false,
+        show_address: bfc.show_address !== false,
+        show_notes: bfc.show_notes !== false,
+        show_referred_by: bfc.show_referred_by === true,
+        preferred_dates_mode: ['none', 'one', 'three'].includes(bfc.preferred_dates_mode) ? bfc.preferred_dates_mode : 'one',
+        title: typeof bfc.title === 'string' ? bfc.title : '',
+        subtitle: typeof bfc.subtitle === 'string' ? bfc.subtitle : '',
+        service_placeholder: typeof bfc.service_placeholder === 'string' ? bfc.service_placeholder : '',
+        notes_placeholder: typeof bfc.notes_placeholder === 'string' ? bfc.notes_placeholder : '',
+      },
+      landing: {
+        hero_image_url: typeof cfg.hero_image_url === 'string' ? cfg.hero_image_url : '',
+        hero_title: typeof cfg.hero_title === 'string' ? cfg.hero_title : '',
+        hero_subtitle: typeof cfg.hero_subtitle === 'string' ? cfg.hero_subtitle : '',
+        gallery: Array.isArray(cfg.gallery) ? cfg.gallery : [],
+        services: Array.isArray(cfg.services) ? cfg.services : [],
+      },
+    });
+  } catch (err) { next(err); }
+});
+
 router.post('/book/:slug', async (req, res, next) => {
   const slug = (req.params.slug || '').toLowerCase();
   if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });

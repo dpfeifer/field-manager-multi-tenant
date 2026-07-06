@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { query } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
@@ -159,7 +160,8 @@ router.get('/organizations/:id', async (req, res, next) => {
     );
 
     const settings = await query(
-      `SELECT company_name, address, phone, email, venmo_handle, updated_at
+      `SELECT company_name, address, phone, email, venmo_handle,
+              logo_url, about, booking_form_config, landing_page_config, updated_at
        FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
       [req.params.id]
     );
@@ -169,6 +171,70 @@ router.get('/organizations/:id', async (req, res, next) => {
       users: users.rows,
       settings: settings.rows[0] || null,
     });
+  } catch (err) { next(err); }
+});
+
+// ---- Hosted landing pages (owner-managed) ----
+
+// Cloudinary signed-upload signature. The browser uploads the image
+// straight to Cloudinary with this short-lived signature, so file bytes
+// never pass through our server. System-admin only (router-level guard).
+router.post('/upload-signature', (req, res) => {
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+  const key = process.env.CLOUDINARY_API_KEY;
+  const secret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloud || !key || !secret) {
+    return res.status(503).json({ error: 'Image uploads are not configured' });
+  }
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = 'fieldmgr/landing';
+  // Cloudinary signature: params sorted by key, joined "key=value&...",
+  // the api secret appended, then SHA-1 hex.
+  const toSign = `folder=${folder}&timestamp=${timestamp}`;
+  const signature = crypto.createHash('sha1').update(toSign + secret).digest('hex');
+  res.json({ cloud_name: cloud, api_key: key, timestamp, folder, signature });
+});
+
+function normalizeLandingPageConfig(value) {
+  const v = (value && typeof value === 'object') ? value : {};
+  const str = (x, max) => (typeof x === 'string' ? x.slice(0, max) : '');
+  const gallery = Array.isArray(v.gallery)
+    ? v.gallery.map((g) => ({ url: str(g && g.url, 500), caption: str(g && g.caption, 160) }))
+        .filter((g) => g.url).slice(0, 24)
+    : [];
+  const services = Array.isArray(v.services)
+    ? v.services.map((s) => ({
+        name: str(s && s.name, 120),
+        price: str(s && s.price, 60),
+        description: str(s && s.description, 500),
+      })).filter((s) => s.name).slice(0, 24)
+    : [];
+  return {
+    enabled: v.enabled === true,
+    hero_image_url: str(v.hero_image_url, 500),
+    hero_title: str(v.hero_title, 160),
+    hero_subtitle: str(v.hero_subtitle, 400),
+    gallery,
+    services,
+  };
+}
+
+router.put('/organizations/:id/landing', async (req, res, next) => {
+  try {
+    const exists = await query(
+      'SELECT 1 FROM organizations WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id]
+    );
+    if (exists.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const cfg = normalizeLandingPageConfig(req.body);
+    await query(
+      `INSERT INTO organization_settings (organization_id, landing_page_config)
+       VALUES ($1, $2::jsonb)
+       ON CONFLICT (organization_id)
+       DO UPDATE SET landing_page_config = $2::jsonb, updated_at = NOW()`,
+      [req.params.id, JSON.stringify(cfg)]
+    );
+    res.json({ ok: true, landing_page_config: cfg });
   } catch (err) { next(err); }
 });
 
