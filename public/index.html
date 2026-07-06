@@ -3221,6 +3221,58 @@
       color: #b91c1c; font-size: 14px; margin-top: 12px;
     }
     .contact-form button { margin-top: 18px; }
+
+    /* Hosted per-tenant landing page (/<slug>): hero, gallery, services, form. */
+    .lp { color: var(--text); }
+    .lp-loading { padding: 96px 24px; text-align: center; color: var(--text-muted); }
+    .lp-hero {
+      min-height: 66vh; display: flex; align-items: center; justify-content: center;
+      background-size: cover; background-position: center; background-color: var(--primary);
+      position: relative; text-align: center; padding: 72px 24px;
+    }
+    .lp-hero::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+    .lp-hero-inner { position: relative; max-width: 720px; color: #fff; }
+    .lp-logo { max-height: 72px; margin-bottom: 20px; border-radius: 8px; }
+    .lp-hero-title {
+      font-family: var(--serif); font-weight: 600; letter-spacing: -0.02em;
+      font-size: clamp(34px, 6vw, 60px); line-height: 1.05; margin: 0 0 16px; color: #fff;
+    }
+    .lp-hero-sub { font-size: clamp(16px, 2.2vw, 20px); line-height: 1.5; opacity: 0.92; margin: 0 auto 28px; max-width: 560px; }
+    .lp-cta {
+      background: #fff; color: #111; border: 0; border-radius: 999px;
+      padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: transform 0.15s ease;
+    }
+    .lp-cta:hover { transform: translateY(-2px); }
+
+    .lp-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .lp-gallery-item { margin: 0; aspect-ratio: 1 / 1; overflow: hidden; background: var(--tinted); }
+    .lp-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+    .lp-gallery-item:hover img { transform: scale(1.04); }
+    @media (max-width: 600px) { .lp-gallery { grid-template-columns: repeat(2, 1fr); } }
+
+    .lp-section-title {
+      font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em;
+      font-size: clamp(26px, 4vw, 38px); text-align: center; margin: 0 0 36px;
+    }
+    .lp-services { max-width: 760px; margin: 0 auto; padding: 76px 24px; }
+    .lp-services-list { display: flex; flex-direction: column; gap: 22px; }
+    .lp-service { border-bottom: 1px solid var(--border); padding-bottom: 22px; }
+    .lp-service:last-child { border-bottom: 0; padding-bottom: 0; }
+    .lp-service-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+    .lp-service-name { font-size: 18px; font-weight: 600; }
+    .lp-service-price { font-size: 15px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+    .lp-service-desc { margin: 8px 0 0; color: var(--text-muted); line-height: 1.55; font-size: 14px; }
+
+    .lp-book { background: var(--bg-elevated); border-top: 1px solid var(--border); padding: 76px 24px; }
+    .lp-book-inner { max-width: 520px; margin: 0 auto; }
+    .lp-book-title { margin-bottom: 12px; }
+    .lp-book-sub { text-align: center; color: var(--text-muted); margin: 0 0 28px; }
+    .lp-book .booking-done { text-align: center; padding: 24px 0; }
+
+    .lp-footer { text-align: center; padding: 44px 24px; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+    .lp-powered { margin-top: 10px; font-size: 12px; }
+    .lp-powered a { color: inherit; }
     @media (max-width: 600px) {
       .legal-page { padding: 32px 20px 64px; }
       .legal-head { margin-bottom: 40px; padding-bottom: 32px; }
@@ -14395,9 +14447,12 @@ function StaffApp() {
   );
 }
 
-function PublicBookingView({ slug }) {
-  const [org, setOrg] = useState(null);
-  const [notFound, setNotFound] = useState(false);
+// Reusable public booking form — used by the standalone /book/<slug> page
+// and by the hosted landing page's form section. Owns its own state,
+// submit, and inline success message. Caller supplies the org's slug,
+// booking_form_config, name, and job label.
+function BookingForm({ slug, config, orgName, jobLabel }) {
+  const cfg = config || {};
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -14420,23 +14475,18 @@ function PublicBookingView({ slug }) {
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const o = await apiRequest(`/api/public/orgs/${slug}`);
-        setOrg(o);
-      } catch (err) {
-        setNotFound(true);
-      }
-    })();
-  }, [slug]);
+  const showPhone = cfg.show_phone !== false;
+  const showAddress = cfg.show_address !== false;
+  const showNotes = cfg.show_notes !== false;
+  const showReferredBy = cfg.show_referred_by === true;
+  const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
+  const servicePlaceholder = cfg.service_placeholder || "Brief description of the service you'd like";
+  const notesPlaceholder = cfg.notes_placeholder || 'Anything else they should know?';
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      const cfg = (org && org.booking_form_config) || {};
-      const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
       const visibleSlots = slots.slice(0, slotCount).filter((s) => s.date);
       await apiRequest(`/api/public/book/${slug}`, {
         method: 'POST',
@@ -14460,6 +14510,109 @@ function PublicBookingView({ slug }) {
     }
   }
 
+  if (done) {
+    return (
+      <div className="booking-done">
+        <h3 style={{ marginTop: 0 }}>Request sent</h3>
+        <p className="subtitle">Thanks! {orgName} got your request and will be in touch shortly to confirm.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <label>Your name</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} required />
+
+      <label>Email</label>
+      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required={!showPhone} />
+
+      {showPhone && (
+        <>
+          <label>Phone <span className="hint">(optional)</span></label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" />
+        </>
+      )}
+
+      {showAddress && (
+        <>
+          <label>Address <span className="hint">(where the work happens, optional)</span></label>
+          <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+        </>
+      )}
+
+      <label>What do you need?</label>
+      <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder={servicePlaceholder} />
+
+      {slotCount > 0 && (
+        <div style={{ marginTop: 4 }}>
+          {Array.from({ length: slotCount }, (_, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: i < slotCount - 1 ? 12 : 0 }}>
+              <div style={{ minWidth: 0 }}>
+                <label>
+                  {slotCount === 1 ? 'Preferred date' : `Option ${i + 1} — date`}{' '}
+                  <span className="hint">(optional)</span>
+                </label>
+                <input type="date" value={slots[i].date} onChange={(e) => updateSlot(i, 'date', e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <label>{slotCount === 1 ? 'Time of day' : 'Time'}</label>
+                <select value={slots[i].window} onChange={(e) => updateSlot(i, 'window', e.target.value)} style={{ width: '100%' }}>
+                  <option value="anytime">Anytime</option>
+                  <option value="morning">Morning</option>
+                  <option value="afternoon">Afternoon</option>
+                  <option value="evening">Evening</option>
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showNotes && (
+        <>
+          <label>Notes <span className="hint">(optional)</span></label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={notesPlaceholder} />
+        </>
+      )}
+
+      {showReferredBy && (
+        <>
+          <label>Referred by <span className="hint">(optional)</span></label>
+          <input value={referredBy} onChange={(e) => setReferredBy(e.target.value)} placeholder="How did you hear about us?" />
+        </>
+      )}
+
+      <input
+        type="text" name="website" value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
+        tabIndex={-1} autoComplete="off"
+      />
+
+      {error && <div className="error">{error}</div>}
+
+      <button type="submit" className="primary block" disabled={busy}>
+        {busy ? 'Sending...' : 'Send request'}
+      </button>
+    </form>
+  );
+}
+
+function PublicBookingView({ slug }) {
+  const [org, setOrg] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setOrg(await apiRequest(`/api/public/orgs/${slug}`));
+      } catch (err) {
+        setNotFound(true);
+      }
+    })();
+  }, [slug]);
+
   if (notFound) {
     return (
       <div className="auth-shell">
@@ -14475,30 +14628,8 @@ function PublicBookingView({ slug }) {
     return <div className="auth-shell"><div className="card"><p className="subtitle">Loading...</p></div></div>;
   }
 
-  if (done) {
-    return (
-      <div className="auth-shell">
-        <div className="card">
-          {org.logo_url && <img src={org.logo_url} alt={org.name} style={{ maxWidth: 80, maxHeight: 80, marginBottom: 16, borderRadius: 8 }} />}
-          <h1>Request sent</h1>
-          <p className="subtitle">
-            Thanks! {org.name} got your request and will be in touch shortly to confirm.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const customer = org.customer_label || 'Customer';
   const job = (org.job_label || 'Job').toLowerCase();
   const cfg = org.booking_form_config || {};
-  const showPhone = cfg.show_phone !== false;
-  const showAddress = cfg.show_address !== false;
-  const showNotes = cfg.show_notes !== false;
-  const showReferredBy = cfg.show_referred_by === true;
-  const slotCount = cfg.preferred_dates_mode === 'three' ? 3 : cfg.preferred_dates_mode === 'one' ? 1 : 0;
-  const servicePlaceholder = cfg.service_placeholder || "Brief description of the service you'd like";
-  const notesPlaceholder = cfg.notes_placeholder || 'Anything else they should know?';
 
   return (
     <div className="auth-shell" style={{ maxWidth: 560 }}>
@@ -14506,86 +14637,108 @@ function PublicBookingView({ slug }) {
         {org.logo_url && <img src={org.logo_url} alt={org.name} style={{ maxWidth: 80, maxHeight: 80, marginBottom: 12, borderRadius: 8 }} />}
         <h1>{cfg.title || `Book ${job} with ${org.name}`}</h1>
         <p className="subtitle">{cfg.subtitle || `Fill out a few details and ${org.name} will get back to you to confirm.`}</p>
-        <form onSubmit={submit}>
-          <label>Your name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required={!showPhone} />
-
-          {showPhone && (
-            <>
-              <label>Phone <span className="hint">(optional)</span></label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" />
-            </>
-          )}
-
-          {showAddress && (
-            <>
-              <label>Address <span className="hint">(where the work happens, optional)</span></label>
-              <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
-            </>
-          )}
-
-          <label>What do you need?</label>
-          <textarea value={service} onChange={(e) => setService(e.target.value)} rows={3} required placeholder={servicePlaceholder} />
-
-          {slotCount > 0 && (
-            <div style={{ marginTop: 4 }}>
-              {Array.from({ length: slotCount }, (_, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: i < slotCount - 1 ? 12 : 0 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <label>
-                      {slotCount === 1 ? 'Preferred date' : `Option ${i + 1} — date`}{' '}
-                      <span className="hint">(optional)</span>
-                    </label>
-                    <input type="date" value={slots[i].date} onChange={(e) => updateSlot(i, 'date', e.target.value)} style={{ width: '100%' }} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <label>{slotCount === 1 ? 'Time of day' : 'Time'}</label>
-                    <select value={slots[i].window} onChange={(e) => updateSlot(i, 'window', e.target.value)} style={{ width: '100%' }}>
-                      <option value="anytime">Anytime</option>
-                      <option value="morning">Morning</option>
-                      <option value="afternoon">Afternoon</option>
-                      <option value="evening">Evening</option>
-                    </select>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showNotes && (
-            <>
-              <label>Notes <span className="hint">(optional)</span></label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={notesPlaceholder} />
-            </>
-          )}
-
-          {showReferredBy && (
-            <>
-              <label>Referred by <span className="hint">(optional)</span></label>
-              <input value={referredBy} onChange={(e) => setReferredBy(e.target.value)} placeholder="How did you hear about us?" />
-            </>
-          )}
-
-          <input
-            type="text" name="website" value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
-            tabIndex={-1} autoComplete="off"
-          />
-
-          {error && <div className="error">{error}</div>}
-
-          <button type="submit" className="primary block" disabled={busy}>
-            {busy ? 'Sending...' : 'Send request'}
-          </button>
-        </form>
+        <BookingForm slug={slug} config={cfg} orgName={org.name} jobLabel={org.job_label} />
         <p style={{ marginTop: 18, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
           Powered by <a href="/" style={{ color: 'inherit', textDecoration: 'underline' }}>Field Manager</a>
         </p>
       </div>
+    </div>
+  );
+}
+
+// Hosted per-tenant landing page at /<slug>: hero → gallery → services →
+// booking form. Content comes from GET /api/public/landing/:slug (only
+// returns when the owner has enabled the page).
+function PublicLandingView({ slug }) {
+  const [data, setData] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setData(await apiRequest(`/api/public/landing/${slug}`));
+      } catch (err) {
+        setNotFound(true);
+      }
+    })();
+  }, [slug]);
+
+  if (notFound) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h1>Not found</h1>
+          <p className="subtitle">We couldn't find a page here. Double-check the URL.</p>
+        </div>
+      </div>
+    );
+  }
+  if (!data) return <div className="lp-loading">Loading…</div>;
+
+  const L = data.landing || {};
+  const scrollToForm = () => {
+    const el = document.getElementById('lp-book');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <div className="lp">
+      <header
+        className="lp-hero"
+        style={L.hero_image_url ? { backgroundImage: `url(${L.hero_image_url})` } : undefined}
+      >
+        <div className="lp-hero-inner">
+          {data.logo_url && <img className="lp-logo" src={data.logo_url} alt={data.name} />}
+          <h1 className="lp-hero-title">{L.hero_title || data.name}</h1>
+          {L.hero_subtitle && <p className="lp-hero-sub">{L.hero_subtitle}</p>}
+          <button type="button" className="lp-cta" onClick={scrollToForm}>Request appointment</button>
+        </div>
+      </header>
+
+      {L.gallery && L.gallery.length > 0 && (
+        <section className="lp-gallery">
+          {L.gallery.map((g, i) => (
+            <figure key={i} className="lp-gallery-item">
+              <img src={g.url} alt={g.caption || ''} loading="lazy" />
+            </figure>
+          ))}
+        </section>
+      )}
+
+      {L.services && L.services.length > 0 && (
+        <section className="lp-services">
+          <h2 className="lp-section-title">Services</h2>
+          <div className="lp-services-list">
+            {L.services.map((s, i) => (
+              <div key={i} className="lp-service">
+                <div className="lp-service-head">
+                  <span className="lp-service-name">{s.name}</span>
+                  {s.price && <span className="lp-service-price">{s.price}</span>}
+                </div>
+                {s.description && <p className="lp-service-desc">{s.description}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="lp-book" id="lp-book">
+        <div className="lp-book-inner">
+          <h2 className="lp-section-title lp-book-title">
+            {(data.booking_form_config && data.booking_form_config.title) || `Book with ${data.name}`}
+          </h2>
+          {data.booking_form_config && data.booking_form_config.subtitle && (
+            <p className="lp-book-sub">{data.booking_form_config.subtitle}</p>
+          )}
+          <BookingForm slug={slug} config={data.booking_form_config} orgName={data.name} jobLabel={data.job_label} />
+        </div>
+      </section>
+
+      <footer className="lp-footer">
+        {data.address && <div>{data.address}</div>}
+        {data.phone && <div>{data.phone}</div>}
+        <div className="lp-powered">Powered by <a href="/">Field Manager</a></div>
+      </footer>
     </div>
   );
 }
@@ -14984,6 +15137,21 @@ function App() {
   if (path === '/privacy') return <PrivacyPage />;
   if (path === '/contact') return <ContactPage />;
   if (path === '/demo') return <DemoLauncher onSession={(s) => { saveSession(s); setSession(s); navigate('/dashboard'); }} />;
+
+  // Hosted per-tenant landing page at bare /<slug>. Checked before the app
+  // shell so anyone can view it — including a logged-in owner previewing.
+  // App views (from APP_ROUTES) and public pages are reserved, so they
+  // always take precedence over a same-named tenant slug.
+  const RESERVED_TOP = new Set([
+    ...Object.keys(APP_ROUTES).map((p) => p.slice(1)),
+    'i', 'q', 'book', 'o', 'staff', 'system', 'signin', 'signup', 'start',
+    'reset-password', 'verify-email', 'terms', 'privacy', 'contact', 'demo',
+    'onboarding',
+  ]);
+  const landingMatch = path.match(/^\/([a-z0-9-]{3,32})$/);
+  if (landingMatch && !RESERVED_TOP.has(landingMatch[1].toLowerCase())) {
+    return <PublicLandingView slug={landingMatch[1].toLowerCase()} />;
+  }
 
   function handleLogout() { clearSession(); setSession(null); navigate('/'); }
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
