@@ -3273,6 +3273,23 @@
     .lp-footer { text-align: center; padding: 44px 24px; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
     .lp-powered { margin-top: 10px; font-size: 12px; }
     .lp-powered a { color: inherit; }
+
+    /* Landing-page editor (staff org detail) + image upload control */
+    .img-upload { margin-bottom: 6px; }
+    .img-upload-preview { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .img-upload-preview img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+    .img-upload-btn {
+      display: inline-block; cursor: pointer; font-size: 13px; font-weight: 600;
+      padding: 8px 14px; border: 1px solid var(--border-strong); border-radius: 8px;
+      background: var(--card); color: var(--text);
+    }
+    .img-upload-btn:hover { background: var(--row-hover); }
+    .lp-editor .section-heading { margin-top: 24px; }
+    .lp-editor-row, .lp-editor-service {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    }
+    .lp-editor-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .lp-editor-service-top { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
     @media (max-width: 600px) {
       .legal-page { padding: 32px 20px 64px; }
       .legal-head { margin-bottom: 40px; padding-bottom: 32px; }
@@ -13380,6 +13397,143 @@ function OrganizationsSection({ session }) {
   );
 }
 
+// Cloudinary direct-from-browser image upload. Gets a signed upload
+// signature from our backend (system-admin only), then POSTs the file
+// straight to Cloudinary and returns the secure_url via onChange.
+function ImageUpload({ token, value, onChange, label }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  async function handleFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setBusy(true); setErr(null);
+    try {
+      const sig = await apiRequest('/api/system/upload-signature', { method: 'POST', token });
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('api_key', sig.api_key);
+      fd.append('timestamp', sig.timestamp);
+      fd.append('folder', sig.folder);
+      fd.append('signature', sig.signature);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: 'POST', body: fd });
+      const out = await res.json();
+      if (!res.ok || !out.secure_url) throw new Error((out.error && out.error.message) || 'Upload failed');
+      onChange(out.secure_url);
+    } catch (er) {
+      setErr(er.message);
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  }
+
+  return (
+    <div className="img-upload">
+      {value && (
+        <div className="img-upload-preview">
+          <img src={value} alt="" />
+          <button type="button" className="link-button" onClick={() => onChange('')}>Remove</button>
+        </div>
+      )}
+      <label className="img-upload-btn">
+        {busy ? 'Uploading…' : (value ? 'Replace image' : (label || 'Upload image'))}
+        <input type="file" accept="image/*" onChange={handleFile} disabled={busy} style={{ display: 'none' }} />
+      </label>
+      {err && <div className="error" style={{ marginTop: 6 }}>{err}</div>}
+    </div>
+  );
+}
+
+function landingInit(initial) {
+  const v = initial || {};
+  return {
+    enabled: v.enabled === true,
+    hero_image_url: v.hero_image_url || '',
+    hero_title: v.hero_title || '',
+    hero_subtitle: v.hero_subtitle || '',
+    gallery: Array.isArray(v.gallery) ? v.gallery.map((g) => ({ url: g.url || '', caption: g.caption || '' })) : [],
+    services: Array.isArray(v.services) ? v.services.map((s) => ({ name: s.name || '', price: s.price || '', description: s.description || '' })) : [],
+  };
+}
+
+// Owner-managed landing-page editor, shown inside the staff org-detail view.
+function LandingPageEditor({ orgId, slug, token, initial }) {
+  const [cfg, setCfg] = useState(() => landingInit(initial));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  function set(patch) { setCfg((c) => ({ ...c, ...patch })); setSaved(false); }
+  function setGallery(i, patch) { set({ gallery: cfg.gallery.map((g, idx) => (idx === i ? { ...g, ...patch } : g)) }); }
+  function addGallery() { set({ gallery: [...cfg.gallery, { url: '', caption: '' }] }); }
+  function removeGallery(i) { set({ gallery: cfg.gallery.filter((_, idx) => idx !== i) }); }
+  function setService(i, patch) { set({ services: cfg.services.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }); }
+  function addService() { set({ services: [...cfg.services, { name: '', price: '', description: '' }] }); }
+  function removeService(i) { set({ services: cfg.services.filter((_, idx) => idx !== i) }); }
+
+  async function save() {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/landing`, { method: 'PUT', token, body: cfg });
+      setSaved(true);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="form-card lp-editor">
+      <div className="section-heading" style={{ marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Landing page</span>
+        <a href={`/${slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 500 }}>View page ↗</a>
+      </div>
+
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <input type="checkbox" checked={cfg.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+        Page is live at <code>/{slug}</code>
+      </label>
+      <p className="hint" style={{ marginTop: 4 }}>When off, visitors to /{slug} see a "not found" page.</p>
+
+      <div className="section-heading">Hero</div>
+      <label>Hero image</label>
+      <ImageUpload token={token} value={cfg.hero_image_url} onChange={(url) => set({ hero_image_url: url })} label="Upload hero image" />
+      <label>Headline</label>
+      <input value={cfg.hero_title} onChange={(e) => set({ hero_title: e.target.value })} placeholder="Sharp cuts. Quiet chair." />
+      <label>Subhead</label>
+      <textarea rows={2} value={cfg.hero_subtitle} onChange={(e) => set({ hero_subtitle: e.target.value })} placeholder="By appointment only — a private barber serving…" />
+
+      <div className="section-heading">Gallery</div>
+      {cfg.gallery.length === 0 && <p className="hint" style={{ marginTop: 0 }}>No photos yet.</p>}
+      {cfg.gallery.map((g, i) => (
+        <div key={i} className="lp-editor-row">
+          <ImageUpload token={token} value={g.url} onChange={(url) => setGallery(i, { url })} label="Upload photo" />
+          <button type="button" className="link-button" onClick={() => removeGallery(i)}>Remove photo</button>
+        </div>
+      ))}
+      <button type="button" className="secondary" onClick={addGallery} style={{ marginTop: 8 }}>+ Add photo</button>
+
+      <div className="section-heading">Services</div>
+      {cfg.services.map((s, i) => (
+        <div key={i} className="lp-editor-service">
+          <div className="lp-editor-service-top">
+            <input value={s.name} onChange={(e) => setService(i, { name: e.target.value })} placeholder="Service name (e.g. Full Cut)" style={{ flex: 2 }} />
+            <input value={s.price} onChange={(e) => setService(i, { price: e.target.value })} placeholder="Starting at $100" style={{ flex: 1 }} />
+            <button type="button" className="link-button" onClick={() => removeService(i)}>Remove</button>
+          </div>
+          <textarea rows={2} value={s.description} onChange={(e) => setService(i, { description: e.target.value })} placeholder="Short description of the service" />
+        </div>
+      ))}
+      <button type="button" className="secondary" onClick={addService} style={{ marginTop: 8 }}>+ Add service</button>
+
+      {error && <div className="error" style={{ marginTop: 12 }}>{error}</div>}
+      <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button className="primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save landing page'}</button>
+        {saved && <span style={{ color: 'var(--success)', fontSize: 13 }}>Saved ✓</span>}
+      </div>
+    </div>
+  );
+}
+
 function OrgDetailView({ session, orgId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13502,6 +13656,13 @@ function OrgDetailView({ session, orgId }) {
           <dt>Counts</dt><dd>{o.customer_count} customers · {o.job_count} jobs · {o.invoice_count} invoices · {o.quote_count} quotes</dd>
         </dl>
       </div>
+
+      <LandingPageEditor
+        orgId={orgId}
+        slug={o.slug}
+        token={session.token}
+        initial={data.settings && data.settings.landing_page_config}
+      />
 
       <div className="form-card">
         <div className="section-heading" style={{ marginTop: 0 }}>Billing actions</div>
