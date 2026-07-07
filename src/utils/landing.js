@@ -17,6 +17,36 @@ function normalizeLandingPageConfig(value) {
     : [];
   const accentHex = (typeof v.accent_color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v.accent_color.trim()))
     ? v.accent_color.trim().toLowerCase() : '';
+  const testimonials = Array.isArray(v.testimonials)
+    ? v.testimonials.map((t) => ({
+        quote: str(t && t.quote, 500),
+        author: str(t && t.author, 120),
+        rating: Math.max(0, Math.min(5, parseInt(t && t.rating, 10) || 0)),
+      })).filter((t) => t.quote).slice(0, 24)
+    : [];
+  // Social links: accept a bare handle ("@marcus" / "marcus") or a full URL and
+  // normalize to an absolute URL so the public page can link them directly.
+  const SOCIAL_BASES = {
+    instagram: 'https://instagram.com/',
+    facebook: 'https://facebook.com/',
+    tiktok: 'https://tiktok.com/@',
+    youtube: 'https://youtube.com/@',
+    x: 'https://x.com/',
+  };
+  const socialUrl = (key, raw) => {
+    const s = typeof raw === 'string' ? raw.trim() : '';
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s.slice(0, 300);
+    if (key === 'website') return ('https://' + s.replace(/^\/+/, '')).slice(0, 300);
+    const handle = s.replace(/^@+/, '').replace(/\s+/g, '');
+    return ((SOCIAL_BASES[key] || '') + handle).slice(0, 300);
+  };
+  const socialsIn = (v.socials && typeof v.socials === 'object') ? v.socials : {};
+  const socials = {};
+  for (const key of ['instagram', 'facebook', 'tiktok', 'youtube', 'x', 'website']) {
+    const u = socialUrl(key, socialsIn[key]);
+    if (u) socials[key] = u;
+  }
   return {
     enabled: v.enabled === true,
     tagline: str(v.tagline, 60),
@@ -27,6 +57,8 @@ function normalizeLandingPageConfig(value) {
     hero_subtitle: str(v.hero_subtitle, 400),
     gallery,
     services,
+    testimonials,
+    socials,
   };
 }
 

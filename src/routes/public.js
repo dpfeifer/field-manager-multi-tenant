@@ -201,6 +201,8 @@ router.get('/landing/:slug', async (req, res, next) => {
         hero_subtitle: typeof cfg.hero_subtitle === 'string' ? cfg.hero_subtitle : '',
         gallery: Array.isArray(cfg.gallery) ? cfg.gallery : [],
         services: Array.isArray(cfg.services) ? cfg.services : [],
+        testimonials: Array.isArray(cfg.testimonials) ? cfg.testimonials : [],
+        socials: (cfg.socials && typeof cfg.socials === 'object') ? cfg.socials : {},
       },
     });
   } catch (err) { next(err); }
