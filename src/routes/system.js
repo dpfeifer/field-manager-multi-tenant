@@ -5,6 +5,7 @@ const { query } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
 const { sendEmail } = require('../utils/email');
+const { teamInviteTemplate } = require('../utils/emailTemplates');
 const { listTemplates, saveTemplate, resetTemplate, DEFAULTS } = require('../utils/templateStore');
 
 const router = express.Router();
@@ -277,6 +278,81 @@ router.post('/organizations/:id/users/:userId/reset-password', async (req, res, 
     if (rowCount === 0) return res.status(404).json({ error: 'User not found in that org' });
     res.json({ ok: true });
   } catch (err) { next(err); }
+});
+
+// Add a teammate to any org (owner support tool). Mirrors the tenant-side
+// team invite: generate a placeholder password + a 7-day setup token and
+// email an invite link. Re-issues the invite if the email already exists
+// but never accepted (or was soft-deleted).
+router.post('/organizations/:id/users', async (req, res, next) => {
+  const { email, name, role } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email is required' });
+  const assignedRole = role || 'admin';
+  if (!['admin', 'lead', 'employee'].includes(assignedRole)) {
+    return res.status(400).json({ error: 'role must be admin, lead, or employee' });
+  }
+  const normalizedEmail = String(email).toLowerCase().trim();
+  try {
+    const orgRes = await query(
+      'SELECT id, name FROM organizations WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id]
+    );
+    if (orgRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const org = orgRes.rows[0];
+
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(36).toString('hex'), rounds);
+    const setupToken = crypto.randomBytes(32).toString('hex');
+    const setupTokenHash = crypto.createHash('sha256').update(setupToken).digest('hex');
+    const setupExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const existing = await query(
+      'SELECT id, deleted_at, password_set_at FROM users WHERE organization_id = $1 AND email = $2 LIMIT 1',
+      [org.id, normalizedEmail]
+    );
+    let userRow;
+    if (existing.rows.length > 0) {
+      const e = existing.rows[0];
+      if (e.password_set_at !== null && e.deleted_at === null) {
+        return res.status(409).json({ error: 'This email already has an active account in that org.' });
+      }
+      const { rows } = await query(
+        `UPDATE users
+         SET password_hash = $2, name = COALESCE($3, name), role = $4,
+             password_reset_token = $5, password_reset_expires_at = $6,
+             deleted_at = NULL, updated_at = NOW()
+         WHERE id = $1 RETURNING id, email, name, role`,
+        [e.id, passwordHash, name || null, assignedRole, setupTokenHash, setupExpiresAt]
+      );
+      userRow = rows[0];
+    } else {
+      const { rows } = await query(
+        `INSERT INTO users (organization_id, email, password_hash, name, role, password_reset_token, password_reset_expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, name, role`,
+        [org.id, normalizedEmail, passwordHash, name || null, assignedRole, setupTokenHash, setupExpiresAt]
+      );
+      userRow = rows[0];
+    }
+
+    try {
+      const base = process.env.APP_URL || 'https://fieldmgr.com';
+      const { subject, html, text } = teamInviteTemplate({
+        inviteeName: userRow.name,
+        inviterName: 'Field Manager',
+        orgName: org.name,
+        setupUrl: `${base}/reset-password?token=${setupToken}`,
+        role: assignedRole,
+      });
+      await sendEmail({ to: userRow.email, subject, html, text });
+    } catch (mailErr) {
+      console.error('System team-add email failed:', mailErr);
+    }
+
+    res.status(201).json(userRow);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Email already registered' });
+    next(err);
+  }
 });
 
 router.delete('/organizations/:id', async (req, res, next) => {

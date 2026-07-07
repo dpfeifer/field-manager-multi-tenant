@@ -13555,6 +13555,11 @@ function OrgDetailView({ session, orgId }) {
   const [resetPassword, setResetPassword] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteSlugInput, setDeleteSlugInput] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addName, setAddName] = useState('');
+  const [addRole, setAddRole] = useState('admin');
+  const [addBusy, setAddBusy] = useState(false);
+  const [addMsg, setAddMsg] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -13613,6 +13618,21 @@ function OrgDetailView({ session, orgId }) {
       navigate('/system');
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
+  }
+
+  async function addUser() {
+    if (!addEmail.trim()) return;
+    setAddBusy(true); setAddMsg(null); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/users`, {
+        method: 'POST', token: session.token,
+        body: { email: addEmail.trim(), name: addName.trim() || undefined, role: addRole },
+      });
+      setAddMsg(`Invite sent to ${addEmail.trim()} as ${addRole}.`);
+      setAddEmail(''); setAddName('');
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setAddBusy(false); }
   }
 
   if (loading) {
@@ -13775,6 +13795,22 @@ function OrgDetailView({ session, orgId }) {
             );
           })
         )}
+      </div>
+
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Add teammate</div>
+        <p className="hint" style={{ marginTop: 0 }}>Creates the user and emails them an invite link to set their password.</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input type="email" placeholder="email@example.com" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} style={{ flex: 2, minWidth: 200 }} />
+          <input placeholder="Name (optional)" value={addName} onChange={(e) => setAddName(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
+          <select value={addRole} onChange={(e) => setAddRole(e.target.value)} style={{ width: 'auto' }}>
+            <option value="admin">Admin</option>
+            <option value="lead">Lead</option>
+            <option value="employee">Employee</option>
+          </select>
+          <button className="primary" disabled={addBusy || !addEmail.trim()} onClick={addUser}>{addBusy ? 'Adding…' : 'Add'}</button>
+        </div>
+        {addMsg && <div style={{ marginTop: 8, color: 'var(--success)', fontSize: 13 }}>{addMsg}</div>}
       </div>
     </div>
   );
