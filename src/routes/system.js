@@ -7,6 +7,7 @@ const { validatePassword } = require('../utils/password');
 const { sendEmail } = require('../utils/email');
 const { teamInviteTemplate } = require('../utils/emailTemplates');
 const { cloudinarySignature } = require('../utils/cloudinary');
+const { normalizeLandingPageConfig } = require('../utils/landing');
 const { listTemplates, saveTemplate, resetTemplate, DEFAULTS } = require('../utils/templateStore');
 
 const router = express.Router();
@@ -142,7 +143,7 @@ router.get('/organizations/:id', async (req, res, next) => {
   try {
     const orgRow = await query(
       `SELECT o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
-              o.subscription_status, o.trial_ends_at,
+              o.subscription_status, o.trial_ends_at, o.landing_enabled,
               o.stripe_customer_id, o.stripe_subscription_id,
               (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
               (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
@@ -187,34 +188,19 @@ router.post('/upload-signature', (req, res) => {
   res.json(sig);
 });
 
-function normalizeLandingPageConfig(value) {
-  const v = (value && typeof value === 'object') ? value : {};
-  const str = (x, max) => (typeof x === 'string' ? x.slice(0, max) : '');
-  const gallery = Array.isArray(v.gallery)
-    ? v.gallery.map((g) => ({ url: str(g && g.url, 500), caption: str(g && g.caption, 160) }))
-        .filter((g) => g.url).slice(0, 24)
-    : [];
-  const services = Array.isArray(v.services)
-    ? v.services.map((s) => ({
-        name: str(s && s.name, 120),
-        price: str(s && s.price, 60),
-        description: str(s && s.description, 500),
-      })).filter((s) => s.name).slice(0, 24)
-    : [];
-  const accentHex = (typeof v.accent_color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v.accent_color.trim()))
-    ? v.accent_color.trim().toLowerCase() : '';
-  return {
-    enabled: v.enabled === true,
-    tagline: str(v.tagline, 60),
-    accent_color: accentHex,
-    background_image_url: str(v.background_image_url, 500),
-    hero_image_url: str(v.hero_image_url, 500),
-    hero_title: str(v.hero_title, 160),
-    hero_subtitle: str(v.hero_subtitle, 400),
-    gallery,
-    services,
-  };
-}
+// Grant/revoke the landing-page feature for an org (entitlement). When on,
+// the org's admins get the self-serve editor in their Settings.
+router.put('/organizations/:id/landing-access', async (req, res, next) => {
+  const enabled = req.body && req.body.enabled === true;
+  try {
+    const { rowCount } = await query(
+      'UPDATE organizations SET landing_enabled = $2, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
+      [req.params.id, enabled]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, landing_enabled: enabled });
+  } catch (err) { next(err); }
+});
 
 router.put('/organizations/:id/landing', async (req, res, next) => {
   try {

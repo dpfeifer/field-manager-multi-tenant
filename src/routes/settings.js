@@ -2,6 +2,7 @@ const express = require('express');
 const { query } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { cloudinarySignature } = require('../utils/cloudinary');
+const { normalizeLandingPageConfig } = require('../utils/landing');
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const SELECT = `
          auto_invoice_schedule, auto_invoice_day_of_month,
          auto_invoice_day_of_week, auto_invoice_last_run_at,
          auto_append_to_draft,
-         booking_form_config,
+         booking_form_config, landing_page_config,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -42,10 +43,38 @@ function emptyDefaults() {
 router.get('/', async (req, res, next) => {
   try {
     const { rows } = await query(SELECT, [req.organization.id]);
-    res.json(rows[0] || emptyDefaults());
+    const out = rows[0] || emptyDefaults();
+    // Landing-page feature entitlement lives on the org (system-admin set).
+    const org = await query('SELECT landing_enabled FROM organizations WHERE id = $1', [req.organization.id]);
+    out.landing_enabled = !!(org.rows[0] && org.rows[0].landing_enabled);
+    res.json(out);
   } catch (err) {
     next(err);
   }
+});
+
+// Tenant self-serve landing-page editor — only when the org has been granted
+// the feature (landing_enabled). Shares the config validation with the staff
+// editor; org admins only.
+router.put('/landing', requireRole('admin'), async (req, res, next) => {
+  try {
+    const org = await query(
+      'SELECT landing_enabled FROM organizations WHERE id = $1',
+      [req.organization.id]
+    );
+    if (!org.rows[0] || !org.rows[0].landing_enabled) {
+      return res.status(403).json({ error: 'The landing-page feature is not enabled for your account.' });
+    }
+    const cfg = normalizeLandingPageConfig(req.body);
+    await query(
+      `INSERT INTO organization_settings (organization_id, landing_page_config)
+       VALUES ($1, $2::jsonb)
+       ON CONFLICT (organization_id)
+       DO UPDATE SET landing_page_config = $2::jsonb, updated_at = NOW()`,
+      [req.organization.id, JSON.stringify(cfg)]
+    );
+    res.json({ ok: true, landing_page_config: cfg });
+  } catch (err) { next(err); }
 });
 
 const TERMINOLOGY_FIELDS = new Set([
