@@ -3233,6 +3233,7 @@
     .lp-nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 18px clamp(20px, 5vw, 56px);
+      background: color-mix(in srgb, var(--bg) 50%, transparent);
     }
     .lp-nav-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .lp-nav-logo { height: 44px; width: 44px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
@@ -3255,7 +3256,7 @@
       background-image:
         linear-gradient(45deg, var(--tinted) 25%, transparent 25%, transparent 75%, var(--tinted) 75%),
         linear-gradient(45deg, var(--tinted) 25%, transparent 25%, transparent 75%, var(--tinted) 75%);
-      background-size: 54px 54px; background-position: 0 0, 27px 27px;
+      background-size: 100px 100px; background-position: 0 0, 50px 50px;
     }
     .lp-top > * { position: relative; z-index: 1; }
     .lp-top::after {
