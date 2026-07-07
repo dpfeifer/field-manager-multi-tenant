@@ -3231,7 +3231,9 @@
     }
     .lp-nav-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .lp-nav-logo { height: 44px; width: 44px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+    .lp-nav-brand-text { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
     .lp-nav-name { font-family: var(--serif); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; color: var(--text); }
+    .lp-nav-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
     .lp-nav-cta, .lp-cta {
       background: var(--accent); color: #fff; border: 0; cursor: pointer; font-family: inherit;
       text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
@@ -13480,6 +13482,7 @@ function landingInit(initial) {
   const v = initial || {};
   return {
     enabled: v.enabled === true,
+    tagline: v.tagline || '',
     hero_image_url: v.hero_image_url || '',
     hero_title: v.hero_title || '',
     hero_subtitle: v.hero_subtitle || '',
@@ -13524,6 +13527,9 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
         Page is live at <code>/{slug}</code>
       </label>
       <p className="hint" style={{ marginTop: 4 }}>When off, visitors to /{slug} see a "not found" page.</p>
+
+      <label>Tagline <span className="hint">(small line under your name in the nav, e.g. "LAS VEGAS BARBER")</span></label>
+      <input value={cfg.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="LAS VEGAS BARBER" />
 
       <div className="section-heading">Hero</div>
       <label>Hero image</label>
@@ -14914,7 +14920,10 @@ function PublicLandingView({ slug }) {
       <div className="lp-nav">
         <div className="lp-nav-brand">
           {data.logo_url && <img className="lp-nav-logo" src={data.logo_url} alt="" />}
-          <span className="lp-nav-name">{data.name}</span>
+          <div className="lp-nav-brand-text">
+            <span className="lp-nav-name">{data.name}</span>
+            {L.tagline && <span className="lp-nav-tag">{L.tagline}</span>}
+          </div>
         </div>
         <button type="button" className="lp-nav-cta" onClick={scrollToForm}>Request</button>
       </div>

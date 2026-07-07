@@ -212,6 +212,7 @@ function normalizeLandingPageConfig(value) {
     : [];
   return {
     enabled: v.enabled === true,
+    tagline: str(v.tagline, 60),
     hero_image_url: str(v.hero_image_url, 500),
     hero_title: str(v.hero_title, 160),
     hero_subtitle: str(v.hero_subtitle, 400),

@@ -193,6 +193,7 @@ router.get('/landing/:slug', async (req, res, next) => {
         notes_placeholder: typeof bfc.notes_placeholder === 'string' ? bfc.notes_placeholder : '',
       },
       landing: {
+        tagline: typeof cfg.tagline === 'string' ? cfg.tagline : '',
         hero_image_url: typeof cfg.hero_image_url === 'string' ? cfg.hero_image_url : '',
         hero_title: typeof cfg.hero_title === 'string' ? cfg.hero_title : '',
         hero_subtitle: typeof cfg.hero_subtitle === 'string' ? cfg.hero_subtitle : '',
