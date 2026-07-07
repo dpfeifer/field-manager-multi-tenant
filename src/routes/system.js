@@ -210,9 +210,13 @@ function normalizeLandingPageConfig(value) {
         description: str(s && s.description, 500),
       })).filter((s) => s.name).slice(0, 24)
     : [];
+  const accentHex = (typeof v.accent_color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v.accent_color.trim()))
+    ? v.accent_color.trim().toLowerCase() : '';
   return {
     enabled: v.enabled === true,
     tagline: str(v.tagline, 60),
+    accent_color: accentHex,
+    background_image_url: str(v.background_image_url, 500),
     hero_image_url: str(v.hero_image_url, 500),
     hero_title: str(v.hero_title, 160),
     hero_subtitle: str(v.hero_subtitle, 400),

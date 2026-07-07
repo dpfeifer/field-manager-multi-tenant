@@ -3223,7 +3223,12 @@
     .contact-form button { margin-top: 18px; }
 
     /* Hosted per-tenant landing page (/<slug>): hero, gallery, services, form. */
-    .lp { color: var(--text); }
+    .lp {
+      color: var(--text);
+      /* Per-tenant accent (overridden inline via --lp-accent); hover derives. */
+      --lp-accent: var(--accent);
+      --lp-accent-hover: color-mix(in srgb, var(--lp-accent) 85%, #000);
+    }
     .lp-loading { padding: 96px 24px; text-align: center; color: var(--text-muted); }
     .lp-nav {
       display: flex; align-items: center; justify-content: space-between;
@@ -3233,13 +3238,13 @@
     .lp-nav-logo { height: 44px; width: 44px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
     .lp-nav-brand-text { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
     .lp-nav-name { font-family: var(--serif); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; color: var(--text); }
-    .lp-nav-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
+    .lp-nav-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-accent); margin-top: 3px; }
     .lp-nav-cta, .lp-cta {
-      background: var(--accent); color: #fff; border: 0; cursor: pointer; font-family: inherit;
+      background: var(--lp-accent); color: #fff; border: 0; cursor: pointer; font-family: inherit;
       text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
       transition: background 0.15s ease;
     }
-    .lp-nav-cta:hover, .lp-cta:hover { background: var(--accent-hover); }
+    .lp-nav-cta:hover, .lp-cta:hover { background: var(--lp-accent-hover); }
     .lp-nav-cta { border-radius: 8px; padding: 11px 22px; font-size: 12px; }
 
     .lp-hero {
@@ -3254,7 +3259,7 @@
     }
     .lp-hero-media {
       justify-self: center; max-width: 440px; width: 100%;
-      border: 5px solid var(--accent); border-radius: 14px; overflow: hidden;
+      border: 5px solid var(--lp-accent); border-radius: 14px; overflow: hidden;
       box-shadow: 0 22px 50px -22px rgba(0,0,0,0.35); background: var(--card);
     }
     .lp-hero-media img { width: 100%; aspect-ratio: 5 / 6; object-fit: cover; display: block; }
@@ -13526,6 +13531,8 @@ function landingInit(initial) {
   return {
     enabled: v.enabled === true,
     tagline: v.tagline || '',
+    accent_color: v.accent_color || '',
+    background_image_url: v.background_image_url || '',
     hero_image_url: v.hero_image_url || '',
     hero_title: v.hero_title || '',
     hero_subtitle: v.hero_subtitle || '',
@@ -13592,6 +13599,16 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
 
       <label>Tagline <span className="hint">(small line under your name in the nav, e.g. "LAS VEGAS BARBER")</span></label>
       <input value={cfg.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="LAS VEGAS BARBER" />
+
+      <div className="section-heading">Style</div>
+      <label>Accent color <span className="hint">(buttons, image frame, tagline — defaults to terracotta)</span></label>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input type="color" value={cfg.accent_color || '#c98558'} onChange={(e) => set({ accent_color: e.target.value })} style={{ width: 48, height: 38, padding: 2, cursor: 'pointer' }} />
+        <input value={cfg.accent_color} onChange={(e) => set({ accent_color: e.target.value })} placeholder="#c98558" style={{ width: 120 }} />
+        {cfg.accent_color && <button type="button" className="link-button" onClick={() => set({ accent_color: '' })}>Reset</button>}
+      </div>
+      <label style={{ marginTop: 16 }}>Background pattern <span className="hint">(tiled behind the hero — leave empty for the default)</span></label>
+      <ImageUpload token={token} value={cfg.background_image_url} onChange={(url) => set({ background_image_url: url })} label="Upload pattern" />
 
       <div className="section-heading">Hero</div>
       <label>Hero image</label>
@@ -15035,8 +15052,9 @@ function PublicLandingView({ slug }) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const lpStyle = L.accent_color ? { '--lp-accent': L.accent_color } : undefined;
   return (
-    <div className="lp">
+    <div className="lp" style={lpStyle}>
       <div className="lp-nav">
         <div className="lp-nav-brand">
           {data.logo_url && <img className="lp-nav-logo" src={data.logo_url} alt="" />}
@@ -15047,7 +15065,10 @@ function PublicLandingView({ slug }) {
         </div>
         <button type="button" className="lp-nav-cta" onClick={scrollToForm}>Request</button>
       </div>
-      <header className="lp-hero">
+      <header
+        className="lp-hero"
+        style={L.background_image_url ? { backgroundImage: `url(${L.background_image_url})`, backgroundRepeat: 'repeat', backgroundSize: 'auto' } : undefined}
+      >
         {L.hero_image_url && (
           <div className="lp-hero-media"><img src={L.hero_image_url} alt={data.name} /></div>
         )}

@@ -194,6 +194,8 @@ router.get('/landing/:slug', async (req, res, next) => {
       },
       landing: {
         tagline: typeof cfg.tagline === 'string' ? cfg.tagline : '',
+        accent_color: typeof cfg.accent_color === 'string' ? cfg.accent_color : '',
+        background_image_url: typeof cfg.background_image_url === 'string' ? cfg.background_image_url : '',
         hero_image_url: typeof cfg.hero_image_url === 'string' ? cfg.hero_image_url : '',
         hero_title: typeof cfg.hero_title === 'string' ? cfg.hero_title : '',
         hero_subtitle: typeof cfg.hero_subtitle === 'string' ? cfg.hero_subtitle : '',
