@@ -32,6 +32,7 @@ const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
 const { getSystemSettings } = require('./utils/systemSettings');
 const { query } = require('./config/db');
+const { RESERVED_SLUGS } = require('./utils/slug');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -284,22 +285,77 @@ async function bookingMetaForPath(pathname) {
   }
 }
 
+// /<slug> — the hosted per-tenant landing page. Unlike invoices/quotes, here
+// we WANT a rich preview: inject the tenant's hero (or first gallery) image so
+// a shared landing-page link shows their photo instead of the Field Manager
+// logo. Returns null for reserved paths, unknown slugs, or unpublished pages,
+// so those fall through to the default meta.
+async function landingMetaForPath(pathname) {
+  const m = pathname.match(/^\/([a-z0-9][a-z0-9-]{1,30}[a-z0-9])$/i);
+  if (!m) return null;
+  const slug = m[1].toLowerCase();
+  if (RESERVED_SLUGS.has(slug)) return null;
+  try {
+    const { rows } = await query(
+      `SELECT o.name AS organization_name, s.company_name, s.landing_page_config
+       FROM organizations o
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE o.slug = $1 AND o.deleted_at IS NULL
+       LIMIT 1`,
+      [slug]
+    );
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    const cfg = r.landing_page_config || {};
+    if (cfg.enabled !== true) return null; // unpublished — leave default meta
+    const company = r.company_name || r.organization_name || 'Field Manager';
+    const isHttp = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
+    const gallery = Array.isArray(cfg.gallery) ? cfg.gallery : [];
+    const firstGallery = gallery.find((g) => g && isHttp(g.url));
+    const image = [cfg.hero_image_url, firstGallery && firstGallery.url, cfg.background_image_url]
+      .find(isHttp) || null;
+    const title = (typeof cfg.hero_title === 'string' && cfg.hero_title.trim())
+      ? cfg.hero_title.trim()
+      : company;
+    const description = (typeof cfg.hero_subtitle === 'string' && cfg.hero_subtitle.trim())
+      ? cfg.hero_subtitle.trim()
+      : (typeof cfg.tagline === 'string' && cfg.tagline.trim() ? cfg.tagline.trim() : `Visit ${company}.`);
+    return { title, description, image };
+  } catch (err) {
+    return null;
+  }
+}
+
 function applySocialMeta(html, meta) {
   if (!meta) return html;
   const t = escapeHtmlAttr(meta.title);
   const d = escapeHtmlAttr(meta.description);
-  return html
+  html = html
     // Title swap (browser tab + SEO)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${t}</title>`)
-    // OG meta swaps
+    // OG + Twitter title/description swaps
     .replace(/<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${t}" />`)
     .replace(/<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${d}" />`)
-    // Strip the big hero image so previews fall back to text + favicon
-    .replace(/<meta property="og:image[^"]*" content="[^"]*"\s*\/?>/g, '')
-    // Twitter card: drop to summary (small icon) instead of summary_large_image
-    .replace(/<meta name="twitter:card" content="[^"]*"\s*\/?>/, '<meta name="twitter:card" content="summary" />')
     .replace(/<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${t}" />`)
-    .replace(/<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${d}" />`)
+    .replace(/<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${d}" />`);
+
+  if (meta.image) {
+    // Rich preview: point og/twitter image at the tenant's photo and keep the
+    // large-image Twitter card. Drop the hard-coded 1200x630 dimensions since
+    // the tenant image has its own aspect ratio.
+    const img = escapeHtmlAttr(meta.image);
+    return html
+      .replace(/<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${img}" />`)
+      .replace(/<meta property="og:image:width" content="[^"]*"\s*\/?>/, '')
+      .replace(/<meta property="og:image:height" content="[^"]*"\s*\/?>/, '')
+      .replace(/<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${img}" />`);
+  }
+
+  // No image (invoices/quotes/booking): strip the big hero image so previews
+  // fall back to text + favicon, and drop the Twitter card to a small summary.
+  return html
+    .replace(/<meta property="og:image[^"]*" content="[^"]*"\s*\/?>/g, '')
+    .replace(/<meta name="twitter:card" content="[^"]*"\s*\/?>/, '<meta name="twitter:card" content="summary" />')
     .replace(/<meta name="twitter:image" content="[^"]*"\s*\/?>/, '');
 }
 
@@ -314,7 +370,8 @@ async function serveIndex(req, res) {
   let html = RAW_INDEX_HTML.replace('%TRACKING_SCRIPTS%', consentAndTrackingScript(pixelId, ga4Id));
   const social = (await invoiceMetaForPath(req.path))
     || (await quoteMetaForPath(req.path))
-    || (await bookingMetaForPath(req.path));
+    || (await bookingMetaForPath(req.path))
+    || (await landingMetaForPath(req.path));
   if (social) html = applySocialMeta(html, social);
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
