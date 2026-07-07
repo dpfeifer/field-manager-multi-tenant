@@ -3292,10 +3292,15 @@
     }
 
     /* Draggable gallery carousel — arrows + click-drag; scrollbar hidden. */
+    /* Content sections (gallery / services / testimonials) live in one flex
+       column so the vertical rhythm is a single uniform gap regardless of
+       which sections are present. The container's own padding provides the
+       matching gap to the hero band above and the booking band below. */
+    .lp-sections { display: flex; flex-direction: column; gap: 76px; padding: 76px 0; }
     .lp-gallery-wrap { position: relative; }
     .lp-gallery {
       display: flex; gap: 10px; overflow-x: auto;
-      padding: 24px clamp(20px, 5vw, 48px);
+      padding: 0 clamp(20px, 5vw, 48px);
       scrollbar-width: none; -ms-overflow-style: none;
       -webkit-overflow-scrolling: touch; cursor: grab;
     }
@@ -3324,7 +3329,7 @@
       font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em;
       font-size: clamp(26px, 4vw, 38px); text-align: center; margin: 0 0 36px;
     }
-    .lp-services { max-width: 760px; margin: 0 auto; padding: 76px 24px; }
+    .lp-services { max-width: 760px; margin: 0 auto; padding: 0 24px; width: 100%; }
     .lp-services-list { display: flex; flex-direction: column; gap: 22px; }
     .lp-service { border-bottom: 1px solid var(--border); padding-bottom: 22px; }
     .lp-service:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -3334,7 +3339,7 @@
     .lp-service-desc { margin: 8px 0 0; color: var(--text-muted); line-height: 1.55; font-size: 14px; }
 
     /* Testimonials: social-proof cards above the booking form. */
-    .lp-testimonials { max-width: 1000px; margin: 0 auto; padding: 0 24px 76px; }
+    .lp-testimonials { max-width: 1000px; margin: 0 auto; padding: 0 24px; width: 100%; }
     .lp-testimonials-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px;
     }
@@ -15320,6 +15325,10 @@ function PublicLandingView({ slug }) {
   };
 
   const lpStyle = L.accent_color ? { '--lp-accent': L.accent_color } : undefined;
+  const hasGallery = L.gallery && L.gallery.length > 0;
+  const hasServices = L.services && L.services.length > 0;
+  const hasTestimonials = L.testimonials && L.testimonials.length > 0;
+  const hasSections = hasGallery || hasServices || hasTestimonials;
   return (
     <div className="lp" style={lpStyle}>
       <div
@@ -15348,38 +15357,42 @@ function PublicLandingView({ slug }) {
         </header>
       </div>
 
-      {L.gallery && L.gallery.length > 0 && <LandingGallery items={L.gallery} />}
+      {hasSections && (
+        <div className="lp-sections">
+          {hasGallery && <LandingGallery items={L.gallery} />}
 
-      {L.services && L.services.length > 0 && (
-        <section className="lp-services">
-          <h2 className="lp-section-title">Services</h2>
-          <div className="lp-services-list">
-            {L.services.map((s, i) => (
-              <div key={i} className="lp-service">
-                <div className="lp-service-head">
-                  <span className="lp-service-name">{s.name}</span>
-                  {s.price && <span className="lp-service-price">{s.price}</span>}
-                </div>
-                {s.description && <p className="lp-service-desc">{s.description}</p>}
+          {hasServices && (
+            <section className="lp-services">
+              <h2 className="lp-section-title">Services</h2>
+              <div className="lp-services-list">
+                {L.services.map((s, i) => (
+                  <div key={i} className="lp-service">
+                    <div className="lp-service-head">
+                      <span className="lp-service-name">{s.name}</span>
+                      {s.price && <span className="lp-service-price">{s.price}</span>}
+                    </div>
+                    {s.description && <p className="lp-service-desc">{s.description}</p>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </section>
+          )}
 
-      {L.testimonials && L.testimonials.length > 0 && (
-        <section className="lp-testimonials">
-          <h2 className="lp-section-title">What clients say</h2>
-          <div className="lp-testimonials-grid">
-            {L.testimonials.map((t, i) => (
-              <figure key={i} className="lp-testimonial">
-                {t.rating > 0 && <LandingStars n={t.rating} />}
-                <blockquote className="lp-testimonial-quote">{t.quote}</blockquote>
-                {t.author && <figcaption className="lp-testimonial-author">{t.author}</figcaption>}
-              </figure>
-            ))}
-          </div>
-        </section>
+          {hasTestimonials && (
+            <section className="lp-testimonials">
+              <h2 className="lp-section-title">What clients say</h2>
+              <div className="lp-testimonials-grid">
+                {L.testimonials.map((t, i) => (
+                  <figure key={i} className="lp-testimonial">
+                    {t.rating > 0 && <LandingStars n={t.rating} />}
+                    <blockquote className="lp-testimonial-quote">{t.quote}</blockquote>
+                    {t.author && <figcaption className="lp-testimonial-author">{t.author}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       )}
 
       <section className="lp-book" id="lp-book" style={{ scrollMarginTop: navH + 12 }}>
