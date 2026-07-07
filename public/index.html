@@ -3340,6 +3340,25 @@
     }
     .lp-editor-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .lp-editor-service-top { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    /* Condensed gallery editor: thumbnail grid + one multi-file "Add" tile. */
+    .lp-thumb-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+    .lp-thumb {
+      position: relative; width: 94px; height: 94px; border-radius: 8px; overflow: hidden;
+      background: var(--tinted); border: 1px solid var(--border);
+    }
+    .lp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lp-thumb-x {
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border: 0;
+      border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; font-size: 15px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+    }
+    .lp-thumb-x:hover { background: rgba(0,0,0,0.8); }
+    .lp-thumb-add {
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      cursor: pointer; border: 1px dashed var(--border-strong); background: var(--bg-elevated);
+      color: var(--text-muted); font-size: 12px; font-weight: 600; line-height: 1.25; padding: 6px;
+    }
+    .lp-thumb-add:hover { background: var(--tinted); }
     @media (max-width: 600px) {
       .legal-page { padding: 32px 20px 64px; }
       .legal-head { margin-bottom: 40px; padding-bottom: 32px; }
@@ -13450,6 +13469,23 @@ function OrganizationsSection({ session }) {
 // Cloudinary direct-from-browser image upload. Gets a signed upload
 // signature from our backend (system-admin only), then POSTs the file
 // straight to Cloudinary and returns the secure_url via onChange.
+// Sign via our backend, upload the file straight to Cloudinary, and return
+// the hosted secure_url. Shared by the hero uploader and the multi-file
+// gallery uploader.
+async function uploadToCloudinary(token, file) {
+  const sig = await apiRequest('/api/system/upload-signature', { method: 'POST', token });
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('api_key', sig.api_key);
+  fd.append('timestamp', sig.timestamp);
+  fd.append('folder', sig.folder);
+  fd.append('signature', sig.signature);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: 'POST', body: fd });
+  const out = await res.json();
+  if (!res.ok || !out.secure_url) throw new Error((out.error && out.error.message) || 'Upload failed');
+  return out.secure_url;
+}
+
 function ImageUpload({ token, value, onChange, label }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -13459,17 +13495,7 @@ function ImageUpload({ token, value, onChange, label }) {
     if (!file) return;
     setBusy(true); setErr(null);
     try {
-      const sig = await apiRequest('/api/system/upload-signature', { method: 'POST', token });
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('api_key', sig.api_key);
-      fd.append('timestamp', sig.timestamp);
-      fd.append('folder', sig.folder);
-      fd.append('signature', sig.signature);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: 'POST', body: fd });
-      const out = await res.json();
-      if (!res.ok || !out.secure_url) throw new Error((out.error && out.error.message) || 'Upload failed');
-      onChange(out.secure_url);
+      onChange(await uploadToCloudinary(token, file));
     } catch (er) {
       setErr(er.message);
     } finally {
@@ -13514,11 +13540,30 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [galleryBusy, setGalleryBusy] = useState(null);
+  const [galleryErr, setGalleryErr] = useState(null);
 
   function set(patch) { setCfg((c) => ({ ...c, ...patch })); setSaved(false); }
-  function setGallery(i, patch) { set({ gallery: cfg.gallery.map((g, idx) => (idx === i ? { ...g, ...patch } : g)) }); }
-  function addGallery() { set({ gallery: [...cfg.gallery, { url: '', caption: '' }] }); }
-  function removeGallery(i) { set({ gallery: cfg.gallery.filter((_, idx) => idx !== i) }); }
+  function removeGallery(i) { setCfg((c) => ({ ...c, gallery: c.gallery.filter((_, idx) => idx !== i) })); setSaved(false); }
+  function appendGallery(items) { setCfg((c) => ({ ...c, gallery: [...c.gallery, ...items] })); setSaved(false); }
+  async function handleGalleryFiles(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    setGalleryErr(null);
+    const uploaded = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setGalleryBusy(`Uploading ${i + 1}/${files.length}…`);
+        uploaded.push({ url: await uploadToCloudinary(token, files[i]), caption: '' });
+      }
+    } catch (er) {
+      setGalleryErr(er.message);
+    } finally {
+      if (uploaded.length) appendGallery(uploaded);
+      setGalleryBusy(null);
+    }
+  }
   function setService(i, patch) { set({ services: cfg.services.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }); }
   function addService() { set({ services: [...cfg.services, { name: '', price: '', description: '' }] }); }
   function removeService(i) { set({ services: cfg.services.filter((_, idx) => idx !== i) }); }
@@ -13557,14 +13602,20 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
       <textarea rows={2} value={cfg.hero_subtitle} onChange={(e) => set({ hero_subtitle: e.target.value })} placeholder="By appointment only — a private barber serving…" />
 
       <div className="section-heading">Gallery</div>
-      {cfg.gallery.length === 0 && <p className="hint" style={{ marginTop: 0 }}>No photos yet.</p>}
-      {cfg.gallery.map((g, i) => (
-        <div key={i} className="lp-editor-row">
-          <ImageUpload token={token} value={g.url} onChange={(url) => setGallery(i, { url })} label="Upload photo" />
-          <button type="button" className="link-button" onClick={() => removeGallery(i)}>Remove photo</button>
-        </div>
-      ))}
-      <button type="button" className="secondary" onClick={addGallery} style={{ marginTop: 8 }}>+ Add photo</button>
+      <p className="hint" style={{ marginTop: 0 }}>Photos for the swiper below the hero. Select several at once.</p>
+      <div className="lp-thumb-grid">
+        {cfg.gallery.map((g, i) => (
+          <div key={i} className="lp-thumb">
+            <img src={g.url} alt="" />
+            <button type="button" className="lp-thumb-x" onClick={() => removeGallery(i)} aria-label="Remove photo">×</button>
+          </div>
+        ))}
+        <label className="lp-thumb lp-thumb-add">
+          <span>{galleryBusy || '+ Add photos'}</span>
+          <input type="file" accept="image/*" multiple onChange={handleGalleryFiles} disabled={!!galleryBusy} style={{ display: 'none' }} />
+        </label>
+      </div>
+      {galleryErr && <div className="error" style={{ marginTop: 6 }}>{galleryErr}</div>}
 
       <div className="section-heading">Services</div>
       {cfg.services.map((s, i) => (
