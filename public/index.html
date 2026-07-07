@@ -3272,17 +3272,34 @@
       .lp-hero-sub { margin-left: auto; margin-right: auto; }
     }
 
-    /* Gallery as a horizontal swipe/scroll carousel (CSS scroll-snap). */
+    /* Draggable gallery carousel — arrows + click-drag; scrollbar hidden. */
+    .lp-gallery-wrap { position: relative; }
     .lp-gallery {
-      display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
-      padding: 24px clamp(20px, 5vw, 48px); scrollbar-width: thin;
-      -webkit-overflow-scrolling: touch;
+      display: flex; gap: 10px; overflow-x: auto;
+      padding: 24px clamp(20px, 5vw, 48px);
+      scrollbar-width: none; -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch; cursor: grab;
     }
+    .lp-gallery::-webkit-scrollbar { display: none; }
+    .lp-gallery.dragging { cursor: grabbing; scroll-behavior: auto; }
     .lp-gallery-item {
       flex: 0 0 auto; width: clamp(240px, 42vw, 380px); aspect-ratio: 4 / 5;
-      scroll-snap-align: center; margin: 0; border-radius: 12px; overflow: hidden; background: var(--tinted);
+      margin: 0; border-radius: 12px; overflow: hidden; background: var(--tinted);
+      user-select: none;
     }
-    .lp-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lp-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; }
+    .lp-gallery.dragging img { pointer-events: none; }
+    .lp-gallery-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+      width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 24px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-md); transition: background 0.15s ease;
+    }
+    .lp-gallery-arrow:hover { background: var(--bg-elevated); }
+    .lp-gallery-prev { left: clamp(8px, 2vw, 20px); }
+    .lp-gallery-next { right: clamp(8px, 2vw, 20px); }
+    @media (max-width: 600px) { .lp-gallery-arrow { display: none; } }
 
     .lp-section-title {
       font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em;
@@ -14880,6 +14897,58 @@ function PublicBookingView({ slug }) {
   );
 }
 
+// Gallery carousel: click-drag to scroll on desktop, prev/next arrows, and
+// native touch-swipe on mobile. Scrollbar hidden; not driven by browser
+// scroll UI.
+function LandingGallery({ items }) {
+  const ref = useRef(null);
+  const drag = useRef({ down: false, startX: 0, startScroll: 0 });
+
+  function onDown(e) {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { down: true, startX: e.pageX, startScroll: el.scrollLeft };
+    el.classList.add('dragging');
+  }
+  function onMove(e) {
+    if (!drag.current.down) return;
+    const el = ref.current;
+    if (!el) return;
+    e.preventDefault();
+    el.scrollLeft = drag.current.startScroll - (e.pageX - drag.current.startX);
+  }
+  function endDrag() {
+    drag.current.down = false;
+    if (ref.current) ref.current.classList.remove('dragging');
+  }
+  function nudge(dir) {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(el.clientWidth * 0.8, 260), behavior: 'smooth' });
+  }
+
+  return (
+    <section className="lp-gallery-wrap">
+      <button type="button" className="lp-gallery-arrow lp-gallery-prev" onClick={() => nudge(-1)} aria-label="Previous">‹</button>
+      <div
+        className="lp-gallery"
+        ref={ref}
+        onMouseDown={onDown}
+        onMouseMove={onMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+      >
+        {items.map((g, i) => (
+          <figure key={i} className="lp-gallery-item">
+            <img src={g.url} alt={g.caption || ''} loading="lazy" draggable={false} />
+          </figure>
+        ))}
+      </div>
+      <button type="button" className="lp-gallery-arrow lp-gallery-next" onClick={() => nudge(1)} aria-label="Next">›</button>
+    </section>
+  );
+}
+
 // Hosted per-tenant landing page at /<slug>: hero → gallery → services →
 // booking form. Content comes from GET /api/public/landing/:slug (only
 // returns when the owner has enabled the page).
@@ -14938,15 +15007,7 @@ function PublicLandingView({ slug }) {
         </div>
       </header>
 
-      {L.gallery && L.gallery.length > 0 && (
-        <section className="lp-gallery">
-          {L.gallery.map((g, i) => (
-            <figure key={i} className="lp-gallery-item">
-              <img src={g.url} alt={g.caption || ''} loading="lazy" />
-            </figure>
-          ))}
-        </section>
-      )}
+      {L.gallery && L.gallery.length > 0 && <LandingGallery items={L.gallery} />}
 
       {L.services && L.services.length > 0 && (
         <section className="lp-services">
