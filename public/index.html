@@ -9943,6 +9943,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/auto-invoice' ? 'auto-invoice'
     : path === '/settings/booking-form' ? 'booking-form'
     : path === '/settings/payments' ? 'payments'
+    : path === '/settings/landing' ? 'landing'
     : 'company';
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({});
@@ -10091,7 +10092,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form')) {
+  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -10140,6 +10141,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               onClick={() => navigate('/settings/auto-invoice')}
             >Auto-invoice</button>
           )}
+          {isAdmin && settings && settings.landing_enabled && (
+            <button
+              className={`chip ${subView === 'landing' ? 'active' : ''}`}
+              onClick={() => navigate('/settings/landing')}
+            >Landing page</button>
+          )}
           {isAdmin && (
             <button
               className={`chip ${subView === 'modules' ? 'active' : ''}`}
@@ -10148,6 +10155,28 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           )}
         </div>
       </div>
+
+      {subView === 'landing' && isAdmin && (
+        <>
+          {error && <div className="error">{error}</div>}
+          {settings && settings.landing_enabled ? (
+            <LandingPageEditor
+              slug={session.slug}
+              token={session.token}
+              initial={settings.landing_page_config}
+              saveUrl="/api/settings/landing"
+              uploadEndpoint="/api/settings/upload-signature"
+              apiSlug={session.slug}
+            />
+          ) : (
+            <div className="form-card">
+              <p className="hint" style={{ margin: 0 }}>
+                The landing-page feature isn’t enabled for your account.
+              </p>
+            </div>
+          )}
+        </>
+      )}
 
       {subView === 'modules' && isAdmin && (
         <>
@@ -13586,8 +13615,10 @@ function landingInit(initial) {
   };
 }
 
-// Owner-managed landing-page editor, shown inside the staff org-detail view.
-function LandingPageEditor({ orgId, slug, token, initial }) {
+// Landing-page editor, shared by the staff org-detail view (system endpoints)
+// and the tenant Settings page (settings endpoints). Endpoints/auth are
+// passed in via saveUrl / uploadEndpoint / apiSlug.
+function LandingPageEditor({ slug, token, initial, saveUrl, uploadEndpoint, apiSlug }) {
   const [cfg, setCfg] = useState(() => landingInit(initial));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -13607,7 +13638,7 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
     try {
       for (let i = 0; i < files.length; i++) {
         setGalleryBusy(`Uploading ${i + 1}/${files.length}…`);
-        uploaded.push({ url: await uploadToCloudinary(token, files[i]), caption: '' });
+        uploaded.push({ url: await uploadToCloudinary(token, files[i], uploadEndpoint, apiSlug), caption: '' });
       }
     } catch (er) {
       setGalleryErr(er.message);
@@ -13623,7 +13654,7 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
   async function save() {
     setBusy(true); setError(null);
     try {
-      await apiRequest(`/api/system/organizations/${orgId}/landing`, { method: 'PUT', token, body: cfg });
+      await apiRequest(saveUrl, { method: 'PUT', token, slug: apiSlug, body: cfg });
       setSaved(true);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
@@ -13653,11 +13684,11 @@ function LandingPageEditor({ orgId, slug, token, initial }) {
         {cfg.accent_color && <button type="button" className="link-button" onClick={() => set({ accent_color: '' })}>Reset</button>}
       </div>
       <label style={{ marginTop: 16 }}>Background pattern <span className="hint">(tiled behind the hero — leave empty for the default)</span></label>
-      <ImageUpload token={token} value={cfg.background_image_url} onChange={(url) => set({ background_image_url: url })} label="Upload pattern" />
+      <ImageUpload token={token} endpoint={uploadEndpoint} slug={apiSlug} value={cfg.background_image_url} onChange={(url) => set({ background_image_url: url })} label="Upload pattern" />
 
       <div className="section-heading">Hero</div>
       <label>Hero image</label>
-      <ImageUpload token={token} value={cfg.hero_image_url} onChange={(url) => set({ hero_image_url: url })} label="Upload hero image" />
+      <ImageUpload token={token} endpoint={uploadEndpoint} slug={apiSlug} value={cfg.hero_image_url} onChange={(url) => set({ hero_image_url: url })} label="Upload hero image" />
       <label>Headline</label>
       <input value={cfg.hero_title} onChange={(e) => set({ hero_title: e.target.value })} placeholder="Sharp cuts. Quiet chair." />
       <label>Subhead</label>
@@ -13791,6 +13822,17 @@ function OrgDetailView({ session, orgId }) {
     finally { setAddBusy(false); }
   }
 
+  async function toggleLandingAccess(enabled) {
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}/landing-access`, {
+        method: 'PUT', token: session.token, body: { enabled },
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   if (loading) {
     return (
       <div>
@@ -13844,11 +13886,29 @@ function OrgDetailView({ session, orgId }) {
         </dl>
       </div>
 
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Landing page access</div>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: 0, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!o.landing_enabled}
+            disabled={busy}
+            onChange={(e) => toggleLandingAccess(e.target.checked)}
+          />
+          <span>Let this client edit their own landing page from Settings</span>
+        </label>
+        <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+          When on, the org's admins get a Landing page section in their own Settings.
+          You can edit the page from here either way.
+        </p>
+      </div>
+
       <LandingPageEditor
-        orgId={orgId}
         slug={o.slug}
         token={session.token}
         initial={data.settings && data.settings.landing_page_config}
+        saveUrl={`/api/system/organizations/${orgId}/landing`}
+        uploadEndpoint="/api/system/upload-signature"
       />
 
       <div className="form-card">
