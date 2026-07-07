@@ -3331,11 +3331,28 @@
     .lp-service-price { font-size: 15px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
     .lp-service-desc { margin: 8px 0 0; color: var(--text-muted); line-height: 1.55; font-size: 14px; }
 
-    .lp-book { background: var(--bg-elevated); border-top: 1px solid var(--border); padding: 76px 24px; }
-    .lp-book-inner { max-width: 520px; margin: 0 auto; }
-    .lp-book-title { margin-bottom: 12px; }
-    .lp-book-sub { text-align: center; color: var(--text-muted); margin: 0 0 28px; }
+    /* Booking section: accent band with a white form card (matches
+       barbersthetic). Scoped to .lp-book so the shared /book page — which
+       renders <BookingForm> without .lp-book — keeps the standard look. */
+    .lp-book { background: var(--lp-accent); padding: clamp(40px, 6vw, 84px) clamp(16px, 4vw, 40px); }
+    .lp-book-inner {
+      max-width: 640px; margin: 0 auto; background: var(--card);
+      border-radius: 16px; padding: clamp(32px, 5vw, 56px) clamp(24px, 5vw, 56px);
+      box-shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.45);
+    }
+    .lp-book-title { text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .lp-book-sub { text-align: center; color: var(--text-muted); margin: 0 0 30px; }
     .lp-book .booking-done { text-align: center; padding: 24px 0; }
+    .lp-book form label {
+      text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px;
+      font-weight: 700; color: var(--text);
+    }
+    .lp-book form label .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .lp-book form input, .lp-book form textarea, .lp-book form select {
+      background: var(--bg); border: 1px solid var(--border-strong);
+    }
+    .lp-book form .primary { background: var(--lp-accent); border-color: var(--lp-accent); }
+    .lp-book form .primary:hover { background: var(--lp-accent-hover); border-color: var(--lp-accent-hover); }
 
     .lp-footer { text-align: center; padding: 44px 24px; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
     .lp-powered { margin-top: 10px; font-size: 12px; }
