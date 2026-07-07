@@ -3225,31 +3225,42 @@
     /* Hosted per-tenant landing page (/<slug>): hero, gallery, services, form. */
     .lp { color: var(--text); }
     .lp-loading { padding: 96px 24px; text-align: center; color: var(--text-muted); }
-    .lp-hero {
-      min-height: 66vh; display: flex; align-items: center; justify-content: center;
-      background-size: cover; background-position: center; background-color: var(--primary);
-      position: relative; text-align: center; padding: 72px 24px;
+    .lp-hero { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 74vh; }
+    .lp-hero-media { background-size: cover; background-position: center; background-color: var(--tinted); min-height: 340px; }
+    .lp-hero-panel {
+      display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+      padding: 56px clamp(28px, 5vw, 76px);
     }
-    .lp-hero::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
-    .lp-hero-inner { position: relative; max-width: 720px; color: #fff; }
-    .lp-logo { max-height: 72px; margin-bottom: 20px; border-radius: 8px; }
+    .lp-logo { max-height: 64px; margin-bottom: 22px; border-radius: 8px; }
     .lp-hero-title {
       font-family: var(--serif); font-weight: 600; letter-spacing: -0.02em;
-      font-size: clamp(34px, 6vw, 60px); line-height: 1.05; margin: 0 0 16px; color: #fff;
+      font-size: clamp(34px, 5vw, 56px); line-height: 1.06; margin: 0 0 18px; color: var(--text);
     }
-    .lp-hero-sub { font-size: clamp(16px, 2.2vw, 20px); line-height: 1.5; opacity: 0.92; margin: 0 auto 28px; max-width: 560px; }
+    .lp-hero-sub { font-size: clamp(16px, 2vw, 19px); line-height: 1.55; color: var(--text-muted); margin: 0 0 28px; max-width: 460px; }
     .lp-cta {
-      background: #fff; color: #111; border: 0; border-radius: 999px;
+      background: var(--text); color: var(--bg); border: 0; border-radius: 999px;
       padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer;
       font-family: inherit; transition: transform 0.15s ease;
     }
     .lp-cta:hover { transform: translateY(-2px); }
+    @media (max-width: 800px) {
+      .lp-hero { grid-template-columns: 1fr; }
+      .lp-hero-media { min-height: 44vh; }
+      .lp-hero-panel { padding: 40px 24px; align-items: center; text-align: center; }
+      .lp-hero-sub { margin-left: auto; margin-right: auto; }
+    }
 
-    .lp-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-    .lp-gallery-item { margin: 0; aspect-ratio: 1 / 1; overflow: hidden; background: var(--tinted); }
-    .lp-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
-    .lp-gallery-item:hover img { transform: scale(1.04); }
-    @media (max-width: 600px) { .lp-gallery { grid-template-columns: repeat(2, 1fr); } }
+    /* Gallery as a horizontal swipe/scroll carousel (CSS scroll-snap). */
+    .lp-gallery {
+      display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+      padding: 24px clamp(20px, 5vw, 48px); scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+    .lp-gallery-item {
+      flex: 0 0 auto; width: clamp(240px, 42vw, 380px); aspect-ratio: 4 / 5;
+      scroll-snap-align: center; margin: 0; border-radius: 12px; overflow: hidden; background: var(--tinted);
+    }
+    .lp-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     .lp-section-title {
       font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em;
@@ -14844,11 +14855,11 @@ function PublicLandingView({ slug }) {
 
   return (
     <div className="lp">
-      <header
-        className="lp-hero"
-        style={L.hero_image_url ? { backgroundImage: `url(${L.hero_image_url})` } : undefined}
-      >
-        <div className="lp-hero-inner">
+      <header className="lp-hero">
+        {L.hero_image_url && (
+          <div className="lp-hero-media" style={{ backgroundImage: `url(${L.hero_image_url})` }} />
+        )}
+        <div className="lp-hero-panel">
           {data.logo_url && <img className="lp-logo" src={data.logo_url} alt={data.name} />}
           <h1 className="lp-hero-title">{L.hero_title || data.name}</h1>
           {L.hero_subtitle && <p className="lp-hero-sub">{L.hero_subtitle}</p>}
