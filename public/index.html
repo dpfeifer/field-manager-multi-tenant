@@ -3296,7 +3296,10 @@
        column so the vertical rhythm is a single uniform gap regardless of
        which sections are present. The container's own padding provides the
        matching gap to the hero band above and the booking band below. */
-    .lp-sections { display: flex; flex-direction: column; gap: 76px; padding: 76px 0; }
+    /* No top padding: the hero band already carries its own bottom padding +
+       fade, so the first section sits right under it. Bottom padding matches
+       the inter-section gap so the last section clears the booking band. */
+    .lp-sections { display: flex; flex-direction: column; gap: 76px; padding: 0 0 76px; }
     .lp-gallery-wrap { position: relative; }
     .lp-gallery {
       display: flex; gap: 10px; overflow-x: auto;
