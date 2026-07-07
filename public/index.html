@@ -3231,9 +3231,11 @@
     }
     .lp-loading { padding: 96px 24px; text-align: center; color: var(--text-muted); }
     .lp-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 18px clamp(20px, 5vw, 56px);
-      background: color-mix(in srgb, var(--bg) 50%, transparent);
+      padding: 16px clamp(20px, 5vw, 56px);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
     .lp-nav-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -3259,7 +3261,7 @@
         linear-gradient(45deg, var(--tinted) 25%, transparent 25%, transparent 75%, var(--tinted) 75%);
       background-size: 100px 100px; background-position: 0 0, 50px 50px;
     }
-    .lp-top > * { position: relative; z-index: 1; }
+    .lp-top > .lp-hero { position: relative; z-index: 1; }
     .lp-top::after {
       content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
       background: linear-gradient(to bottom, transparent, var(--bg)); z-index: 0; pointer-events: none;
@@ -15077,6 +15079,17 @@ function PublicLandingView({ slug }) {
     })();
   }, [slug]);
 
+  // The nav is fixed; measure its height so we can pad the content below it
+  // and offset the scroll-to-form anchor.
+  const navRef = useRef(null);
+  const [navH, setNavH] = useState(72);
+  useEffect(() => {
+    const measure = () => { if (navRef.current) setNavH(navRef.current.offsetHeight); };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [data]);
+
   if (notFound) {
     return (
       <div className="auth-shell">
@@ -15100,9 +15113,9 @@ function PublicLandingView({ slug }) {
     <div className="lp" style={lpStyle}>
       <div
         className="lp-top"
-        style={L.background_image_url ? { backgroundImage: `url(${L.background_image_url})`, backgroundRepeat: 'repeat', backgroundSize: 'auto' } : undefined}
+        style={{ paddingTop: navH, ...(L.background_image_url ? { backgroundImage: `url(${L.background_image_url})`, backgroundRepeat: 'repeat', backgroundSize: 'auto' } : {}) }}
       >
-        <div className="lp-nav">
+        <div className="lp-nav" ref={navRef}>
           <div className="lp-nav-brand">
             {data.logo_url && <img className="lp-nav-logo" src={data.logo_url} alt="" />}
             <div className="lp-nav-brand-text">
@@ -15143,7 +15156,7 @@ function PublicLandingView({ slug }) {
         </section>
       )}
 
-      <section className="lp-book" id="lp-book">
+      <section className="lp-book" id="lp-book" style={{ scrollMarginTop: navH + 12 }}>
         <div className="lp-book-inner">
           <h2 className="lp-section-title lp-book-title">
             {(data.booking_form_config && data.booking_form_config.title) || `Book with ${data.name}`}
