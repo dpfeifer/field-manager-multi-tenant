@@ -1,8 +1,16 @@
 const express = require('express');
 const { query } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const { cloudinarySignature } = require('../utils/cloudinary');
 
 const router = express.Router();
+
+// Cloudinary signed-upload signature for org admins (logo uploads etc.).
+router.post('/upload-signature', requireRole('admin'), (req, res) => {
+  const sig = cloudinarySignature();
+  if (!sig) return res.status(503).json({ error: 'Image uploads are not configured' });
+  res.json(sig);
+});
 
 const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',

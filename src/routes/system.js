@@ -6,6 +6,7 @@ const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
 const { sendEmail } = require('../utils/email');
 const { teamInviteTemplate } = require('../utils/emailTemplates');
+const { cloudinarySignature } = require('../utils/cloudinary');
 const { listTemplates, saveTemplate, resetTemplate, DEFAULTS } = require('../utils/templateStore');
 
 const router = express.Router();
@@ -181,19 +182,9 @@ router.get('/organizations/:id', async (req, res, next) => {
 // straight to Cloudinary with this short-lived signature, so file bytes
 // never pass through our server. System-admin only (router-level guard).
 router.post('/upload-signature', (req, res) => {
-  const cloud = process.env.CLOUDINARY_CLOUD_NAME;
-  const key = process.env.CLOUDINARY_API_KEY;
-  const secret = process.env.CLOUDINARY_API_SECRET;
-  if (!cloud || !key || !secret) {
-    return res.status(503).json({ error: 'Image uploads are not configured' });
-  }
-  const timestamp = Math.floor(Date.now() / 1000);
-  const folder = 'fieldmgr/landing';
-  // Cloudinary signature: params sorted by key, joined "key=value&...",
-  // the api secret appended, then SHA-1 hex.
-  const toSign = `folder=${folder}&timestamp=${timestamp}`;
-  const signature = crypto.createHash('sha1').update(toSign + secret).digest('hex');
-  res.json({ cloud_name: cloud, api_key: key, timestamp, folder, signature });
+  const sig = cloudinarySignature();
+  if (!sig) return res.status(503).json({ error: 'Image uploads are not configured' });
+  res.json(sig);
 });
 
 function normalizeLandingPageConfig(value) {

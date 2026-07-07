@@ -10403,8 +10403,20 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             />
           </div>
           <div className="full">
-            <label>Logo URL</label>
-            <input value={form.logo_url} onChange={(e) => setField('logo_url', e.target.value)} placeholder="https://..." disabled={!isAdmin} />
+            <label>Logo</label>
+            {isAdmin ? (
+              <ImageUpload
+                token={session.token} slug={session.slug}
+                endpoint="/api/settings/upload-signature"
+                value={form.logo_url}
+                onChange={(url) => setField('logo_url', url)}
+                label="Upload logo"
+              />
+            ) : (
+              form.logo_url
+                ? <img src={form.logo_url} alt="Logo" style={{ maxWidth: 96, maxHeight: 96, borderRadius: 8, border: '1px solid var(--border)' }} />
+                : <p className="hint" style={{ margin: 0 }}>No logo set.</p>
+            )}
           </div>
           <div className="full">
             <label>Address</label>
@@ -13489,8 +13501,10 @@ function OrganizationsSection({ session }) {
 // Sign via our backend, upload the file straight to Cloudinary, and return
 // the hosted secure_url. Shared by the hero uploader and the multi-file
 // gallery uploader.
-async function uploadToCloudinary(token, file) {
-  const sig = await apiRequest('/api/system/upload-signature', { method: 'POST', token });
+async function uploadToCloudinary(token, file, endpoint, slug) {
+  const opts = { method: 'POST', token };
+  if (slug) opts.slug = slug;
+  const sig = await apiRequest(endpoint || '/api/system/upload-signature', opts);
   const fd = new FormData();
   fd.append('file', file);
   fd.append('api_key', sig.api_key);
@@ -13503,7 +13517,7 @@ async function uploadToCloudinary(token, file) {
   return out.secure_url;
 }
 
-function ImageUpload({ token, value, onChange, label }) {
+function ImageUpload({ token, value, onChange, label, endpoint, slug }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -13512,7 +13526,7 @@ function ImageUpload({ token, value, onChange, label }) {
     if (!file) return;
     setBusy(true); setErr(null);
     try {
-      onChange(await uploadToCloudinary(token, file));
+      onChange(await uploadToCloudinary(token, file, endpoint, slug));
     } catch (er) {
       setErr(er.message);
     } finally {
