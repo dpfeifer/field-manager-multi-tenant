@@ -6241,14 +6241,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
               {jobs.length === 0 ? (
                 <div className="list-empty">No {terms.jobsLower} for this {terms.customerLower}.</div>
               ) : jobs.map((j) => (
-                <div
-                  key={j.id}
-                  className="compact-row compact-row-clickable"
-                  onClick={() => navigate(`/jobs?open=${j.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/jobs?open=${j.id}`); } }}
-                >
+                <div key={j.id} className="row">
                   <div className="info">
                     <div className="name">{j.title}</div>
                     <div className="meta">
@@ -6257,7 +6250,14 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                       {j.status === 'completed' && <> · Completed</>}
                     </div>
                   </div>
-                  <span className="compact-row-chevron">›</span>
+                  <div className="actions">
+                    {j.type === 'recurring' && (
+                      <button className="secondary" onClick={() => navigate(`/jobs?open=${j.id}&view=schedule`)}>Manage schedule</button>
+                    )}
+                    {canMutate && (
+                      <button className="secondary" onClick={() => navigate(`/jobs?open=${j.id}`)}>Edit {terms.jobLower}</button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -7827,7 +7827,7 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
   );
 }
 
-function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, features = { invoices: true } }) {
+function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEditDetails, features = { invoices: true } }) {
   const terms = useTerms();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -7917,6 +7917,9 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, featu
       <BackLink onClick={onBack}>All {terms.jobsLower}</BackLink>
       <div className="page-header">
         <h2>Schedule</h2>
+        {onEditDetails && (
+          <button className="secondary" onClick={onEditDetails}>Edit {terms.jobLower} →</button>
+        )}
       </div>
       <div className="schedule-summary">
         <strong style={{ color: 'var(--text)' }}>{job.title}</strong> — {jobCustomerName(job)} · {formatSchedule(job)}
@@ -8117,10 +8120,14 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     const target = jobs.find((j) => j.id === openId);
     if (!target) return;
     setEditing(target);
-    setMode(target.type === 'recurring' ? 'schedule' : 'edit');
-    // Strip the query param so reload / back nav doesn't keep reopening.
+    // Clicking a job always lands on Edit; an explicit ?view=schedule (from a
+    // "Manage schedule" button) opens the schedule instead, recurring only.
+    const view = params.get('view');
+    setMode(view === 'schedule' && target.type === 'recurring' ? 'schedule' : 'edit');
+    // Strip the query params so reload / back nav doesn't keep reopening.
     const url = new URL(window.location.href);
     url.searchParams.delete('open');
+    url.searchParams.delete('view');
     window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
   }, [jobs]);
 
@@ -8255,7 +8262,12 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     return (
       <div>
         <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
-        <div className="page-header"><h2>Edit {terms.jobLower}</h2></div>
+        <div className="page-header">
+          <h2>Edit {terms.jobLower}</h2>
+          {editing.type === 'recurring' && (
+            <button className="secondary" onClick={() => { setError(null); setMode('schedule'); }}>Manage schedule →</button>
+          )}
+        </div>
         <PlanError error={error} session={session} />
         <div className="form-card">
           <JobForm
@@ -8306,6 +8318,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         onBack={() => { setEditing(null); setMode('list'); }}
         onMarkComplete={handleScheduleMarkComplete}
         onChange={handleScheduleChange}
+        onEditDetails={canMutate ? () => { setError(null); setMode('edit'); } : undefined}
       />
     );
   }
@@ -8319,7 +8332,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
 
   function openEdit(job) {
     setEditing(job);
-    setMode(job.type === 'recurring' ? 'schedule' : 'edit');
+    setMode('edit');
   }
 
   function jobMatchesSearch(j) {
@@ -8462,7 +8475,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
                   )}
                   {canMutate && (
                     <>
-                      <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit</button>
+                      <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit {terms.jobLower}</button>
                       <button className="danger" onClick={() => deleteJob(j.id)}>Delete</button>
                     </>
                   )}
