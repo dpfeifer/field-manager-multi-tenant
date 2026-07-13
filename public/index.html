@@ -7854,8 +7854,16 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
 
   const todayStr = formatYMD(todayStart());
   const futureSkipped = (job.skipped_dates || []).filter((d) => d >= todayStr).sort();
-  const completionHistory = (job.completion_notes || [])
-    .map((c, idx) => ({ ...c, _idx: idx }))
+  // Completion history is the union of completed_dates (the source of truth for
+  // "what got done") and completion_notes (richer per-visit metadata). Older /
+  // migrated completions live only in completed_dates and have no note entry;
+  // surface those as bare rows (_idx null) so nothing goes missing.
+  const completionNotes = (job.completion_notes || []).map((c, idx) => ({ ...c, _idx: idx }));
+  const notedDates = new Set(completionNotes.map((n) => n.date));
+  const bareCompletions = (job.completed_dates || [])
+    .filter((d) => !notedDates.has(d))
+    .map((date) => ({ date, note: null, completedByName: null, _idx: null }));
+  const completionHistory = [...completionNotes, ...bareCompletions]
     .sort((a, b) => b.date.localeCompare(a.date));
   const [editingCompletionIdx, setEditingCompletionIdx] = useState(null);
   const [editedNote, setEditedNote] = useState('');
@@ -8021,9 +8029,10 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
           <div className="section-heading">Completion history</div>
           <div className="list">
             {completionHistory.map((c) => {
-              const isEditing = editingCompletionIdx === c._idx;
+              const hasNote = c._idx !== null;
+              const isEditing = hasNote && editingCompletionIdx === c._idx;
               return (
-                <div key={`${c.date}-${c._idx}`} className="row">
+                <div key={`${c.date}-${hasNote ? c._idx : 'bare'}`} className="row">
                   <div className="info">
                     <div className="name">{formatDateString(c.date)}</div>
                     {isEditing ? (
@@ -8035,11 +8044,13 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
                           style={{ flex: 1 }}
                         />
                       </div>
-                    ) : (
+                    ) : hasNote ? (
                       <div className="meta">by {c.completedByName}{c.note && <> — “{c.note}”</>}</div>
+                    ) : (
+                      <div className="meta">Completed</div>
                     )}
                   </div>
-                  {canMutate && (
+                  {canMutate && hasNote && (
                     <div className="actions">
                       {isEditing ? (
                         <>
