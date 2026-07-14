@@ -7872,7 +7872,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
     .map((date) => ({ date, note: null, completedByName: null, _idx: null }));
   const completionHistory = [...completionNotes, ...bareCompletions]
     .sort((a, b) => b.date.localeCompare(a.date));
-  const [editingCompletionIdx, setEditingCompletionIdx] = useState(null);
+  const [editingCompletionDate, setEditingCompletionDate] = useState(null);
   const [editedNote, setEditedNote] = useState('');
 
   async function call(fn) {
@@ -7897,16 +7897,16 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
     method: 'DELETE', slug: session.slug, token: session.token,
   }));
 
-  function saveCompletionEdit(idx) {
-    return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+  function saveCompletionEdit(date) {
+    return call(() => apiRequest(`/api/jobs/${job.id}/completions/by-date/${date}`, {
       method: 'PUT', slug: session.slug, token: session.token,
       body: { note: editedNote },
-    })).then(() => { setEditingCompletionIdx(null); setEditedNote(''); });
+    })).then(() => { setEditingCompletionDate(null); setEditedNote(''); });
   }
 
-  function deleteCompletion(idx, date) {
+  function deleteCompletion(date) {
     if (!confirm(`Undo the completion on ${formatDateString(date)}? The visit moves back to upcoming and any matching line item is pulled from the open draft invoice.`)) return;
-    return call(() => apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+    return call(() => apiRequest(`/api/jobs/${job.id}/completions/by-date/${date}`, {
       method: 'DELETE', slug: session.slug, token: session.token,
     }));
   }
@@ -8036,10 +8036,9 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
           <div className="section-heading">Completion history</div>
           <div className="list">
             {completionHistory.map((c) => {
-              const hasNote = c._idx !== null;
-              const isEditing = hasNote && editingCompletionIdx === c._idx;
+              const isEditing = editingCompletionDate === c.date;
               return (
-                <div key={`${c.date}-${hasNote ? c._idx : 'bare'}`} className="row">
+                <div key={c.date} className="row">
                   <div className="info">
                     <div className="name">{formatDateString(c.date)}</div>
                     {isEditing ? (
@@ -8051,23 +8050,25 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
                           style={{ flex: 1 }}
                         />
                       </div>
-                    ) : hasNote ? (
+                    ) : c.completedByName ? (
                       <div className="meta">by {c.completedByName}{c.note && <> — “{c.note}”</>}</div>
+                    ) : c.note ? (
+                      <div className="meta">“{c.note}”</div>
                     ) : (
                       <div className="meta">Completed</div>
                     )}
                   </div>
-                  {canMutate && hasNote && (
+                  {canMutate && (
                     <div className="actions">
                       {isEditing ? (
                         <>
-                          <button className="primary" disabled={busy} onClick={() => saveCompletionEdit(c._idx)}>Save</button>
-                          <button className="secondary" disabled={busy} onClick={() => { setEditingCompletionIdx(null); setEditedNote(''); }}>Cancel</button>
+                          <button className="primary" disabled={busy} onClick={() => saveCompletionEdit(c.date)}>Save</button>
+                          <button className="secondary" disabled={busy} onClick={() => { setEditingCompletionDate(null); setEditedNote(''); }}>Cancel</button>
                         </>
                       ) : (
                         <>
-                          <button className="secondary" onClick={() => { setEditingCompletionIdx(c._idx); setEditedNote(c.note || ''); }}>Edit note</button>
-                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c._idx, c.date)}>Undo</button>
+                          <button className="secondary" onClick={() => { setEditingCompletionDate(c.date); setEditedNote(c.note || ''); }}>{c.note ? 'Edit note' : 'Add note'}</button>
+                          <button className="danger" disabled={busy} onClick={() => deleteCompletion(c.date)}>Undo</button>
                         </>
                       )}
                     </div>
@@ -8216,13 +8217,12 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   }
 
   async function uncompleteOccurrence(job, date) {
-    const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
-    const idx = notes.findIndex((n) => n.date === date);
-    if (idx === -1) return;
+    const completed = Array.isArray(job.completed_dates) ? job.completed_dates : [];
+    if (!completed.includes(date)) return;
     if (!confirm(`Undo the completion on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
     setBusy(true); setError(null);
     try {
-      await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+      await apiRequest(`/api/jobs/${job.id}/completions/by-date/${date}`, {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       await refresh();
@@ -11855,13 +11855,12 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
   }
 
   async function uncompleteOccurrence(job, date) {
-    const notes = Array.isArray(job.completion_notes) ? job.completion_notes : [];
-    const idx = notes.findIndex((n) => n.date === date);
-    if (idx === -1) return;
+    const completed = Array.isArray(job.completed_dates) ? job.completed_dates : [];
+    if (!completed.includes(date)) return;
     if (!confirm(`Undo the completion on ${formatDateString(date)}? If it was added to a draft invoice, the matching line is pulled.`)) return;
     setBusy(true); setError(null);
     try {
-      await apiRequest(`/api/jobs/${job.id}/completions/${idx}`, {
+      await apiRequest(`/api/jobs/${job.id}/completions/by-date/${date}`, {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       await refresh();

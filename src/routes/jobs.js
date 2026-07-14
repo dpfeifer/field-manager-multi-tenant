@@ -452,6 +452,108 @@ router.delete('/:id/completions/:index', requireRole('admin', 'lead'), async (re
   }
 });
 
+// Date-based completion edit/undo. Unlike the :index variants above, these key
+// off the completion date, so they work for migrated/older visits that live in
+// completed_dates without a completion_notes entry (no index to reference).
+router.put('/:id/completions/by-date/:date', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date } = req.params;
+  if (!isValidDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  const { note } = req.body || {};
+
+  try {
+    const job = await loadJobInOrg(req.organization.id, req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    const completedDates = Array.isArray(job.completed_dates) ? job.completed_dates : [];
+    if (!completedDates.includes(date)) {
+      return res.status(404).json({ error: 'No completion on that date' });
+    }
+    const notes = Array.isArray(job.completion_notes) ? [...job.completion_notes] : [];
+    const noteVal = note === '' ? null : note;
+    const existingIdx = notes.findIndex((n) => n.date === date);
+    if (existingIdx >= 0) {
+      notes[existingIdx] = { ...notes[existingIdx], note: noteVal };
+    } else {
+      // Backfill a note record for a bare (migrated) completion. Attribution is
+      // unknown, so completedBy/By-name stay null — this is an annotation, not
+      // a claim about who did the work.
+      notes.push({ date, note: noteVal, completedBy: null, completedByName: null, completedAt: null });
+    }
+
+    await query(
+      `UPDATE jobs SET completion_notes = $3::jsonb, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2`,
+      [req.params.id, req.organization.id, JSON.stringify(notes)]
+    );
+    await returnJob(res, req.params.id);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/completions/by-date/:date', requireRole('admin', 'lead'), async (req, res, next) => {
+  const { date } = req.params;
+  if (!isValidDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+
+  try {
+    const result = await withTransaction(async (client) => {
+      const { rows: jobRows } = await client.query(
+        'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+        [req.params.id, req.organization.id]
+      );
+      if (jobRows.length === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+      const job = jobRows[0];
+
+      const completedDates0 = Array.isArray(job.completed_dates) ? job.completed_dates : [];
+      if (!completedDates0.includes(date)) {
+        throw Object.assign(new Error('No completion on that date'), { status: 404 });
+      }
+
+      const notes = (Array.isArray(job.completion_notes) ? job.completion_notes : [])
+        .filter((n) => n.date !== date);
+      const completedDates = completedDates0.filter((d) => d !== date);
+
+      let newStatus = job.status;
+      if (job.type === 'single' && job.status === 'completed' && completedDates.length === 0) {
+        newStatus = 'scheduled';
+      }
+
+      // The date is fully removed, so pull any matching draft line + unmark it.
+      let billedDates = Array.isArray(job.billed_dates) ? [...job.billed_dates] : [];
+      const removeResult = await removeCompletionFromDraft(client, {
+        orgId: req.organization.id,
+        jobId: job.id,
+        customerId: job.customer_id,
+        date,
+      });
+      if (removeResult.removed) {
+        billedDates = billedDates.filter((d) => d !== date);
+      }
+
+      await client.query(
+        `UPDATE jobs SET
+           completion_notes = $3::jsonb,
+           completed_dates = $4::jsonb,
+           status = $5,
+           billed_dates = $6::jsonb,
+           updated_at = NOW()
+         WHERE id = $1 AND organization_id = $2`,
+        [
+          req.params.id, req.organization.id,
+          JSON.stringify(notes),
+          JSON.stringify(completedDates),
+          newStatus,
+          JSON.stringify(billedDates.sort()),
+        ]
+      );
+
+      const { rows } = await client.query(`${BASE_SELECT} WHERE j.id = $1 LIMIT 1`, [req.params.id]);
+      return rows[0];
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
 router.post('/:id/skip', requireRole('admin', 'lead'), async (req, res, next) => {
   const { date } = req.body || {};
   if (!isValidDate(date)) return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
