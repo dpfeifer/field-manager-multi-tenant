@@ -13675,6 +13675,7 @@ function landingInit(initial) {
     enabled: v.enabled === true,
     tagline: v.tagline || '',
     accent_color: v.accent_color || '',
+    background_color: v.background_color || '',
     background_image_url: v.background_image_url || '',
     hero_image_url: v.hero_image_url || '',
     hero_title: v.hero_title || '',
@@ -13758,7 +13759,13 @@ function LandingPageEditor({ slug, token, initial, saveUrl, uploadEndpoint, apiS
         <input value={cfg.accent_color} onChange={(e) => set({ accent_color: e.target.value })} placeholder="#c98558" style={{ width: 120 }} />
         {cfg.accent_color && <button type="button" className="link-button" onClick={() => set({ accent_color: '' })}>Reset</button>}
       </div>
-      <label style={{ marginTop: 16 }}>Background pattern <span className="hint">(tiled behind the hero — leave empty for the default)</span></label>
+      <label style={{ marginTop: 16 }}>Background color <span className="hint">(solid color behind the hero — overrides the pattern)</span></label>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input type="color" value={cfg.background_color || '#f7f4ec'} onChange={(e) => set({ background_color: e.target.value })} style={{ width: 48, height: 38, padding: 2, cursor: 'pointer' }} />
+        <input value={cfg.background_color} onChange={(e) => set({ background_color: e.target.value })} placeholder="#f7f4ec" style={{ width: 120 }} />
+        {cfg.background_color && <button type="button" className="link-button" onClick={() => set({ background_color: '' })}>Reset</button>}
+      </div>
+      <label style={{ marginTop: 16 }}>Background pattern <span className="hint">(tiled behind the hero — used only when no background color is set)</span></label>
       <ImageUpload token={token} endpoint={uploadEndpoint} slug={apiSlug} value={cfg.background_image_url} onChange={(url) => set({ background_image_url: url })} label="Upload pattern" />
 
       <div className="section-heading">Hero</div>
@@ -15366,7 +15373,14 @@ function PublicLandingView({ slug }) {
     <div className="lp" style={lpStyle}>
       <div
         className="lp-top"
-        style={{ paddingTop: navH, ...(L.background_image_url ? { backgroundImage: `url(${L.background_image_url})`, backgroundRepeat: 'repeat', backgroundSize: 'auto' } : {}) }}
+        style={{
+          paddingTop: navH,
+          ...(L.background_color
+            ? { backgroundColor: L.background_color, backgroundImage: 'none' }
+            : L.background_image_url
+              ? { backgroundImage: `url(${L.background_image_url})`, backgroundRepeat: 'repeat', backgroundSize: 'auto' }
+              : {}),
+        }}
       >
         <div className="lp-nav" ref={navRef}>
           <div className="lp-nav-brand">

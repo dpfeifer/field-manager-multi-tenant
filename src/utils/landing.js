@@ -15,8 +15,10 @@ function normalizeLandingPageConfig(value) {
         description: str(s && s.description, 500),
       })).filter((s) => s.name).slice(0, 24)
     : [];
-  const accentHex = (typeof v.accent_color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v.accent_color.trim()))
-    ? v.accent_color.trim().toLowerCase() : '';
+  const hexColor = (x) => (typeof x === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(x.trim()))
+    ? x.trim().toLowerCase() : '';
+  const accentHex = hexColor(v.accent_color);
+  const backgroundHex = hexColor(v.background_color);
   const testimonials = Array.isArray(v.testimonials)
     ? v.testimonials.map((t) => ({
         quote: str(t && t.quote, 500),
@@ -51,6 +53,7 @@ function normalizeLandingPageConfig(value) {
     enabled: v.enabled === true,
     tagline: str(v.tagline, 60),
     accent_color: accentHex,
+    background_color: backgroundHex,
     background_image_url: str(v.background_image_url, 500),
     hero_image_url: str(v.hero_image_url, 500),
     hero_title: str(v.hero_title, 160),
