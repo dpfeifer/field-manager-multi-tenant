@@ -4743,9 +4743,16 @@ function expandJobsToOccurrences(jobs, filter) {
 }
 
 function lastCompletion(job) {
-  const notes = job.completion_notes || [];
-  if (notes.length === 0) return null;
-  return notes.reduce((a, b) => (a.date > b.date ? a : b));
+  // completed_dates is the source of truth; migrated/older visits have no note
+  // entry, so keying off completion_notes alone mislabels them "Not started".
+  const dates = [
+    ...(Array.isArray(job.completed_dates) ? job.completed_dates : []),
+    ...(Array.isArray(job.completion_notes) ? job.completion_notes.map((n) => n.date) : []),
+  ];
+  if (dates.length === 0) return null;
+  const lastDate = dates.reduce((m, d) => (d > m ? d : m));
+  const note = (job.completion_notes || []).find((n) => n.date === lastDate);
+  return { date: lastDate, completedByName: note ? note.completedByName : null };
 }
 
 function formatSchedule(j) {
