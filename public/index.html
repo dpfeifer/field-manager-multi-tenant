@@ -13892,6 +13892,13 @@ function LandingPageEditor({ slug, token, initial, saveUrl, uploadEndpoint, apiS
   function setService(i, patch) { set({ services: cfg.services.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }); }
   function addService() { set({ services: [...cfg.services, { name: '', price: '', description: '' }] }); }
   function removeService(i) { set({ services: cfg.services.filter((_, idx) => idx !== i) }); }
+  function moveService(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= cfg.services.length) return;
+    const next = cfg.services.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    set({ services: next });
+  }
   function setTestimonial(i, patch) { set({ testimonials: cfg.testimonials.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) }); }
   function addTestimonial() { set({ testimonials: [...cfg.testimonials, { quote: '', author: '', rating: 5 }] }); }
   function removeTestimonial(i) { set({ testimonials: cfg.testimonials.filter((_, idx) => idx !== i) }); }
@@ -13968,6 +13975,8 @@ function LandingPageEditor({ slug, token, initial, saveUrl, uploadEndpoint, apiS
           <div className="lp-editor-service-top">
             <input value={s.name} onChange={(e) => setService(i, { name: e.target.value })} placeholder="Service name (e.g. Full Cut)" style={{ flex: 2 }} />
             <input value={s.price} onChange={(e) => setService(i, { price: e.target.value })} placeholder="Starting at $100" style={{ flex: 1 }} />
+            <button type="button" className="link-button" onClick={() => moveService(i, -1)} disabled={i === 0} aria-label="Move up" title="Move up">↑</button>
+            <button type="button" className="link-button" onClick={() => moveService(i, 1)} disabled={i === cfg.services.length - 1} aria-label="Move down" title="Move down">↓</button>
             <button type="button" className="link-button" onClick={() => removeService(i)}>Remove</button>
           </div>
           <textarea rows={2} value={s.description} onChange={(e) => setService(i, { description: e.target.value })} placeholder="Short description of the service" />
