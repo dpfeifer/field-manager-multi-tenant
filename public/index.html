@@ -7486,7 +7486,7 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
   });
   const hours = [];
   for (let h = startHour; h <= endHour; h++) hours.push(h);
-  const PX_PER_HOUR = 56;
+  const PX_PER_HOUR = 96;
 
   function timeToY(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -7501,6 +7501,45 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
     if (hh >= startHour && hh <= endHour) {
       nowY = (hh - startHour) * PX_PER_HOUR + (now.getMinutes() / 60) * PX_PER_HOUR;
     }
+  }
+
+  // Position each timed block, then split any whose rendered rectangles overlap
+  // into side-by-side columns so nothing stacks on top of anything else. A block
+  // has a min height (to fit its actions), so blocks less than ~an hour apart can
+  // overlap in pixels even when their times don't — columns keep them legible.
+  const GAP = 4;
+  const laidOut = timed
+    .map((o, i) => {
+      const showSms = o.job.customer_phone && smsTemplates.length > 0 && !o.completed;
+      const top = timeToY(o.job.start_time);
+      const minH = showSms ? 92 : 30;
+      const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - GAP);
+      return { o, i, showSms, top, height, bottom: top + height, col: 0, nCols: 1 };
+    })
+    .sort((a, b) => a.top - b.top || a.i - b.i);
+  {
+    const assignCols = (start, end) => {
+      const colBottoms = [];
+      for (let k = start; k < end; k++) {
+        const b = laidOut[k];
+        let col = colBottoms.findIndex((bot) => b.top >= bot);
+        if (col === -1) { col = colBottoms.length; colBottoms.push(b.bottom); }
+        else colBottoms[col] = b.bottom;
+        b.col = col;
+      }
+      for (let k = start; k < end; k++) laidOut[k].nCols = colBottoms.length;
+    };
+    let clusterStart = 0;
+    let clusterMaxBottom = -Infinity;
+    for (let k = 0; k < laidOut.length; k++) {
+      if (k > clusterStart && laidOut[k].top >= clusterMaxBottom) {
+        assignCols(clusterStart, k);
+        clusterStart = k;
+        clusterMaxBottom = -Infinity;
+      }
+      clusterMaxBottom = Math.max(clusterMaxBottom, laidOut[k].bottom);
+    }
+    assignCols(clusterStart, laidOut.length);
   }
 
   return (
@@ -7586,19 +7625,18 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
                 <span className="day-grid-now-line" />
               </div>
             )}
-            {timed.map((o, i) => {
-              const top = timeToY(o.job.start_time);
+            {laidOut.map((b) => {
+              const o = b.o;
               const phone = o.job.customer_phone;
-              const showSms = phone && smsTemplates.length > 0 && !o.completed;
-              // Reserve enough block height when SMS select is present so it
-              // never gets clipped. Short jobs visually expand to fit.
-              const minH = showSms ? 100 : 32;
-              const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - 4);
+              const showSms = b.showSms;
+              const height = b.height;
+              const nCols = b.nCols || 1;
+              const leftPct = (b.col || 0) * (100 / nCols);
               return (
                 <div
-                  key={i}
+                  key={b.i}
                   className={`day-block${o.completed ? ' completed' : ''}`}
-                  style={{ top, height }}
+                  style={{ top: b.top, height, left: `calc(${leftPct}% + 4px)`, width: `calc(${100 / nCols}% - 8px)`, right: 'auto' }}
                   onClick={() => onOpen(o.job)}
                 >
                   <div className="day-block-head">
