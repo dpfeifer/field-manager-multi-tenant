@@ -166,6 +166,85 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
   }
 });
 
+// Bulk-import single-date jobs (e.g. appointments migrated from another
+// system). Each row must resolve to an existing customer by name or phone —
+// jobs can't exist without a customer — so import customers first.
+router.post('/import', requireRole('admin', 'lead'), async (req, res, next) => {
+  const rows = Array.isArray(req.body && req.body.rows) ? req.body.rows : null;
+  if (!rows) return res.status(400).json({ error: 'rows array is required' });
+  if (rows.length === 0) return res.status(400).json({ error: 'rows is empty' });
+  if (rows.length > 1000) return res.status(400).json({ error: 'too many rows (max 1000 per import)' });
+
+  const norm = (s) => (s == null ? '' : String(s)).trim().toLowerCase().replace(/\s+/g, ' ');
+  const digits = (s) => (s == null ? '' : String(s)).replace(/\D/g, '');
+
+  try {
+    const { rows: customers } = await query(
+      `SELECT id, first_name, last_name, business_name, phone
+       FROM customers WHERE organization_id = $1 AND deleted_at IS NULL`,
+      [req.organization.id]
+    );
+    const byName = new Map();
+    const byPhone = new Map();
+    for (const c of customers) {
+      const full = norm(`${c.first_name || ''} ${c.last_name || ''}`);
+      if (full && !byName.has(full)) byName.set(full, c.id);
+      if (c.business_name) { const b = norm(c.business_name); if (b && !byName.has(b)) byName.set(b, c.id); }
+      const d = digits(c.phone);
+      if (d && !byPhone.has(d)) byPhone.set(d, c.id);
+    }
+
+    const prepared = [];
+    const unmatched = [];
+    let skipped = 0;
+    rows.forEach((r, i) => {
+      const title = (r.title == null ? '' : String(r.title)).trim();
+      const date = (r.date == null ? '' : String(r.date)).trim();
+      if (!title || !isValidDate(date)) { skipped++; return; }
+      let customerId = byName.get(norm(r.customer)) || null;
+      if (!customerId) { const ph = digits(r.customer_phone); if (ph) customerId = byPhone.get(ph) || null; }
+      if (!customerId) { unmatched.push(String(r.customer || r.customer_phone || `row ${i + 1}`)); return; }
+      const price = (r.default_price === '' || r.default_price == null) ? null : parseFloat(r.default_price);
+      prepared.push({
+        customerId, title, date,
+        start_time: normalizeStartTime(r.start_time),
+        duration_minutes: normalizeDurationMinutes(r.duration_minutes),
+        default_price: Number.isFinite(price) ? price : null,
+        description: (r.description == null ? '' : String(r.description)).trim() || null,
+      });
+    });
+
+    if (prepared.length === 0) {
+      return res.status(400).json({
+        error: 'No importable rows. Each needs a title, a valid date (YYYY-MM-DD), and a customer that matches an existing customer by name or phone.',
+        unmatched,
+      });
+    }
+
+    const inserted = await withTransaction(async (client) => {
+      const out = [];
+      for (const j of prepared) {
+        const { rows: ins } = await client.query(
+          `INSERT INTO jobs
+            (organization_id, customer_id, assigned_to, title, description, type,
+             date, default_price, start_time, duration_minutes)
+           VALUES ($1, $2, '[]'::jsonb, $3, $4, 'single', $5, $6, $7::time, $8)
+           RETURNING id`,
+          [req.organization.id, j.customerId, j.title, j.description, j.date, j.default_price, j.start_time, j.duration_minutes]
+        );
+        out.push(ins[0].id);
+      }
+      return out;
+    });
+
+    res.status(201).json({
+      inserted_count: inserted.length,
+      skipped_count: skipped,
+      unmatched,
+    });
+  } catch (err) { next(err); }
+});
+
 router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   const body = req.body || {};
 

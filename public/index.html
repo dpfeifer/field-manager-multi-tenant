@@ -8083,6 +8083,117 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
   );
 }
 
+function JobsImportView({ session, onDone, onCancel }) {
+  const terms = useTerms();
+  const [text, setText] = useState('');
+  const [parsed, setParsed] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const VALID_COLS = new Set(['customer', 'customer_phone', 'title', 'date', 'start_time', 'duration_minutes', 'default_price', 'description']);
+  const SAMPLE = 'customer,title,date,start_time,duration_minutes,default_price\nNeil Liley,Standard Cut,2026-07-27,15:00,60,100\nMark Leach,Enhanced Cut,2026-07-27,12:00,45,150';
+
+  function handleParse() {
+    setError(null); setResult(null);
+    try {
+      const out = parseCSV(text);
+      if (out.rows.length === 0) {
+        setError('No rows to import. Include a header row plus at least one data row.');
+        setParsed(null); return;
+      }
+      const unknown = out.headers.filter((h) => !VALID_COLS.has(h));
+      if (unknown.length > 0) {
+        setError(`Unknown columns: ${unknown.join(', ')}. Allowed: ${[...VALID_COLS].join(', ')}.`);
+        setParsed(null); return;
+      }
+      if (!out.headers.includes('title') || !out.headers.includes('date')) {
+        setError('CSV must include at least a title and a date column.');
+        setParsed(null); return;
+      }
+      if (!out.headers.includes('customer') && !out.headers.includes('customer_phone')) {
+        setError(`CSV must include a customer or customer_phone column so each ${terms.jobLower} can be matched to a ${terms.customerLower}.`);
+        setParsed(null); return;
+      }
+      setParsed(out);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleImport() {
+    if (!parsed) return;
+    setBusy(true); setError(null); setResult(null);
+    try {
+      const data = await apiRequest('/api/jobs/import', {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { rows: parsed.rows },
+      });
+      setResult(data);
+      if (data.inserted_count > 0) onDone();
+    } catch (err) {
+      const un = err.data && Array.isArray(err.data.unmatched) && err.data.unmatched.length
+        ? ` Unmatched ${terms.customersLower}: ${err.data.unmatched.join(', ')}.` : '';
+      setError(err.message + un);
+    }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header"><h2>Import {terms.jobsLower} from CSV</h2></div>
+      {error && <div className="error">{error}</div>}
+      {result && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
+          Imported {result.inserted_count} {terms.jobsLower} ({result.skipped_count} skipped).
+          {Array.isArray(result.unmatched) && result.unmatched.length > 0 && (
+            <div style={{ marginTop: 6 }}>
+              Skipped — no matching {terms.customerLower}: {result.unmatched.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="form-card">
+        <label>CSV <span className="hint">(header row required; columns: {[...VALID_COLS].join(', ')}. Each row is matched to an existing {terms.customerLower} by name or phone — import {terms.customersLower} first.)</span></label>
+        <textarea
+          rows={10}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={SAMPLE}
+          style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+        />
+        <div className="form-actions">
+          <button type="button" className="secondary" onClick={handleParse} disabled={busy || !text.trim()}>Preview</button>
+          {parsed && (
+            <button type="button" className="primary" onClick={handleImport} disabled={busy}>
+              {busy ? 'Importing...' : `Import ${parsed.rows.length} ${parsed.rows.length === 1 ? terms.jobLower : terms.jobsLower}`}
+            </button>
+          )}
+          <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Back</button>
+        </div>
+      </div>
+
+      {parsed && (
+        <>
+          <div className="section-heading">Preview ({parsed.rows.length} {parsed.rows.length === 1 ? 'row' : 'rows'})</div>
+          <div className="form-card">
+            <div className="csv-preview-wrap">
+              <table className="csv-preview-table">
+                <thead>
+                  <tr>{parsed.headers.map((h) => <th key={h}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {parsed.rows.slice(0, 50).map((row, i) => (
+                    <tr key={i}>{parsed.headers.map((h) => <td key={h}>{row[h] || '—'}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function JobsView({ session, features = { invoices: true }, planContext, smsTemplates = [], defaultAddToDraft = false }) {
   const [firstJobToast, setFirstJobToast] = useState(false);
   const terms = useTerms();
@@ -8249,6 +8360,19 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
       .join(', ');
   }
 
+  if (mode === 'import') {
+    return (
+      <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
+        <JobsImportView
+          session={session}
+          onDone={async () => { await refresh(); }}
+          onCancel={() => { setError(null); setMode('list'); }}
+        />
+      </div>
+    );
+  }
+
   if (mode === 'create') {
     return (
       <div>
@@ -8378,6 +8502,9 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         <h2>{terms.jobs}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" onClick={exportJobs} disabled={jobs.length === 0}>Export</button>
+          {canMutate && (
+            <button className="secondary" onClick={() => { setError(null); setMode('import'); }} disabled={atCap}>Import CSV</button>
+          )}
           {canMutate && (
             <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New {terms.jobLower}</button>
           )}
