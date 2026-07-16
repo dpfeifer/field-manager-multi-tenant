@@ -7312,6 +7312,11 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, smsTemp
       (monthByDate[o.date] = monthByDate[o.date] || []).push(o);
     });
   });
+  // Order each day's occurrences by time so the chips and the selected-day
+  // list below the calendar read chronologically (untimed sort last).
+  Object.keys(monthByDate).forEach((k) => {
+    monthByDate[k].sort((a, b) => (a.job.start_time || '99:99').localeCompare(b.job.start_time || '99:99'));
+  });
 
   const dayOccurrences = (() => {
     if (view !== 'day') return [];
