@@ -6703,7 +6703,7 @@ function CustomersView({ session, planContext }) {
           {canMutate && (
             <>
               <button className="secondary" onClick={() => { setError(null); setMode('import'); }} disabled={atCap}>Import CSV</button>
-              <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New {terms.customerLower}</button>
+              <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.customerLower}</span></button>
             </>
           )}
         </div>
@@ -8552,7 +8552,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             <button className="secondary" onClick={() => { setError(null); setMode('import'); }} disabled={atCap}>Import CSV</button>
           )}
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New {terms.jobLower}</button>
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
           )}
         </div>
       </div>
