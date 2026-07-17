@@ -1207,7 +1207,7 @@
     .day-block-bottom {
       display: flex; align-items: center; gap: 8px;
       justify-content: space-between;
-      margin-top: 2px;
+      margin-top: auto;
       min-width: 0;
     }
     .day-block-bottom .day-block-customer {
@@ -7491,7 +7491,8 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
   });
   const hours = [];
   for (let h = startHour; h <= endHour; h++) hours.push(h);
-  const PX_PER_HOUR = 116;
+  // Tall enough that a 30-min block (two 15-min rows) fits its content.
+  const PX_PER_HOUR = 168;
 
   function timeToY(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -7511,14 +7512,14 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
   // Each block has a min height so its details/actions always fit. Blocks whose
   // rendered rectangles overlap are split into side-by-side columns so nothing
   // stacks on top of anything else.
-  const GAP = 6;
+  const GAP = 2;
   const laidOut = timed
     .map((o, i) => {
       const showSms = o.job.customer_phone && smsTemplates.length > 0 && !o.completed;
       const durMin = Number(o.job.duration_minutes) || 60;
       const top = timeToY(o.job.start_time);
-      const minH = showSms ? 100 : 34;
-      const height = Math.max(minH, (durMin / 60) * PX_PER_HOUR - GAP);
+      // Strictly time-proportional: a 30-min visit is exactly two 15-min rows.
+      const height = Math.max(30, (durMin / 60) * PX_PER_HOUR - GAP);
       return { o, i, showSms, top, height, bottom: top + height, col: 0, nCols: 1 };
     })
     .sort((a, b) => a.top - b.top || a.i - b.i);
