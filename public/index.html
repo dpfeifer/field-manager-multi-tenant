@@ -8452,9 +8452,27 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
         <div className="page-header">
           <h2>Edit {terms.jobLower}</h2>
-          {editing.type === 'recurring' && (
-            <button className="secondary" onClick={() => { setError(null); setMode('schedule'); }}>Manage schedule →</button>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {editing.type === 'recurring' && (
+              <button className="secondary" onClick={() => { setError(null); setMode('schedule'); }}>Manage schedule →</button>
+            )}
+            {canMutate && (
+              <button
+                className="danger"
+                disabled={busy}
+                onClick={async () => {
+                  if (!confirm(`Delete this ${terms.jobLower}? This cannot be undone.`)) return;
+                  setBusy(true); setError(null);
+                  try {
+                    await apiRequest(`/api/jobs/${editing.id}`, { method: 'DELETE', slug: session.slug, token: session.token });
+                    setEditing(null); setMode('list');
+                    await refresh();
+                  } catch (err) { setError(err); }
+                  finally { setBusy(false); }
+                }}
+              >Delete</button>
+            )}
+          </div>
         </div>
         <PlanError error={error} session={session} />
         <div className="form-card">
