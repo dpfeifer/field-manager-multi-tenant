@@ -7266,13 +7266,30 @@ function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
   );
 }
 
-function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, smsTemplates = [] }) {
+// Does a candidate single-date appointment overlap an existing one in time?
+// Returns the first conflicting { job, date } or null. Untimed and recurring
+// candidates are skipped (no single time to compare).
+function findJobTimeConflict(jobs, candidate, excludeId) {
+  if (candidate.type !== 'single' || !candidate.date || !candidate.start_time) return null;
+  const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+  const cs = toMin(candidate.start_time);
+  const ce = cs + (Number(candidate.duration_minutes) || 60);
+  for (const j of jobs) {
+    if (j.id === excludeId) continue;
+    for (const o of jobOccurrencesInRange(j, candidate.date, candidate.date)) {
+      if (o.completed || !o.job.start_time) continue;
+      const os = toMin(o.job.start_time);
+      const oe = os + (Number(o.job.duration_minutes) || 60);
+      if (cs < oe && os < ce) return { job: j, date: o.date };
+    }
+  }
+  return null;
+}
+
+function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [], view, setView, selectedDate, setSelectedDate, monthOffset, setMonthOffset }) {
   const terms = useTerms();
   const today = todayStart();
   const todayStr = formatYMD(today);
-  const [view, setView] = useState('day');
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [monthOffset, setMonthOffset] = useState(0);
 
   function shiftDay(delta) {
     const cur = new Date(selectedDate + 'T00:00:00');
@@ -7407,6 +7424,7 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, smsTemp
             onOpen={onChipClick}
             onMarkComplete={onMarkComplete}
             onUncomplete={onUncomplete}
+            onCreateAt={onCreateAt ? (time) => onCreateAt(selectedDate, time) : undefined}
             smsTemplates={smsTemplates}
           />
         </>
@@ -7474,7 +7492,7 @@ function sendSmsTemplate(phone, template, customer) {
   document.body.removeChild(a);
 }
 
-function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplete, smsTemplates = [] }) {
+function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [] }) {
   const terms = useTerms();
   const jobsLowerLabel = terms.jobsLower;
   const untimed = occurrences.filter((o) => !o.job.start_time);
@@ -7626,7 +7644,18 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
             style={{
               height: hours.length * PX_PER_HOUR,
               backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR / 4 - 1}px, rgba(120,110,95,0.12) ${PX_PER_HOUR / 4 - 1}px, rgba(120,110,95,0.12) ${PX_PER_HOUR / 4}px)`,
+              cursor: onCreateAt ? 'copy' : 'default',
             }}
+            onClick={onCreateAt ? (e) => {
+              if (e.target.closest('.day-block')) return; // clicked an appointment
+              const rect = e.currentTarget.getBoundingClientRect();
+              const y = e.clientY - rect.top;
+              const raw = startHour * 60 + (y / PX_PER_HOUR) * 60;
+              const mins = Math.max(0, Math.min(24 * 60 - 15, Math.round(raw / 15) * 15));
+              const hh = String(Math.floor(mins / 60)).padStart(2, '0');
+              const mm = String(mins % 60).padStart(2, '0');
+              onCreateAt(`${hh}:${mm}`);
+            } : undefined}
           >
             {hours.map((h) => (
               <div key={h} className="day-grid-lane" style={{ height: PX_PER_HOUR }} />
@@ -8257,6 +8286,12 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   const [layout, setLayout] = useState('calendar');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
+  // Calendar view state lives here (not inside CalendarView) so it survives the
+  // round-trip to the edit/create form — "back" returns to the same view + date.
+  const [calView, setCalView] = useState('day');
+  const [calDate, setCalDate] = useState(formatYMD(todayStart()));
+  const [calMonthOffset, setCalMonthOffset] = useState(0);
+  const [createInitial, setCreateInitial] = useState(null);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -8307,13 +8342,34 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
   }, [jobs]);
 
+  function openCreateAt(date, start_time) {
+    setEditing(null);
+    setError(null);
+    setCreateInitial({ type: 'single', date, start_time });
+    setMode('create');
+  }
+
+  // Warn on a double-booking; OK books anyway, Cancel returns to the form to
+  // pick a different time. Returns true if the save should be aborted.
+  function blockedByConflict(values, excludeId) {
+    const c = findJobTimeConflict(jobs, values, excludeId);
+    if (!c) return false;
+    const t = c.job.start_time ? ` at ${formatTimeOfDay(c.job.start_time)}` : '';
+    return !confirm(
+      `This overlaps with an existing ${terms.jobLower}: ${c.job.title} — ${jobCustomerName(c.job)}${t}.\n\n`
+      + 'OK to book anyway, or Cancel to change the time.'
+    );
+  }
+
   async function createJob(values) {
+    if (blockedByConflict(values, null)) return;
     setBusy(true); setError(null);
     const wasFirst = jobs.length === 0;
     try {
       await apiRequest('/api/jobs', {
         method: 'POST', slug: session.slug, token: session.token, body: values,
       });
+      setCreateInitial(null);
       setMode('list');
       await refresh();
       if (wasFirst) {
@@ -8331,6 +8387,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   }
 
   async function updateJob(values) {
+    if (blockedByConflict(values, editing.id)) return;
     setBusy(true); setError(null);
     try {
       await apiRequest(`/api/jobs/${editing.id}`, {
@@ -8422,7 +8479,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
   if (mode === 'create') {
     return (
       <div>
-        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
+        <BackLink onClick={() => { setError(null); setCreateInitial(null); setMode('list'); }}>All {terms.jobsLower}</BackLink>
         <div className="page-header"><h2>New {terms.jobLower}</h2></div>
         <PlanError error={error} session={session} />
         {customers.length === 0 ? (
@@ -8434,10 +8491,11 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         ) : (
           <div className="form-card">
             <JobForm
+              initial={createInitial}
               customers={customers}
               users={users}
               onSubmit={createJob}
-              onCancel={() => { setError(null); setMode('list'); }}
+              onCancel={() => { setError(null); setCreateInitial(null); setMode('list'); }}
               busy={busy}
             />
           </div>
@@ -8570,7 +8628,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             <button className="secondary" onClick={() => { setError(null); setMode('import'); }} disabled={atCap}>Import CSV</button>
           )}
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
+            <button className="primary" onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
           )}
         </div>
       </div>
@@ -8592,7 +8650,17 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         loading ? (
           <div className="list-empty">Loading...</div>
         ) : (
-          <CalendarView jobs={searchedJobs} onChipClick={openEdit} onMarkComplete={openMarkComplete} onUncomplete={uncompleteOccurrence} smsTemplates={smsTemplates} />
+          <CalendarView
+            jobs={searchedJobs}
+            onChipClick={openEdit}
+            onMarkComplete={openMarkComplete}
+            onUncomplete={uncompleteOccurrence}
+            onCreateAt={canMutate ? openCreateAt : undefined}
+            smsTemplates={smsTemplates}
+            view={calView} setView={setCalView}
+            selectedDate={calDate} setSelectedDate={setCalDate}
+            monthOffset={calMonthOffset} setMonthOffset={setCalMonthOffset}
+          />
         )
       ) : (
       <>
@@ -8624,7 +8692,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
                 : `No ${terms.jobsLower} are assigned to you yet.`
               }
               action={canMutate && (
-                <button className="primary" disabled={atCap} onClick={() => { setError(null); setMode('create'); }}>+ New {terms.jobLower}</button>
+                <button className="primary" disabled={atCap} onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }}>+ New {terms.jobLower}</button>
               )}
             />
           ) : (
