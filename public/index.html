@@ -1189,14 +1189,9 @@
       z-index: 1; border: none; text-align: left;
       display: flex; flex-direction: column; gap: 2px;
     }
-    /* Short blocks clip their detail (overflow:hidden above); hovering expands
-       the block to its full content, overlaying the blocks below it. */
     .day-block:hover {
-      height: auto !important;
-      min-height: 90px;
-      overflow: visible;
-      z-index: 20;
-      box-shadow: 0 10px 26px -8px rgba(40,30,20,0.55);
+      transform: translateX(2px);
+      box-shadow: 0 6px 18px -6px rgba(40,30,20,0.5);
     }
     .day-block.completed {
       background: var(--text-muted); opacity: 0.65;
@@ -1207,16 +1202,12 @@
       font-family: var(--serif); font-weight: 600; font-size: 12px;
       letter-spacing: -0.01em;
     }
-    .day-block-title { font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .day-block:hover .day-block-title { white-space: normal; }
-    .day-block-customer {
-      opacity: 0.85; font-size: 11px; line-height: 1.2;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .day-block-title { font-weight: 600; line-height: 1.2; }
+    .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
     .day-block-bottom {
       display: flex; align-items: center; gap: 8px;
       justify-content: space-between;
-      margin-top: auto;
+      margin-top: 2px;
       min-width: 0;
     }
     .day-block-bottom .day-block-customer {
@@ -1226,8 +1217,8 @@
     }
     .day-block-actions {
       display: flex; gap: 6px; align-items: center;
-      justify-content: flex-start; flex-wrap: nowrap;
-      flex-shrink: 0; margin-top: 4px;
+      justify-content: flex-end; flex-wrap: nowrap;
+      flex-shrink: 0;
     }
     .day-block-actions .day-block-sms { flex: 0 1 auto; max-width: 100px; }
     @media (max-width: 600px) {
@@ -7500,8 +7491,7 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
   });
   const hours = [];
   for (let h = startHour; h <= endHour; h++) hours.push(h);
-  const PX_PER_HOUR = 104;
-  const MIN_BLOCK_H = 26;
+  const PX_PER_HOUR = 116;
 
   function timeToY(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -7518,43 +7508,41 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
     }
   }
 
-  // Blocks are time-proportional (a 45-min visit is 45 min tall), so anything
-  // whose times don't overlap stacks cleanly with no gaps. Columns are reserved
-  // for genuine TIME overlaps (double-bookings). Detail that doesn't fit a short
-  // block is clipped and revealed by expanding on hover (see .day-block CSS).
-  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  // Each block has a min height so its details/actions always fit. Blocks whose
+  // rendered rectangles overlap are split into side-by-side columns so nothing
+  // stacks on top of anything else.
+  const GAP = 6;
   const laidOut = timed
     .map((o, i) => {
-      const startMin = toMin(o.job.start_time);
-      const durMin = Number(o.job.duration_minutes) || 60;
       const showSms = o.job.customer_phone && smsTemplates.length > 0 && !o.completed;
+      const durMin = Number(o.job.duration_minutes) || 60;
       const top = timeToY(o.job.start_time);
-      const height = Math.max(MIN_BLOCK_H, (durMin / 60) * PX_PER_HOUR - 2);
-      return { o, i, showSms, top, height, startMin, endMin: startMin + durMin, col: 0, nCols: 1 };
+      const minH = showSms ? 100 : 34;
+      const height = Math.max(minH, (durMin / 60) * PX_PER_HOUR - GAP);
+      return { o, i, showSms, top, height, bottom: top + height, col: 0, nCols: 1 };
     })
-    .sort((a, b) => a.startMin - b.startMin || a.i - b.i);
+    .sort((a, b) => a.top - b.top || a.i - b.i);
   {
-    // A column is free once its last block has ended (startMin >= that end).
     const assignCols = (start, end) => {
-      const colEnds = [];
+      const colBottoms = [];
       for (let k = start; k < end; k++) {
         const b = laidOut[k];
-        let col = colEnds.findIndex((e) => b.startMin >= e);
-        if (col === -1) { col = colEnds.length; colEnds.push(b.endMin); }
-        else colEnds[col] = b.endMin;
+        let col = colBottoms.findIndex((bot) => b.top >= bot);
+        if (col === -1) { col = colBottoms.length; colBottoms.push(b.bottom); }
+        else colBottoms[col] = b.bottom;
         b.col = col;
       }
-      for (let k = start; k < end; k++) laidOut[k].nCols = colEnds.length;
+      for (let k = start; k < end; k++) laidOut[k].nCols = colBottoms.length;
     };
     let clusterStart = 0;
-    let clusterMaxEnd = -Infinity;
+    let clusterMaxBottom = -Infinity;
     for (let k = 0; k < laidOut.length; k++) {
-      if (k > clusterStart && laidOut[k].startMin >= clusterMaxEnd) {
+      if (k > clusterStart && laidOut[k].top >= clusterMaxBottom) {
         assignCols(clusterStart, k);
         clusterStart = k;
-        clusterMaxEnd = -Infinity;
+        clusterMaxBottom = -Infinity;
       }
-      clusterMaxEnd = Math.max(clusterMaxEnd, laidOut[k].endMin);
+      clusterMaxBottom = Math.max(clusterMaxBottom, laidOut[k].bottom);
     }
     assignCols(clusterStart, laidOut.length);
   }
@@ -7667,40 +7655,42 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
                     {o.job.default_price != null && <span className="day-block-price">{formatPrice(o.job.default_price)}</span>}
                   </div>
                   <div className="day-block-title">{o.job.title}</div>
-                  <div className="day-block-customer">{jobCustomerName(o.job)}</div>
-                  {(showSms || !o.completed || (o.completed && onUncomplete)) && (
-                    <div className="day-block-actions">
-                      {showSms && (
-                        <select
-                          className="day-block-sms"
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const tpl = smsTemplates.find((t) => t.id === e.target.value);
-                            if (tpl) sendSmsTemplate(phone, tpl, o.job);
-                            e.target.value = '';
-                          }}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>💬 Text…</option>
-                          {smsTemplates.map((t) => (
-                            <option key={t.id} value={t.id}>{t.label}</option>
-                          ))}
-                        </select>
-                      )}
-                      {!o.completed && (
-                        <button
-                          className="day-block-complete"
-                          onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
-                        >Mark complete</button>
-                      )}
-                      {o.completed && onUncomplete && (
-                        <button
-                          className="day-block-uncomplete"
-                          onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
-                        >Undo</button>
-                      )}
-                    </div>
-                  )}
+                  <div className="day-block-bottom">
+                    <div className="day-block-customer">{jobCustomerName(o.job)}</div>
+                    {(showSms || !o.completed || (o.completed && onUncomplete)) && (
+                      <div className="day-block-actions">
+                        {showSms && (
+                          <select
+                            className="day-block-sms"
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                              if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                              e.target.value = '';
+                            }}
+                            defaultValue=""
+                          >
+                            <option value="" disabled>💬 Text…</option>
+                            {smsTemplates.map((t) => (
+                              <option key={t.id} value={t.id}>{t.label}</option>
+                            ))}
+                          </select>
+                        )}
+                        {!o.completed && (
+                          <button
+                            className="day-block-complete"
+                            onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                          >Mark complete</button>
+                        )}
+                        {o.completed && onUncomplete && (
+                          <button
+                            className="day-block-uncomplete"
+                            onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
+                          >Undo</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
