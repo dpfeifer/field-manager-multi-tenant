@@ -1189,9 +1189,14 @@
       z-index: 1; border: none; text-align: left;
       display: flex; flex-direction: column; gap: 2px;
     }
+    /* Short blocks clip their detail (overflow:hidden above); hovering expands
+       the block to its full content, overlaying the blocks below it. */
     .day-block:hover {
-      transform: translateX(2px);
-      box-shadow: 0 6px 18px -6px rgba(40,30,20,0.5);
+      height: auto !important;
+      min-height: 90px;
+      overflow: visible;
+      z-index: 20;
+      box-shadow: 0 10px 26px -8px rgba(40,30,20,0.55);
     }
     .day-block.completed {
       background: var(--text-muted); opacity: 0.65;
@@ -1202,8 +1207,12 @@
       font-family: var(--serif); font-weight: 600; font-size: 12px;
       letter-spacing: -0.01em;
     }
-    .day-block-title { font-weight: 600; line-height: 1.2; }
-    .day-block-customer { opacity: 0.85; font-size: 11px; line-height: 1.2; }
+    .day-block-title { font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .day-block:hover .day-block-title { white-space: normal; }
+    .day-block-customer {
+      opacity: 0.85; font-size: 11px; line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
     .day-block-bottom {
       display: flex; align-items: center; gap: 8px;
       justify-content: space-between;
@@ -1217,8 +1226,8 @@
     }
     .day-block-actions {
       display: flex; gap: 6px; align-items: center;
-      justify-content: flex-end; flex-wrap: nowrap;
-      flex-shrink: 0;
+      justify-content: flex-start; flex-wrap: nowrap;
+      flex-shrink: 0; margin-top: 4px;
     }
     .day-block-actions .day-block-sms { flex: 0 1 auto; max-width: 100px; }
     @media (max-width: 600px) {
@@ -7491,7 +7500,8 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
   });
   const hours = [];
   for (let h = startHour; h <= endHour; h++) hours.push(h);
-  const PX_PER_HOUR = 96;
+  const PX_PER_HOUR = 104;
+  const MIN_BLOCK_H = 26;
 
   function timeToY(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -7508,41 +7518,43 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
     }
   }
 
-  // Position each timed block, then split any whose rendered rectangles overlap
-  // into side-by-side columns so nothing stacks on top of anything else. A block
-  // has a min height (to fit its actions), so blocks less than ~an hour apart can
-  // overlap in pixels even when their times don't — columns keep them legible.
-  const GAP = 4;
+  // Blocks are time-proportional (a 45-min visit is 45 min tall), so anything
+  // whose times don't overlap stacks cleanly with no gaps. Columns are reserved
+  // for genuine TIME overlaps (double-bookings). Detail that doesn't fit a short
+  // block is clipped and revealed by expanding on hover (see .day-block CSS).
+  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const laidOut = timed
     .map((o, i) => {
+      const startMin = toMin(o.job.start_time);
+      const durMin = Number(o.job.duration_minutes) || 60;
       const showSms = o.job.customer_phone && smsTemplates.length > 0 && !o.completed;
       const top = timeToY(o.job.start_time);
-      const minH = showSms ? 92 : 30;
-      const height = Math.max(minH, ((o.job.duration_minutes || 60) / 60) * PX_PER_HOUR - GAP);
-      return { o, i, showSms, top, height, bottom: top + height, col: 0, nCols: 1 };
+      const height = Math.max(MIN_BLOCK_H, (durMin / 60) * PX_PER_HOUR - 2);
+      return { o, i, showSms, top, height, startMin, endMin: startMin + durMin, col: 0, nCols: 1 };
     })
-    .sort((a, b) => a.top - b.top || a.i - b.i);
+    .sort((a, b) => a.startMin - b.startMin || a.i - b.i);
   {
+    // A column is free once its last block has ended (startMin >= that end).
     const assignCols = (start, end) => {
-      const colBottoms = [];
+      const colEnds = [];
       for (let k = start; k < end; k++) {
         const b = laidOut[k];
-        let col = colBottoms.findIndex((bot) => b.top >= bot);
-        if (col === -1) { col = colBottoms.length; colBottoms.push(b.bottom); }
-        else colBottoms[col] = b.bottom;
+        let col = colEnds.findIndex((e) => b.startMin >= e);
+        if (col === -1) { col = colEnds.length; colEnds.push(b.endMin); }
+        else colEnds[col] = b.endMin;
         b.col = col;
       }
-      for (let k = start; k < end; k++) laidOut[k].nCols = colBottoms.length;
+      for (let k = start; k < end; k++) laidOut[k].nCols = colEnds.length;
     };
     let clusterStart = 0;
-    let clusterMaxBottom = -Infinity;
+    let clusterMaxEnd = -Infinity;
     for (let k = 0; k < laidOut.length; k++) {
-      if (k > clusterStart && laidOut[k].top >= clusterMaxBottom) {
+      if (k > clusterStart && laidOut[k].startMin >= clusterMaxEnd) {
         assignCols(clusterStart, k);
         clusterStart = k;
-        clusterMaxBottom = -Infinity;
+        clusterMaxEnd = -Infinity;
       }
-      clusterMaxBottom = Math.max(clusterMaxBottom, laidOut[k].bottom);
+      clusterMaxEnd = Math.max(clusterMaxEnd, laidOut[k].endMin);
     }
     assignCols(clusterStart, laidOut.length);
   }
@@ -7620,7 +7632,13 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
               </div>
             ))}
           </div>
-          <div className="day-grid-blocks" style={{ height: hours.length * PX_PER_HOUR }}>
+          <div
+            className="day-grid-blocks"
+            style={{
+              height: hours.length * PX_PER_HOUR,
+              backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR / 4 - 1}px, rgba(120,110,95,0.12) ${PX_PER_HOUR / 4 - 1}px, rgba(120,110,95,0.12) ${PX_PER_HOUR / 4}px)`,
+            }}
+          >
             {hours.map((h) => (
               <div key={h} className="day-grid-lane" style={{ height: PX_PER_HOUR }} />
             ))}
@@ -7649,43 +7667,37 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
                     {o.job.default_price != null && <span className="day-block-price">{formatPrice(o.job.default_price)}</span>}
                   </div>
                   <div className="day-block-title">{o.job.title}</div>
-                  {(height >= 56 || showSms || !o.completed || (o.completed && onUncomplete)) && (
-                    <div className="day-block-bottom">
-                      {height >= 56 && (
-                        <div className="day-block-customer">{jobCustomerName(o.job)}</div>
+                  <div className="day-block-customer">{jobCustomerName(o.job)}</div>
+                  {(showSms || !o.completed || (o.completed && onUncomplete)) && (
+                    <div className="day-block-actions">
+                      {showSms && (
+                        <select
+                          className="day-block-sms"
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const tpl = smsTemplates.find((t) => t.id === e.target.value);
+                            if (tpl) sendSmsTemplate(phone, tpl, o.job);
+                            e.target.value = '';
+                          }}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💬 Text…</option>
+                          {smsTemplates.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                          ))}
+                        </select>
                       )}
-                      {(showSms || !o.completed || (o.completed && onUncomplete)) && (
-                        <div className="day-block-actions">
-                          {showSms && (
-                            <select
-                              className="day-block-sms"
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                const tpl = smsTemplates.find((t) => t.id === e.target.value);
-                                if (tpl) sendSmsTemplate(phone, tpl, o.job);
-                                e.target.value = '';
-                              }}
-                              defaultValue=""
-                            >
-                              <option value="" disabled>💬 Text…</option>
-                              {smsTemplates.map((t) => (
-                                <option key={t.id} value={t.id}>{t.label}</option>
-                              ))}
-                            </select>
-                          )}
-                          {!o.completed && (
-                            <button
-                              className="day-block-complete"
-                              onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
-                            >Mark complete</button>
-                          )}
-                          {o.completed && onUncomplete && (
-                            <button
-                              className="day-block-uncomplete"
-                              onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
-                            >Undo</button>
-                          )}
-                        </div>
+                      {!o.completed && (
+                        <button
+                          className="day-block-complete"
+                          onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
+                        >Mark complete</button>
+                      )}
+                      {o.completed && onUncomplete && (
+                        <button
+                          className="day-block-uncomplete"
+                          onClick={(e) => { e.stopPropagation(); onUncomplete(o.job, o.date); }}
+                        >Undo</button>
                       )}
                     </div>
                   )}
