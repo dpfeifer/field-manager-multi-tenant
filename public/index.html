@@ -12261,16 +12261,21 @@ const REPORT_PRESETS = {
 function getReportRange(preset, customFrom, customTo) {
   const today = todayStart();
   const todayStr = formatYMD(today);
+  const y = today.getFullYear();
+  const mo = today.getMonth();
   if (preset === '7days') return { from: formatYMD(addDays(today, -6)), to: todayStr };
+  // "This month/quarter/year" span the WHOLE period (through its last day), not
+  // just up to today — so projected income covers the rest of the period. Past
+  // revenue is unaffected: it can only fall on/before today anyway.
   if (preset === 'month') {
-    return { from: formatYMD(new Date(today.getFullYear(), today.getMonth(), 1)), to: todayStr };
+    return { from: formatYMD(new Date(y, mo, 1)), to: formatYMD(new Date(y, mo + 1, 0)) };
   }
   if (preset === 'quarter') {
-    const q = Math.floor(today.getMonth() / 3);
-    return { from: formatYMD(new Date(today.getFullYear(), q * 3, 1)), to: todayStr };
+    const q = Math.floor(mo / 3);
+    return { from: formatYMD(new Date(y, q * 3, 1)), to: formatYMD(new Date(y, q * 3 + 3, 0)) };
   }
   if (preset === 'year') {
-    return { from: formatYMD(new Date(today.getFullYear(), 0, 1)), to: todayStr };
+    return { from: formatYMD(new Date(y, 0, 1)), to: formatYMD(new Date(y, 11, 31)) };
   }
   if (preset === 'all') {
     // Effectively "last 24 months" — covers any realistic Field Manager
