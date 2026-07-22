@@ -8349,6 +8349,16 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     setMode('create');
   }
 
+  // After a save, point the calendar at the job's date so the change is
+  // visible (e.g. rescheduling to today jumps the view to today).
+  function focusCalendarOn(dateStr) {
+    if (!dateStr) return;
+    setCalDate(dateStr);
+    const t = todayStart();
+    const d = parseDate(dateStr);
+    setCalMonthOffset((d.getFullYear() - t.getFullYear()) * 12 + (d.getMonth() - t.getMonth()));
+  }
+
   // Warn on a double-booking; OK books anyway, Cancel returns to the form to
   // pick a different time. Returns true if the save should be aborted.
   function blockedByConflict(values, excludeId) {
@@ -8371,6 +8381,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
       });
       setCreateInitial(null);
       setMode('list');
+      focusCalendarOn(values.type === 'single' ? values.date : values.start_date);
       await refresh();
       if (wasFirst) {
         const seenKey = `fm_first_job_seen_${session.organization && session.organization.id}`;
@@ -8394,6 +8405,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         method: 'PUT', slug: session.slug, token: session.token, body: values,
       });
       setEditing(null); setMode('list');
+      focusCalendarOn(values.type === 'single' ? values.date : values.start_date);
       await refresh();
     } catch (err) { setError(err); }
     finally { setBusy(false); }
