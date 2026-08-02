@@ -1031,11 +1031,21 @@
     /* Jobs page sub-tabs (Schedule / List) */
     .jobs-tabs {
       display: flex; gap: 4px;
-      margin-bottom: 16px;
+      /* 1px of padding absorbs the tabs' -1px bottom margin so the scroll
+         content is exactly as tall as the strip — otherwise it can nudge
+         vertically by a pixel. Bottom margin drops to 15 to compensate. */
+      padding-bottom: 1px;
+      margin-bottom: 15px;
       border-bottom: 1px solid var(--border);
       /* Swipe sideways instead of squashing when the tabs outgrow the width
-         (e.g. the customer's 5 tabs on a phone). */
+         (e.g. the customer's 5 tabs on a phone). overflow-y must be pinned:
+         setting overflow-x alone makes the browser compute overflow-y to auto,
+         which lets the strip drift vertically. touch-action keeps a drag to
+         one axis; overscroll-behavior stops it chaining to the page. */
       overflow-x: auto;
+      overflow-y: hidden;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
       flex-wrap: nowrap;
       scrollbar-width: none;
       -ms-overflow-style: none;
