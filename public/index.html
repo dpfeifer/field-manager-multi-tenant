@@ -1033,7 +1033,15 @@
       display: flex; gap: 4px;
       margin-bottom: 16px;
       border-bottom: 1px solid var(--border);
+      /* Swipe sideways instead of squashing when the tabs outgrow the width
+         (e.g. the customer's 5 tabs on a phone). */
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch;
     }
+    .jobs-tabs::-webkit-scrollbar { display: none; }
     .jobs-tab {
       background: none; border: none; cursor: pointer;
       padding: 10px 18px; margin-bottom: -1px;
@@ -1041,6 +1049,7 @@
       color: var(--text-muted);
       border-bottom: 2px solid transparent;
       transition: color 0.15s, border-color 0.15s;
+      flex-shrink: 0; white-space: nowrap;
     }
     .jobs-tab:hover { color: var(--text); }
     .jobs-tab.active {
@@ -9275,6 +9284,27 @@ function InvoicesView({ session }) {
     downloadCSV(`invoices-${formatYMD(new Date())}.csv`, headers, rows);
   }
 
+  // Prepaid credit available for an invoice's customer (from the customers
+  // list, which carries credit_balance).
+  function creditFor(customerId) {
+    const c = customers.find((x) => x.id === customerId);
+    return c ? Math.max(0, parseFloat(c.credit_balance) || 0) : 0;
+  }
+
+  async function applyCredit(inv) {
+    const most = Math.min(creditFor(inv.customer_id), invoiceMath(inv).balanceDue);
+    if (most <= 0) return;
+    if (!confirm(`Apply ${formatPrice(most)} of credit to invoice #${inv.invoice_number}?`)) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/invoices/${inv.id}/apply-credit`, {
+        method: 'POST', slug: session.slug, token: session.token, body: {},
+      });
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   async function copyPublicLink(invoiceId) {
     const url = `${window.location.origin}/i/${invoiceId}`;
     try {
@@ -9519,6 +9549,11 @@ function InvoicesView({ session }) {
                       business_name: inv.customer_business_name,
                     })} • {formatDateString(inv.date)} • <span className={`badge ${inv.status}`}>{inv.status}</span>
                     {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late · {days}d</span></>}
+                    {math.creditApplied > 0 && (
+                      <> · <span style={{ color: 'var(--success)' }}>{formatPrice(math.creditApplied)} credit applied</span>
+                      {math.balanceDue > 0 && <> · {formatPrice(math.balanceDue)} due</>}
+                      </>
+                    )}
                   </div>
                   {inv.description && <div className="secondary-meta">{inv.description}</div>}
                 </div>
@@ -9526,6 +9561,11 @@ function InvoicesView({ session }) {
                   <div className="actions">
                     {/* Primary actions first so they land on the first row when
                         the cluster wraps on mobile. */}
+                    {inv.status !== 'paid' && math.balanceDue > 0 && creditFor(inv.customer_id) > 0 && (
+                      <button className="secondary" disabled={busy} onClick={() => applyCredit(inv)}>
+                        Apply credit
+                      </button>
+                    )}
                     {inv.status === 'draft' && (
                       <button className="primary" onClick={() => transition(inv.id, 'send')}>Mark as sent</button>
                     )}
