@@ -6090,17 +6090,27 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('jobs');
   const [copiedId, setCopiedId] = useState(null);
+  const [credit, setCredit] = useState({ balance: 0, entries: [] });
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditNote, setCreditNote] = useState('');
+  const [creditBusy, setCreditBusy] = useState(false);
+
+  const refreshCredits = useCallback(async () => {
+    const c = await apiRequest(`/api/customers/${customer.id}/credits`, { slug: session.slug, token: session.token });
+    setCredit(c);
+  }, [customer.id, session.slug, session.token]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true); setError(null);
       try {
-        const [j, i, q, n] = await Promise.all([
+        const [j, i, q, n, cr] = await Promise.all([
           apiRequest('/api/jobs', { slug: session.slug, token: session.token }),
           apiRequest('/api/invoices', { slug: session.slug, token: session.token }),
           apiRequest('/api/quotes', { slug: session.slug, token: session.token }),
           apiRequest(`/api/customers/${customer.id}/notes`, { slug: session.slug, token: session.token }),
+          apiRequest(`/api/customers/${customer.id}/credits`, { slug: session.slug, token: session.token }),
         ]);
         if (cancelled) return;
         const cid = customer.id;
@@ -6108,6 +6118,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
         setInvoices(i.filter((x) => x.customer_id === cid));
         setQuotes(q.filter((x) => x.customer_id === cid));
         setNotes(n);
+        setCredit(cr);
       } catch (err) {
         if (!cancelled) setError(err.message);
       } finally {
@@ -6185,6 +6196,52 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function addCredit(e) {
+    e.preventDefault();
+    const amt = parseFloat(creditAmount);
+    if (!isFinite(amt) || amt <= 0) { setError('Enter a credit amount greater than zero.'); return; }
+    setCreditBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/customers/${customer.id}/credits`, {
+        method: 'POST', slug: session.slug, token: session.token,
+        body: { amount: amt, note: creditNote },
+      });
+      setCreditAmount(''); setCreditNote('');
+      await refreshCredits();
+    } catch (err) { setError(err.message); }
+    finally { setCreditBusy(false); }
+  }
+
+  async function removeCredit(entry) {
+    const msg = entry.invoice_id
+      ? `Undo this credit application? ${formatPrice(Math.abs(entry.amount))} goes back to the ${terms.customerLower}'s balance and invoice #${entry.invoice_number} will owe it again.`
+      : `Remove this ${formatPrice(entry.amount)} credit?`;
+    if (!confirm(msg)) return;
+    setCreditBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/customers/${customer.id}/credits/${entry.id}`, {
+        method: 'DELETE', slug: session.slug, token: session.token,
+      });
+      await Promise.all([refreshCredits(), refreshInvoices()]);
+    } catch (err) { setError(err.message); }
+    finally { setCreditBusy(false); }
+  }
+
+  async function applyCreditToInvoice(inv) {
+    const m = invoiceMath(inv);
+    const most = Math.min(credit.balance, m.balanceDue);
+    if (most <= 0) return;
+    if (!confirm(`Apply ${formatPrice(most)} of credit to invoice #${inv.invoice_number}?`)) return;
+    setCreditBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/invoices/${inv.id}/apply-credit`, {
+        method: 'POST', slug: session.slug, token: session.token, body: {},
+      });
+      await Promise.all([refreshCredits(), refreshInvoices()]);
+    } catch (err) { setError(err.message); }
+    finally { setCreditBusy(false); }
+  }
+
   function formatNoteTime(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -6212,6 +6269,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
           {parseFloat(customer.outstanding_balance) > 0 && (
             <><dt>Owes</dt><dd style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatPrice(customer.outstanding_balance)}</dd></>
           )}
+          {credit.balance > 0 && (
+            <><dt>Credit</dt><dd style={{ color: 'var(--success)', fontWeight: 600 }}>{formatPrice(credit.balance)} available</dd></>
+          )}
           {customer.phone && <><dt>Phone</dt><dd>{customer.phone}</dd></>}
           {customer.email && <><dt>Email</dt><dd>{customer.email}</dd></>}
           {customer.business_name && (customer.first_name || customer.last_name) && (
@@ -6233,6 +6293,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
         </button>
         <button className={`jobs-tab${tab === 'quotes' ? ' active' : ''}`} onClick={() => setTab('quotes')}>
           Quotes {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {quotes.length}</span>}
+        </button>
+        <button className={`jobs-tab${tab === 'credit' ? ' active' : ''}`} onClick={() => setTab('credit')}>
+          Credit {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {formatPrice(credit.balance)}</span>}
         </button>
         <button className={`jobs-tab${tab === 'notes' ? ' active' : ''}`} onClick={() => setTab('notes')}>
           Notes {!loading && <span style={{ opacity: 0.5, fontWeight: 500 }}>· {notes.length}</span>}
@@ -6282,10 +6345,22 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                     </div>
                     <div className="meta">
                       {formatDateString(inv.date)} · <span className={`badge ${inv.status}`}>{inv.status}</span>
+                      {invoiceMath(inv).creditApplied > 0 && (
+                        <> · <span style={{ color: 'var(--success)' }}>
+                          {formatPrice(invoiceMath(inv).creditApplied)} credit applied
+                        </span>
+                        {invoiceMath(inv).balanceDue > 0 && <> · {formatPrice(invoiceMath(inv).balanceDue)} due</>}
+                        </>
+                      )}
                     </div>
                   </div>
                   {canMutate && (
                     <div className="actions">
+                      {inv.status !== 'paid' && credit.balance > 0 && invoiceMath(inv).balanceDue > 0 && (
+                        <button className="secondary" disabled={creditBusy} onClick={() => applyCreditToInvoice(inv)}>
+                          Apply credit
+                        </button>
+                      )}
                       {inv.status === 'draft' && (
                         <button className="primary" onClick={() => invTransition(inv.id, 'send')}>Mark as sent</button>
                       )}
@@ -6342,6 +6417,77 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                   <span className="compact-row-chevron">›</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === 'credit' && (
+            <div>
+              <div className="form-card">
+                <div className="section-heading" style={{ marginTop: 0 }}>
+                  {formatPrice(credit.balance)} credit available
+                </div>
+                <p className="hint" style={{ marginTop: 0 }}>
+                  Prepayments for future work. Apply credit to an invoice from the Invoices tab.
+                </p>
+                {canMutate && (
+                  <form onSubmit={addCredit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: '0 0 140px' }}>
+                      <label>Amount</label>
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(e.target.value)}
+                        placeholder="500.00"
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <label>Note <span className="hint">(optional)</span></label>
+                      <input
+                        value={creditNote}
+                        onChange={(e) => setCreditNote(e.target.value)}
+                        placeholder="Prepaid for 2026 season"
+                      />
+                    </div>
+                    <button type="submit" className="primary" disabled={creditBusy}>
+                      {creditBusy ? 'Saving…' : 'Add credit'}
+                    </button>
+                  </form>
+                )}
+              </div>
+
+              <div className="section-heading">History</div>
+              <div className="list">
+                {credit.entries.length === 0 ? (
+                  <div className="list-empty">No credit recorded yet.</div>
+                ) : credit.entries.map((c) => {
+                  const amt = parseFloat(c.amount);
+                  const isApplied = amt < 0;
+                  return (
+                    <div key={c.id} className="row">
+                      <div className="info">
+                        <div className="name">
+                          <span style={{ color: isApplied ? 'var(--text-muted)' : 'var(--success)', fontWeight: 600 }}>
+                            {isApplied ? '−' : '+'}{formatPrice(Math.abs(amt))}
+                          </span>
+                          {isApplied && c.invoice_number != null && <> · Invoice #{c.invoice_number}</>}
+                        </div>
+                        <div className="meta">
+                          {formatNoteTime(c.created_at)}
+                          {c.note && <> — {c.note}</>}
+                          {c.created_by_name && <> · {c.created_by_name}</>}
+                        </div>
+                      </div>
+                      {canMutate && (
+                        <div className="actions">
+                          <button className="secondary" disabled={creditBusy} onClick={() => removeCredit(c)}>
+                            {isApplied ? 'Undo' : 'Remove'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -8878,7 +9024,10 @@ function invoiceMath(inv) {
   const taxRate = parseFloat(inv.tax_rate) || 0;
   const tax = discounted * taxRate / 100;
   const total = discounted + tax;
-  return { subtotal, discount, discounted, taxRate, tax, total };
+  // Prepaid credit applied to this invoice reduces what's still owed.
+  const creditApplied = Math.max(0, parseFloat(inv.credit_applied) || 0);
+  const balanceDue = Math.max(0, total - creditApplied);
+  return { subtotal, discount, discounted, taxRate, tax, total, creditApplied, balanceDue };
 }
 
 function isInvoiceLate(inv) {
@@ -12166,7 +12315,7 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
     .sort((a, b) => b.date.localeCompare(a.date));
   const outstandingInvoices = invoices.filter((i) => i.status === 'sent');
 
-  const outstandingTotal = outstandingInvoices.reduce((sum, i) => sum + invoiceMath(i).total, 0);
+  const outstandingTotal = outstandingInvoices.reduce((sum, i) => sum + invoiceMath(i).balanceDue, 0);
   const weekRevenue = invoices
     .filter((i) => i.status === 'paid' && i.paid_date && i.paid_date.split('T')[0] >= weekAgoStr && i.paid_date.split('T')[0] <= todayStr)
     .reduce((sum, i) => sum + invoiceMath(i).total, 0);
@@ -14941,13 +15090,21 @@ function PublicInvoiceView({ id }) {
               <span>Tax ({math.taxRate}%)</span><span>{formatPrice(math.tax)}</span>
             </div>
           )}
-          <div className="invoice-total">Total {formatPrice(math.total)}</div>
+          {math.creditApplied > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', fontSize: 14, color: 'var(--text-muted)' }}>
+              <span>Credit applied</span><span>−{formatPrice(math.creditApplied)}</span>
+            </div>
+          )}
+          <div className="invoice-total">
+            {math.creditApplied > 0 ? 'Balance due ' : 'Total '}
+            {formatPrice(math.creditApplied > 0 ? math.balanceDue : math.total)}
+          </div>
         </div>
 
         {invoice.status === 'sent' && invoice.payment_link_url && (
           <div className="invoice-pay-cta no-print" style={{ marginTop: 24, textAlign: 'center' }}>
             <a
-              href={buildPayLink(invoice.payment_link_url, math.total, invoice.invoice_number)}
+              href={buildPayLink(invoice.payment_link_url, math.balanceDue, invoice.invoice_number)}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'inline-block', padding: '14px 32px',

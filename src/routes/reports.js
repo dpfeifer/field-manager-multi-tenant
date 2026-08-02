@@ -38,7 +38,8 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
                  END
              ) * (1 + i.tax_rate / 100),
              0
-           ) AS total
+           ) AS total,
+           i.credit_applied
          FROM invoices i
          WHERE i.organization_id = $1 AND i.deleted_at IS NULL
        )
@@ -46,7 +47,7 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
          COUNT(*) FILTER (WHERE status = 'paid' AND paid_date::date BETWEEN $2 AND $3)::int AS paid_count,
          COALESCE(SUM(total) FILTER (WHERE status = 'paid' AND paid_date::date BETWEEN $2 AND $3), 0) AS paid_total,
          COUNT(*) FILTER (WHERE status = 'sent')::int AS outstanding_count,
-         COALESCE(SUM(total) FILTER (WHERE status = 'sent'), 0) AS outstanding_total,
+         COALESCE(SUM(GREATEST(total - credit_applied, 0)) FILTER (WHERE status = 'sent'), 0) AS outstanding_total,
          COUNT(*) FILTER (WHERE status = 'draft')::int AS draft_count,
          COALESCE(SUM(total) FILTER (WHERE status = 'draft'), 0) AS draft_total
        FROM it`,

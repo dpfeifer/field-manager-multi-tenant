@@ -3,6 +3,7 @@ const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
 const { invoiceTemplate } = require('../utils/emailTemplates');
+const { round2, creditBalance, invoiceTotal } = require('../utils/credits');
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const BASE_SELECT = `
     i.id, i.customer_id, i.invoice_number, i.status, i.description,
     i.date, i.sent_date, i.paid_date, i.line_items,
     i.discount_type, i.discount_value, i.tax_rate,
+    i.credit_applied,
     i.created_at, i.updated_at,
     c.first_name AS customer_first_name,
     c.last_name AS customer_last_name,
@@ -252,6 +254,73 @@ router.post('/:id/send', requireRole('admin', 'lead'), async (req, res, next) =>
     const { rows } = await query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [req.params.id]);
     res.json(rows[0]);
   } catch (err) { next(err); }
+});
+
+// Apply a customer's prepaid credit to this invoice. Writes a negative ledger
+// row and bumps the invoice's credit_applied; if credit covers the remaining
+// balance the invoice is marked paid. Amount defaults to the most that helps
+// (min of available credit and the balance due).
+router.post('/:id/apply-credit', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const result = await withTransaction(async (client) => {
+      const { rows: invRows } = await client.query(
+        `SELECT * FROM invoices
+         WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+        [req.params.id, req.organization.id]
+      );
+      if (invRows.length === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+      const inv = invRows[0];
+
+      const total = invoiceTotal(inv);
+      const alreadyApplied = round2(inv.credit_applied || 0);
+      const balanceDue = round2(total - alreadyApplied);
+      if (balanceDue <= 0) {
+        throw Object.assign(new Error('This invoice has no balance left to cover'), { status: 400 });
+      }
+
+      const available = await creditBalance(client, req.organization.id, inv.customer_id);
+      if (available <= 0) {
+        throw Object.assign(new Error('This customer has no credit available'), { status: 400 });
+      }
+
+      const requested = req.body && req.body.amount !== undefined ? parseFloat(req.body.amount) : null;
+      let amount = requested === null ? Math.min(available, balanceDue) : requested;
+      if (!isFinite(amount) || amount <= 0) {
+        throw Object.assign(new Error('amount must be a positive number'), { status: 400 });
+      }
+      amount = round2(Math.min(amount, available, balanceDue));
+
+      await client.query(
+        `INSERT INTO customer_credits
+           (organization_id, customer_id, invoice_id, amount, note, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          req.organization.id, inv.customer_id, inv.id, -amount,
+          `Applied to invoice #${inv.invoice_number}`, req.user.sub,
+        ]
+      );
+
+      const newApplied = round2(alreadyApplied + amount);
+      const nowPaid = round2(total - newApplied) <= 0;
+      await client.query(
+        `UPDATE invoices
+         SET credit_applied = $2,
+             status = CASE WHEN $3::boolean THEN 'paid' ELSE status END,
+             paid_date = CASE WHEN $3::boolean THEN COALESCE(paid_date, NOW()) ELSE paid_date END,
+             sent_date = CASE WHEN $3::boolean THEN COALESCE(sent_date, NOW()) ELSE sent_date END,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [inv.id, newApplied, nowPaid]
+      );
+
+      const { rows } = await client.query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [inv.id]);
+      return { invoice: rows[0], applied: amount, credit_remaining: round2(available - amount) };
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 });
 
 router.post('/:id/mark-paid', requireRole('admin', 'lead'), async (req, res, next) => {

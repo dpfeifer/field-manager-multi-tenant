@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
+const { round2 } = require('../utils/credits');
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.get('/', async (req, res, next) => {
                      WHEN i.discount_type = 'amount' THEN i.discount_value
                      ELSE 0
                    END
-               ) * (1 + i.tax_rate / 100),
+               ) * (1 + i.tax_rate / 100) - i.credit_applied,
                0
              )
            )
@@ -48,7 +49,11 @@ router.get('/', async (req, res, next) => {
            WHERE i.customer_id = c.id
              AND i.status = 'sent'
              AND i.deleted_at IS NULL
-         ), 0) AS outstanding_balance
+         ), 0) AS outstanding_balance,
+         COALESCE((
+           SELECT SUM(cc.amount) FROM customer_credits cc
+           WHERE cc.customer_id = c.id AND cc.deleted_at IS NULL
+         ), 0) AS credit_balance
        FROM customers c
        WHERE c.organization_id = $1 AND c.deleted_at IS NULL
        ORDER BY c.created_at DESC`,
@@ -200,6 +205,92 @@ router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
 });
 
 // Customer notes timeline
+// ---- Prepaid credit (ledger) ----
+
+// Balance + full history. Negative rows are applications against an invoice.
+router.get('/:id/credits', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT cc.id, cc.amount, cc.note, cc.invoice_id, cc.created_at,
+              u.name AS created_by_name, u.email AS created_by_email,
+              i.invoice_number
+       FROM customer_credits cc
+       LEFT JOIN users u ON u.id = cc.created_by
+       LEFT JOIN invoices i ON i.id = cc.invoice_id
+       WHERE cc.customer_id = $1 AND cc.organization_id = $2 AND cc.deleted_at IS NULL
+       ORDER BY cc.created_at DESC
+       LIMIT 500`,
+      [req.params.id, req.organization.id]
+    );
+    const balance = rows.reduce((s, r) => s + parseFloat(r.amount), 0);
+    res.json({ balance: round2(balance), entries: rows });
+  } catch (err) { next(err); }
+});
+
+// Record a prepayment (positive amount).
+router.post('/:id/credits', requireRole('admin', 'lead'), async (req, res, next) => {
+  const amount = parseFloat(req.body && req.body.amount);
+  const note = (req.body && typeof req.body.note === 'string') ? req.body.note.trim().slice(0, 500) : '';
+  if (!isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'amount must be a positive number' });
+  }
+  try {
+    const ownCheck = await query(
+      'SELECT 1 FROM customers WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
+      [req.params.id, req.organization.id]
+    );
+    if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
+
+    const { rows } = await query(
+      `INSERT INTO customer_credits (organization_id, customer_id, amount, note, created_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, amount, note, invoice_id, created_at`,
+      [req.organization.id, req.params.id, round2(amount), note || null, req.user.sub]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+// Remove a ledger entry. Undoing an application also gives the credit back by
+// decrementing the invoice's credit_applied, so the two stay in sync.
+router.delete('/:id/credits/:creditId', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const result = await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `SELECT id, amount, invoice_id FROM customer_credits
+         WHERE id = $1 AND customer_id = $2 AND organization_id = $3 AND deleted_at IS NULL
+         LIMIT 1`,
+        [req.params.creditId, req.params.id, req.organization.id]
+      );
+      if (rows.length === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+      const entry = rows[0];
+
+      await client.query(
+        'UPDATE customer_credits SET deleted_at = NOW() WHERE id = $1',
+        [entry.id]
+      );
+
+      if (entry.invoice_id) {
+        // This row applied credit to an invoice; pull it back off that invoice.
+        await client.query(
+          `UPDATE invoices
+           SET credit_applied = GREATEST(0, credit_applied - $2),
+               status = CASE WHEN status = 'paid' THEN 'sent' ELSE status END,
+               paid_date = CASE WHEN status = 'paid' THEN NULL ELSE paid_date END,
+               updated_at = NOW()
+           WHERE id = $1 AND organization_id = $3`,
+          [entry.invoice_id, Math.abs(parseFloat(entry.amount)), req.organization.id]
+        );
+      }
+      return { ok: true };
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
 router.get('/:id/notes', async (req, res, next) => {
   try {
     const { rows } = await query(
