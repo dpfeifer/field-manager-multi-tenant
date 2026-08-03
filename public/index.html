@@ -9265,6 +9265,7 @@ function InvoicesView({ session }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [mode, setMode] = useState('list');
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -9305,7 +9306,7 @@ function InvoicesView({ session }) {
     const most = Math.min(creditFor(inv.customer_id), invoiceMath(inv).balanceDue);
     if (most <= 0) return;
     if (!confirm(`Apply ${formatPrice(most)} of credit to invoice #${inv.invoice_number}?`)) return;
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setNotice(null);
     try {
       await apiRequest(`/api/invoices/${inv.id}/apply-credit`, {
         method: 'POST', slug: session.slug, token: session.token, body: {},
@@ -9384,23 +9385,34 @@ function InvoicesView({ session }) {
   }
 
   async function deleteInvoice(id) {
-    if (!confirm('Delete this invoice?')) return;
-    setError(null);
+    const inv = invoices.find((x) => x.id === id);
+    const applied = inv ? Math.max(0, parseFloat(inv.credit_applied) || 0) : 0;
+    const extra = applied > 0
+      ? `\n\n${formatPrice(applied)} of applied credit will be returned to the ${terms.customerLower}'s balance.`
+      : '';
+    if (!confirm(`Delete this invoice?${extra}`)) return;
+    setError(null); setNotice(null);
     try {
-      await apiRequest(`/api/invoices/${id}`, {
+      const r = await apiRequest(`/api/invoices/${id}`, {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
       await refresh();
+      if (r && r.credit_released > 0) {
+        setNotice(`Invoice deleted. ${formatPrice(r.credit_released)} of credit returned.`);
+      }
     } catch (err) { setError(err.message); }
   }
 
   async function transition(id, path) {
-    setError(null);
+    setError(null); setNotice(null);
     try {
-      await apiRequest(`/api/invoices/${id}/${path}`, {
+      const r = await apiRequest(`/api/invoices/${id}/${path}`, {
         method: 'POST', slug: session.slug, token: session.token,
       });
       await refresh();
+      if (r && r.credit_released > 0) {
+        setNotice(`${formatPrice(r.credit_released)} of credit returned to the ${terms.customerLower}'s balance.`);
+      }
     } catch (err) { setError(err.message); }
   }
 
@@ -9521,6 +9533,12 @@ function InvoicesView({ session }) {
         </select>
       </div>
       {error && <div className="error">{error}</div>}
+      {notice && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>
+          {notice}
+          <button className="link-button" style={{ marginLeft: 10 }} onClick={() => setNotice(null)}>Dismiss</button>
+        </div>
+      )}
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>

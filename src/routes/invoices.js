@@ -3,7 +3,7 @@ const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
 const { invoiceTemplate } = require('../utils/emailTemplates');
-const { round2, creditBalance, invoiceTotal } = require('../utils/credits');
+const { round2, creditBalance, invoiceTotal, releaseInvoiceCredit } = require('../utils/credits');
 
 const router = express.Router();
 
@@ -340,32 +340,66 @@ router.post('/:id/mark-paid', requireRole('admin', 'lead'), async (req, res, nex
   } catch (err) { next(err); }
 });
 
+// If prepaid credit settled the whole invoice, marking it unpaid also hands
+// that credit back — otherwise it would sit as "unpaid" with nothing due.
+// Partial credit (credit + cash) is left alone: the remaining balance is real.
 router.post('/:id/mark-unpaid', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
-    const { rowCount } = await query(
-      `UPDATE invoices
-       SET status = CASE WHEN sent_date IS NOT NULL THEN 'sent' ELSE 'draft' END,
-           paid_date = NULL,
-           updated_at = NOW()
-       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL AND status = 'paid'`,
-      [req.params.id, req.organization.id]
-    );
-    if (rowCount === 0) return res.status(404).json({ error: 'Not found or not paid' });
-    const { rows } = await query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [req.params.id]);
-    res.json(rows[0]);
-  } catch (err) { next(err); }
+    const result = await withTransaction(async (client) => {
+      const { rows: invRows } = await client.query(
+        `SELECT * FROM invoices
+         WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL AND status = 'paid'
+         LIMIT 1`,
+        [req.params.id, req.organization.id]
+      );
+      if (invRows.length === 0) throw Object.assign(new Error('Not found or not paid'), { status: 404 });
+      const inv = invRows[0];
+
+      let released = 0;
+      const applied = round2(inv.credit_applied || 0);
+      if (applied > 0 && round2(invoiceTotal(inv) - applied) <= 0) {
+        released = await releaseInvoiceCredit(client, req.organization.id, inv.id);
+      }
+
+      await client.query(
+        `UPDATE invoices
+         SET status = CASE WHEN sent_date IS NOT NULL THEN 'sent' ELSE 'draft' END,
+             paid_date = NULL,
+             updated_at = NOW()
+         WHERE id = $1 AND organization_id = $2`,
+        [req.params.id, req.organization.id]
+      );
+
+      const { rows } = await client.query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [req.params.id]);
+      return { invoice: rows[0], released };
+    });
+    res.json({ ...result.invoice, credit_released: result.released });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 });
 
+// Deleting an invoice hands back any prepaid credit that was applied to it —
+// otherwise the customer's money stays spent on an invoice that no longer exists.
 router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
-    const { rowCount } = await query(
-      `UPDATE invoices SET deleted_at = NOW()
-       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`,
-      [req.params.id, req.organization.id]
-    );
-    if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    const result = await withTransaction(async (client) => {
+      const { rowCount } = await client.query(
+        `UPDATE invoices SET deleted_at = NOW()
+         WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`,
+        [req.params.id, req.organization.id]
+      );
+      if (rowCount === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+      const released = await releaseInvoiceCredit(client, req.organization.id, req.params.id);
+      return { released };
+    });
+    if (result.released > 0) return res.json({ credit_released: result.released });
     res.status(204).end();
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 });
 
 module.exports = router;

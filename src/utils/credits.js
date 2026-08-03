@@ -30,4 +30,25 @@ function invoiceTotal(inv) {
   return round2(discounted + tax);
 }
 
-module.exports = { round2, creditBalance, invoiceTotal };
+// Give back any credit applied to an invoice: soft-delete the ledger rows that
+// consumed it (restoring the customer's balance) and zero the invoice's
+// credit_applied. Used when an invoice is deleted or marked unpaid — otherwise
+// the credit stays spent on an invoice that no longer owes anything.
+// Returns the amount released. Caller supplies a transaction client.
+async function releaseInvoiceCredit(client, orgId, invoiceId) {
+  const { rows } = await client.query(
+    `UPDATE customer_credits SET deleted_at = NOW()
+     WHERE organization_id = $1 AND invoice_id = $2 AND deleted_at IS NULL
+     RETURNING amount`,
+    [orgId, invoiceId]
+  );
+  if (rows.length === 0) return 0;
+  await client.query(
+    `UPDATE invoices SET credit_applied = 0, updated_at = NOW()
+     WHERE id = $1 AND organization_id = $2`,
+    [invoiceId, orgId]
+  );
+  return round2(rows.reduce((s, r) => s + Math.abs(parseFloat(r.amount) || 0), 0));
+}
+
+module.exports = { round2, creditBalance, invoiceTotal, releaseInvoiceCredit };
