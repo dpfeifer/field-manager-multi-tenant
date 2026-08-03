@@ -86,7 +86,18 @@ app.use('/api', (req, res) => {
 // Read the shell once; inject tracking scripts at request time so staff
 // can change the Meta Pixel ID or GA4 Measurement ID from the System
 // page without redeploying.
-const RAW_INDEX_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+//
+// `npm run build` emits index.built.html, which loads precompiled JS instead
+// of shipping @babel/standalone (~2.8MB) and compiling 12k lines of JSX in the
+// browser on every load. Fall back to the source index.html when the build
+// hasn't run (fresh clone, local dev) so the app still works, just slower.
+const BUILT_INDEX = path.join(PUBLIC_DIR, 'index.built.html');
+const SOURCE_INDEX = path.join(PUBLIC_DIR, 'index.html');
+const USING_BUILT_INDEX = fs.existsSync(BUILT_INDEX);
+const RAW_INDEX_HTML = fs.readFileSync(USING_BUILT_INDEX ? BUILT_INDEX : SOURCE_INDEX, 'utf8');
+if (!USING_BUILT_INDEX) {
+  console.warn('[app] public/index.built.html not found — serving the in-browser Babel build. Run `npm run build` for the fast path.');
+}
 
 // Consent-gated analytics/advertising loader (CIPA / prior-consent model).
 //
@@ -378,7 +389,17 @@ async function serveIndex(req, res) {
   res.send(html);
 }
 
-app.use(express.static(PUBLIC_DIR, { index: false }));
+app.use(express.static(PUBLIC_DIR, {
+  index: false,
+  // The client bundle's filename carries a content hash, so a given URL's
+  // bytes never change — cache it hard. index.html is served no-cache, so a
+  // rebuild's new filename is picked up on the very next page load.
+  setHeaders: (res, filePath) => {
+    if (/[\\/]app\.[0-9a-f]{12}\.js$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
