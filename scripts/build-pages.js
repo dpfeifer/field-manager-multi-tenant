@@ -40,11 +40,24 @@ function parseFrontmatter(raw, file) {
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const routeToFile = (p) => p.replace(/^\//, '').replace(/\//g, '__') + '.html';
 
-function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml }) {
+// `hero` (index pages only) swaps the article header for a centered hero in
+// the marketing page's key: spaced/underlined eyebrow, oversized serif
+// headline with an italic accent, and a lede. headlineHtml is authored here,
+// so it may contain <em>.
+function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, hero }) {
   const canonical = BASE_URL + pagePath;
   const dateLine = date
     ? `<div class="page-date">Updated ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>`
     : '';
+  const headerHtml = hero
+    ? `<header class="page-hero">
+      ${eyebrow ? `<div class="ed-eyebrow">${esc(eyebrow)}</div>` : ''}
+      <h1 class="ed-hero-headline">${hero.headlineHtml}</h1>
+      ${hero.lede ? `<p class="ed-hero-lede">${esc(hero.lede)}</p>` : ''}
+    </header>`
+    : `${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
+    <h1>${esc(title)}</h1>
+    ${dateLine}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,6 +134,33 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
       font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--accent); margin-bottom: 10px;
     }
+    /* Index-page hero, in the marketing hero's key (.ed-hero* in index.html). */
+    main.has-hero { max-width: 980px; padding-top: 40px; }
+    main.has-hero > article { max-width: 760px; margin: 0 auto; }
+    .page-hero { text-align: center; margin-bottom: 56px; }
+    .ed-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.22em;
+      color: var(--text-muted); margin-bottom: 28px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ed-hero-headline {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(36px, 5.2vw, 60px);
+      line-height: 1.04; letter-spacing: -0.035em;
+      margin: 0 0 24px; color: var(--text);
+    }
+    .ed-hero-headline em {
+      font-style: italic; font-weight: 500;
+      color: var(--accent);
+    }
+    .ed-hero-lede {
+      font-size: 18px; line-height: 1.6;
+      color: var(--text-muted); margin: 0 auto;
+      max-width: 560px;
+    }
     h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(30px, 5vw, 42px); line-height: 1.12; letter-spacing: -0.01em; margin-bottom: 10px; }
     .page-date { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
     article h2 { font-family: var(--serif); font-weight: 600; font-size: 26px; margin: 38px 0 12px; }
@@ -175,10 +215,8 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
       <a class="ed-nav-cta" href="/signup">Start free</a>
     </div>
   </nav>
-  <main>
-    ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
-    <h1>${esc(title)}</h1>
-    ${dateLine}
+  <main${hero ? ' class="has-hero"' : ''}>
+    ${headerHtml}
     <article>
 ${bodyHtml}
     </article>
@@ -247,6 +285,10 @@ fs.writeFileSync(path.join(OUT_DIR, routeToFile('/learn')), pageTemplate({
   title: 'Guides & comparisons for small service businesses',
   description: 'Plain-English guides on running a small service business — scheduling, invoicing, and picking software that fits a one-person operation.',
   pagePath: '/learn', eyebrow: 'Learn', date: null, bodyHtml: indexBody,
+  hero: {
+    headlineHtml: 'Comparisons we wrote <em>honestly</em>.',
+    lede: 'Including the parts where the other tool is the better choice. Plain-English guides on picking software that fits a one-person operation.',
+  },
 }));
 manifest['/learn'] = `_pages/${routeToFile('/learn')}`;
 
@@ -254,14 +296,17 @@ manifest['/learn'] = `_pages/${routeToFile('/learn')}`;
 // /barbers stay as-is — this page is just the directory that lists them).
 const useCasePages = pages.filter((p) => p.collection === 'use-cases')
   .sort((a, b) => a.title.localeCompare(b.title));
-const useCasesBody = `<p>Field Manager is one flat-priced tool, but every trade runs it a little differently. These pages show what it looks like for your kind of work.</p>
-<ul class="page-list">
+const useCasesBody = `<ul class="page-list">
 ${useCasePages.map((p) => `  <li><a href="${p.path}">${esc(p.title)}</a><p>${esc(p.description)}</p></li>`).join('\n')}
 </ul>`;
 fs.writeFileSync(path.join(OUT_DIR, routeToFile('/use-cases')), pageTemplate({
   title: 'Who Field Manager is for',
   description: 'How barbers, lawn care operators, and other small service businesses run on Field Manager — scheduling, booking, invoicing, and a simple website for $29/month flat.',
   pagePath: '/use-cases', eyebrow: 'Use cases', date: null, bodyHtml: useCasesBody,
+  hero: {
+    headlineHtml: 'One flat price, <em>every trade</em>.',
+    lede: 'Field Manager is one tool, but every trade runs it a little differently. These pages show what it looks like for your kind of work.',
+  },
 }));
 manifest['/use-cases'] = `_pages/${routeToFile('/use-cases')}`;
 
