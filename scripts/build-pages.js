@@ -150,11 +150,21 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
       padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px;
       border-top: 1px solid var(--border); margin-top: 40px;
     }
-    .landing-footer a {
-      color: var(--text-muted); text-decoration: none; margin: 0 12px;
+    /* No margin on the links themselves — the "·" separators carry the
+       spacing, matching the marketing footer exactly. */
+    .landing-footer a, .landing-footer .link-button {
+      color: var(--text-muted); text-decoration: none;
     }
-    .landing-footer a:hover { color: var(--text); text-decoration: underline; }
+    .landing-footer a:hover, .landing-footer .link-button:hover { color: var(--text); text-decoration: underline; }
+    .landing-footer .sep { margin: 0 12px; }
+    .link-button {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font: inherit; color: inherit;
+    }
+    /* Revealed by the consent manager only when trackers are configured. */
+    #fm-cookie-settings { display: none; }
   </style>
+  %TRACKING_SCRIPTS%
 </head>
 <body>
   <nav class="ed-nav">
@@ -176,13 +186,26 @@ ${bodyHtml}
   <footer class="landing-footer">
     <div>
       <a href="/use-cases">Use cases</a>
+      <span class="sep">·</span>
       <a href="/learn">Learn</a>
+      <span class="sep">·</span>
       <a href="/contact">Contact</a>
+      <span class="sep">·</span>
       <a href="/terms">Terms</a>
+      <span class="sep">·</span>
       <a href="/privacy">Privacy</a>
+      <span id="fm-cookie-settings"><span class="sep">·</span><button type="button" class="link-button" onclick="window.fmOpenConsent && window.fmOpenConsent()">Cookie settings</button></span>
     </div>
     <div style="margin-top: 16px">© Field Manager</div>
   </footer>
+  <script>
+    // The consent manager defines window.fmOpenConsent only when analytics or
+    // advertising trackers are actually configured — so the link stays hidden
+    // when there is nothing to manage, matching the SPA's CookieSettingsLink.
+    if (typeof window.fmOpenConsent === 'function') {
+      document.getElementById('fm-cookie-settings').style.display = 'inline';
+    }
+  </script>
 </body>
 </html>`;
 }

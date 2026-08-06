@@ -412,13 +412,27 @@ try {
   );
 } catch (err) { /* no content build — SPA handles everything */ }
 
+// Content pages get the same consent-gated tracking injection as the SPA, so
+// the cookie banner and analytics behave identically wherever a visitor lands.
+async function servePrebuilt(req, res, file) {
+  let pixelId = null;
+  let ga4Id = null;
+  try {
+    const settings = await getSystemSettings();
+    pixelId = settings.meta_pixel_id || null;
+    ga4Id = settings.ga4_measurement_id || null;
+  } catch (err) { /* defaults already null */ }
+  const html = fs.readFileSync(path.join(PUBLIC_DIR, file), 'utf8')
+    .replace('%TRACKING_SCRIPTS%', consentAndTrackingScript(pixelId, ga4Id));
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.send(html);
+}
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   const prebuilt = prebuiltPages[req.path.replace(/\/+$/, '') || '/'];
-  if (prebuilt) {
-    res.set('Cache-Control', 'no-cache, must-revalidate');
-    return res.sendFile(path.join(PUBLIC_DIR, prebuilt));
-  }
+  if (prebuilt) return servePrebuilt(req, res, prebuilt).catch(next);
   serveIndex(req, res).catch(next);
 });
 
