@@ -1,12 +1,12 @@
 ---
 title: Booking & Client Management for Independent Barbers
-description: A booking page, client book, and simple website for independent barbers — built by a working barber. Free for your first five clients, then $29/month flat.
+description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then $29/month flat.
 path: /barbers
 eyebrow: For barbers
 date: 2026-08-06
 ---
 
-Field Manager is run by a barber. Not "we talked to barbers while designing it" — the founder cuts hair in Las Vegas and runs his own shop, [Barbersthetic](/barbersthetic), on this exact software. Every feature below exists because it was needed on a real chair, not because it demoed well.
+Field Manager runs real barber shops. [Barbersthetic](/barbersthetic), a Las Vegas barber studio, books its clients, keeps its client book, and runs its whole website on this exact software — that link is the live page, not a mockup. The features below earn their place by working on a real chair, not by demoing well.
 
 ## What you get
 
@@ -16,7 +16,7 @@ Field Manager is run by a barber. Not "we talked to barbers while designing it" 
 
 **A schedule built around appointments.** Day, week, and month views, recurring standing appointments for your weekly regulars, conflict warnings when you double-book, and one-tap "mark complete" as you finish each cut.
 
-**A simple website, included.** Turn on your landing page and you've got a real site — your photos, services and prices, client reviews, and the booking form — at your own link. If you're paying someone $20/month to keep a WordPress site alive, this replaces it. [Barbersthetic's page](/barbersthetic) is a live example, not a mockup.
+**A simple website, included.** Turn on your landing page and you've got a real site — your photos, services and prices, client reviews, and the booking form — at your own link. If you're paying someone $20/month to keep a WordPress site alive, this replaces it. [Barbersthetic's page](/barbersthetic) is what it looks like filled in.
 
 **Invoices and pay links, if you want them.** Most barbers take payment in the shop and never touch this — fine. But if you sell packages, do house calls, or run a booth-rental arrangement, you can send an invoice with a pay link (Stripe, PayPal, Square, or Venmo — your account, your money, no middleman fee from us).
 
