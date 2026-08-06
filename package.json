@@ -1,7 +1,7 @@
 {
   "name": "field-manager-multi-tenant",
   "version": "1.0.0",
-  "description": "Field Manager — multi-tenant SaaS for field operations",
+  "description": "Field Manager \u2014 multi-tenant SaaS for field operations",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -9,7 +9,7 @@
     "migrate": "node db/migrate.js",
     "trial-reminders": "node scripts/send-trial-reminders.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/build-client.js"
+    "build": "node scripts/build-client.js && node scripts/build-pages.js"
   },
   "repository": {
     "type": "git",
@@ -40,6 +40,7 @@
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "marked": "^12.0.2",
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
     "resend": "^4.0.1",

@@ -10,6 +10,9 @@ const RESERVED_SLUGS = new Set([
   'contact', 'demo', 'reset-password', 'verify-email', 'profile',
   'settings', 'jobs', 'customers', 'invoices', 'quotes', 'reports',
   'billing', 'onboarding', 'requests', 'team', 'schedule',
+  // Static content roots (scripts/build-pages.js) — a landing page lives at
+  // bare /<slug>, so these must never be claimable as tenant slugs.
+  'learn', 'barbers', 'blog', 'compare', 'templates', 'guides',
 ]);
 
 function slugify(name) {

@@ -401,8 +401,24 @@ app.use(express.static(PUBLIC_DIR, {
   },
 }));
 
+// Prebuilt content pages (scripts/build-pages.js): real static HTML for
+// /learn/* and niche landing pages, served ahead of the SPA catch-all so
+// crawlers index proper documents instead of a client-rendered shell.
+// Missing manifest (build not run) just means these routes fall through.
+let prebuiltPages = {};
+try {
+  prebuiltPages = JSON.parse(
+    fs.readFileSync(path.join(PUBLIC_DIR, '_pages', 'manifest.json'), 'utf8')
+  );
+} catch (err) { /* no content build — SPA handles everything */ }
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
+  const prebuilt = prebuiltPages[req.path.replace(/\/+$/, '') || '/'];
+  if (prebuilt) {
+    res.set('Cache-Control', 'no-cache, must-revalidate');
+    return res.sendFile(path.join(PUBLIC_DIR, prebuilt));
+  }
   serveIndex(req, res).catch(next);
 });
 
