@@ -1,6 +1,6 @@
 ---
 title: Handyman work, from estimate to paid invoice
-description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, then $29/month flat.
+description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, then {{price}}/month flat.
 path: /handyman
 eyebrow: For handymen
 collection: use-cases
@@ -27,7 +27,7 @@ Handyman work is mostly one-off jobs from repeat customers, which makes it an aw
 
 ## What it costs
 
-**Free for your first five customers**, no credit card, no clock. Then **$29/month flat** — unlimited customers and jobs, every feature, teammates included if you bring on a second pair of hands. No per-seat pricing, no tier holding the useful features. Export and leave whenever.
+**Free for your first five customers**, no credit card, no clock. Then **{{price}}/month flat** — unlimited customers and jobs, every feature, teammates included if you bring on a second pair of hands. No per-seat pricing, no tier holding the useful features. Export and leave whenever.
 
 ## If you're on something else
 

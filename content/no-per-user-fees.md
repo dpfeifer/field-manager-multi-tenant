@@ -36,10 +36,10 @@ A flat plan charges one price for the account, not the person. In practice, look
 
 ## How Field Manager does it
 
-We charge **$29/month, flat**. Unlimited customers, unlimited jobs, every feature, and teammates included — assign work to a helper without the bill moving. It's **free for your first five customers**, no credit card, so you can run a real week before deciding. Export your data whenever you want, including on the way out.
+We charge **{{price}}/month, flat**. Unlimited customers, unlimited jobs, every feature, and teammates included — assign work to a helper without the bill moving. It's **free for your first five customers**, no credit card, so you can run a real week before deciding. Export your data whenever you want, including on the way out.
 
 We're not the cheapest option in every scenario and we're not trying to be the biggest. If you need dispatching for six trucks, GPS tracking, or deep accounting sync, a per-seat platform is probably worth its price to you — see our honest comparisons with [Jobber](/learn/field-manager-vs-jobber) and [Housecall Pro](/learn/field-manager-vs-housecall-pro).
 
 But if you're one or two people who mostly need the schedule, the client book, the invoices, and a website, you shouldn't be paying by the head.
 
-<div class="cta">Free for your first five customers. $29/month flat when you grow — teammates included. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>
+<div class="cta">Free for your first five customers. {{price}}/month flat{{offer_note}} when you grow — teammates included. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>

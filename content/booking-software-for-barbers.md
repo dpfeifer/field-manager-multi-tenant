@@ -1,6 +1,6 @@
 ---
 title: Booking and client history for the independent chair
-description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then $29/month flat.
+description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then {{price}}/month flat.
 path: /barbers
 eyebrow: For barbers
 collection: use-cases
@@ -23,7 +23,7 @@ Field Manager runs real barber shops. [Barbersthetic](/barbersthetic), a Las Veg
 
 ## What it costs
 
-**Free for your first five clients** — no credit card, no trial clock. After that, **$29/month flat**. Not per chair, not per feature, no "Pro" tier hiding the stuff you actually need. If you leave, export your client list on the way out — it's yours.
+**Free for your first five clients** — no credit card, no trial clock. After that, **{{price}}/month flat**. Not per chair, not per feature, no "Pro" tier hiding the stuff you actually need. If you leave, export your client list on the way out — it's yours.
 
 ## Moving from another system (or a notebook)
 

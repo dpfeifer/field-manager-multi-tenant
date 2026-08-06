@@ -31,6 +31,7 @@ const bookingRequestsRoutes = require('./routes/bookingRequests');
 const supportRoutes = require('./routes/support');
 const teamMessagesRoutes = require('./routes/teamMessages');
 const { getSystemSettings } = require('./utils/systemSettings');
+const { getPublicPricing, applyPricingTokens } = require('./utils/pricing');
 const { query } = require('./config/db');
 const { RESERVED_SLUGS } = require('./utils/slug');
 
@@ -422,8 +423,19 @@ async function servePrebuilt(req, res, file) {
     pixelId = settings.meta_pixel_id || null;
     ga4Id = settings.ga4_measurement_id || null;
   } catch (err) { /* defaults already null */ }
-  const html = fs.readFileSync(path.join(PUBLIC_DIR, file), 'utf8')
+
+  let html = fs.readFileSync(path.join(PUBLIC_DIR, file), 'utf8')
     .replace('%TRACKING_SCRIPTS%', consentAndTrackingScript(pixelId, ga4Id));
+
+  // Prices are tokens in the prebuilt HTML so a running sale is reflected
+  // without a rebuild. If pricing can't be read, fall back to the listed
+  // price rather than shipping raw {{price}} to a visitor.
+  try {
+    html = applyPricingTokens(html, await getPublicPricing());
+  } catch (err) {
+    html = applyPricingTokens(html, { active: false, listed: 29, price: 29 });
+  }
+
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);

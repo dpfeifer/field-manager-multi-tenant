@@ -1,6 +1,6 @@
 ---
 title: Lawn care software built for the weekly route
-description: Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by a lawn care professional who runs his own route on it. Free for your first five customers, then $29/month flat.
+description: Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by a lawn care professional who runs his own route on it. Free for your first five customers, then {{price}}/month flat.
 path: /lawncare
 eyebrow: For lawn care
 collection: use-cases
@@ -27,7 +27,7 @@ Field Manager is run by a lawn mowing professional. The founder runs his own ope
 
 ## What it costs
 
-**Free for your first five customers** — no credit card, no trial clock. Then **$29/month flat**: unlimited customers, unlimited jobs, every feature, teammates included if you add a helper. No per-seat pricing that punishes you for growing a crew. If you ever leave, export everything — it's your data.
+**Free for your first five customers** — no credit card, no trial clock. Then **{{price}}/month flat**: unlimited customers, unlimited jobs, every feature, teammates included if you add a helper. No per-seat pricing that punishes you for growing a crew. If you ever leave, export everything — it's your data.
 
 ## Switching from paper, spreadsheets, or another app
 

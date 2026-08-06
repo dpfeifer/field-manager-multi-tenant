@@ -1,6 +1,6 @@
 ---
 title: Recurring cleans, invoiced without the Sunday paperwork
-description: Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Free for your first five clients, then $29/month flat.
+description: Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Free for your first five clients, then {{price}}/month flat.
 path: /cleaners
 eyebrow: For cleaning
 collection: use-cases
@@ -31,7 +31,7 @@ House cleaning runs on repetition: the same homes, the same rotation, month afte
 
 ## What it costs
 
-**Free for your first five clients** — no credit card. Then **$29/month flat**: unlimited clients, unlimited jobs, every feature, and teammates included. Bring on a helper without the bill moving, and assign them their own route. Leave whenever and take your data with you.
+**Free for your first five clients** — no credit card. Then **{{price}}/month flat**: unlimited clients, unlimited jobs, every feature, and teammates included. Bring on a helper without the bill moving, and assign them their own route. Leave whenever and take your data with you.
 
 ## Switching is the easy part
 

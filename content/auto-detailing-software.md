@@ -1,6 +1,6 @@
 ---
 title: Mobile detailing, from the DM to the driveway
-description: Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Free for your first five clients, then $29/month flat.
+description: Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Free for your first five clients, then {{price}}/month flat.
 path: /detailers
 eyebrow: For detailing
 collection: use-cases
@@ -29,7 +29,7 @@ Mobile detailing lives or dies on two things: the booking that comes in from Ins
 
 ## What it costs
 
-**Free for your first five clients**, no credit card. Then **$29/month flat**: unlimited clients and jobs, every feature, teammates included if you add a second van. Cancel and export whenever.
+**Free for your first five clients**, no credit card. Then **{{price}}/month flat**: unlimited clients and jobs, every feature, teammates included if you add a second van. Cancel and export whenever.
 
 ## Coming from somewhere else
 
