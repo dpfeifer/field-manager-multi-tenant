@@ -146,6 +146,7 @@ ${bodyHtml}
   </main>
   <footer class="site-footer">
     <a href="/">Field Manager</a>
+    <a href="/use-cases">Use cases</a>
     <a href="/learn">Learn</a>
     <a href="/contact">Contact</a>
     <a href="/terms">Terms</a>
@@ -195,6 +196,21 @@ fs.writeFileSync(path.join(OUT_DIR, routeToFile('/learn')), pageTemplate({
   pagePath: '/learn', eyebrow: 'Learn', date: null, bodyHtml: indexBody,
 }));
 manifest['/learn'] = `_pages/${routeToFile('/learn')}`;
+
+// /use-cases index: pages tagged `collection: use-cases` (flat URLs like
+// /barbers stay as-is — this page is just the directory that lists them).
+const useCasePages = pages.filter((p) => p.collection === 'use-cases')
+  .sort((a, b) => a.title.localeCompare(b.title));
+const useCasesBody = `<p>Field Manager is one flat-priced tool, but every trade runs it a little differently. These pages show what it looks like for your kind of work.</p>
+<ul class="page-list">
+${useCasePages.map((p) => `  <li><a href="${p.path}">${esc(p.title)}</a><p>${esc(p.description)}</p></li>`).join('\n')}
+</ul>`;
+fs.writeFileSync(path.join(OUT_DIR, routeToFile('/use-cases')), pageTemplate({
+  title: 'Who Field Manager is for',
+  description: 'How barbers, lawn care operators, and other small service businesses run on Field Manager — scheduling, booking, invoicing, and a simple website for $29/month flat.',
+  pagePath: '/use-cases', eyebrow: 'Use cases', date: null, bodyHtml: useCasesBody,
+}));
+manifest['/use-cases'] = `_pages/${routeToFile('/use-cases')}`;
 
 fs.writeFileSync(path.join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
 

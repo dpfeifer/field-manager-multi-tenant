@@ -13,7 +13,7 @@ const RESERVED_SLUGS = new Set([
   // Static content roots (scripts/build-pages.js) — a landing page lives at
   // bare /<slug>, so these must never be claimable as tenant slugs.
   'learn', 'barbers', 'blog', 'compare', 'templates', 'guides',
-  'lawncare', 'lawn-care',
+  'lawncare', 'lawn-care', 'use-cases', 'usecases',
 ]);
 
 function slugify(name) {
