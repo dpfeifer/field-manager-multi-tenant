@@ -83,11 +83,11 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
     * { box-sizing: border-box; margin: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; line-height: 1.65; }
     /* Header + footer mirror the marketing landing page (.ed-nav /
-       .landing-footer in public/index.html), narrowed to the content column
-       so the brand lines up with the article. */
+       .landing-footer in public/index.html) — same 1240px width so the site
+       chrome is identical, while the article column below stays at 760px. */
     .ed-nav {
-      max-width: 760px; margin: 0 auto;
-      padding: 28px 20px;
+      max-width: 1240px; margin: 0 auto;
+      padding: 28px 32px;
       display: flex; align-items: center; justify-content: space-between;
       padding-top: max(28px, env(safe-area-inset-top));
     }
@@ -112,7 +112,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
     }
     .ed-nav-cta:hover { transform: translateY(-1px); opacity: 0.92; }
     @media (max-width: 600px) {
-      .ed-nav { padding: 20px; }
+      .ed-nav { padding: 20px 20px; }
       .ed-nav-actions { gap: 12px; }
       .ed-nav-learn { display: none; }
     }
