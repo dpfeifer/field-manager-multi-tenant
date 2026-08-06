@@ -1,5 +1,5 @@
 ---
-title: Booking & Client Management for Independent Barbers
+title: Booking and client history for the independent chair
 description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then $29/month flat.
 path: /barbers
 eyebrow: For barbers

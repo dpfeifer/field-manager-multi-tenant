@@ -1,5 +1,5 @@
 ---
-title: Scheduling & Invoicing Software for Lawn Care
+title: Lawn care software built for the weekly route
 description: Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by a lawn care professional who runs his own route on it. Free for your first five customers, then $29/month flat.
 path: /lawncare
 eyebrow: For lawn care

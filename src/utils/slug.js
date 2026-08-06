@@ -14,6 +14,7 @@ const RESERVED_SLUGS = new Set([
   // bare /<slug>, so these must never be claimable as tenant slugs.
   'learn', 'barbers', 'blog', 'compare', 'templates', 'guides',
   'lawncare', 'lawn-care', 'use-cases', 'usecases',
+  'cleaners', 'cleaning', 'detailers', 'detailing', 'handyman', 'pool-service',
 ]);
 
 function slugify(name) {

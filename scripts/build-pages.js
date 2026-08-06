@@ -171,6 +171,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
     <a class="ed-brand" href="/"><img src="/favicon.svg" alt="" class="ed-brand-icon" />Field Manager</a>
     <div class="ed-nav-actions">
       <a class="ed-nav-link ed-nav-learn" href="/use-cases">Use cases</a>
+      <a class="ed-nav-link ed-nav-learn" href="/#pricing">Pricing</a>
       <a class="ed-nav-link" href="/signin">Sign in</a>
       <a class="ed-nav-cta" href="/signup">Start free</a>
     </div>
