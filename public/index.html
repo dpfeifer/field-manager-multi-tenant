@@ -934,6 +934,16 @@
     .check-list input { display: none; }
 
     .row .info .secondary-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+    /* Staff org list: per-org activation trail — which funnel steps this org
+       has completed. Done steps go green, pending stay muted outlines. */
+    .act-trail { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .act-step {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+      padding: 2px 8px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .act-step.done { background: #e8f1ec; color: #1f6f4a; border-color: #cfe3d8; }
     .row .info .price { display: inline-block; margin-left: 8px; color: var(--text); font-weight: 500; }
 
     /* Redesigned job rows: title + price, customer, schedule chips (next-due
@@ -14189,6 +14199,12 @@ function OrganizationsSection({ session }) {
                   {' '}{o.job_count} {o.job_count === 1 ? 'job' : 'jobs'} •
                   {' '}{o.invoice_count} {o.invoice_count === 1 ? 'invoice' : 'invoices'} •
                   {' '}{o.quote_count} {o.quote_count === 1 ? 'quote' : 'quotes'}
+                </div>
+                <div className="act-trail">
+                  <span className={`act-step${o.onboarding_completed_at ? ' done' : ''}`}>{o.onboarding_completed_at ? '✓ ' : ''}Onboarded</span>
+                  <span className={`act-step${o.customer_count > 0 ? ' done' : ''}`}>{o.customer_count > 0 ? '✓ ' : ''}Customer</span>
+                  <span className={`act-step${o.job_count > 0 ? ' done' : ''}`}>{o.job_count > 0 ? '✓ ' : ''}Job</span>
+                  <span className={`act-step${o.invoice_count > 0 ? ' done' : ''}`}>{o.invoice_count > 0 ? '✓ ' : ''}Invoice</span>
                 </div>
               </div>
               <div className="actions">

@@ -158,7 +158,7 @@ router.get('/organizations', async (req, res, next) => {
       `SELECT
          o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
          o.subscription_status, o.trial_ends_at, o.stripe_subscription_id,
-         o.is_demo,
+         o.is_demo, o.onboarding_completed_at,
          (SELECT COUNT(*)::int FROM users WHERE organization_id = o.id AND deleted_at IS NULL) AS user_count,
          (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
          (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
