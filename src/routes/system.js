@@ -115,6 +115,40 @@ router.get('/platform-stats', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Signup funnel: weekly cohorts of real (non-demo) orgs and how far each got.
+// Activation steps are "ever did it" (EXISTS), status is where they are today.
+router.get('/funnel', async (req, res, next) => {
+  const FUNNEL_SELECT = `
+    COUNT(*)::int AS signups,
+    COUNT(*) FILTER (WHERE o.onboarding_completed_at IS NOT NULL)::int AS onboarded,
+    COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM customers c WHERE c.organization_id = o.id))::int AS added_customer,
+    COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM jobs j WHERE j.organization_id = o.id))::int AS created_job,
+    COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM invoices i WHERE i.organization_id = o.id))::int AS created_invoice,
+    COUNT(*) FILTER (WHERE o.subscription_status = 'active')::int AS paying,
+    COUNT(*) FILTER (WHERE o.subscription_status = 'trialing')::int AS trialing,
+    COUNT(*) FILTER (WHERE o.subscription_status = 'free')::int AS free,
+    COUNT(*) FILTER (WHERE o.subscription_status IN ('past_due', 'canceled'))::int AS churned`;
+  try {
+    const [weekly, totals] = await Promise.all([
+      query(
+        `SELECT to_char(date_trunc('week', o.created_at), 'YYYY-MM-DD') AS week_start,
+                ${FUNNEL_SELECT}
+         FROM organizations o
+         WHERE o.deleted_at IS NULL AND o.is_demo = FALSE
+           AND o.created_at >= date_trunc('week', NOW()) - INTERVAL '11 weeks'
+         GROUP BY 1
+         ORDER BY 1 DESC`
+      ),
+      query(
+        `SELECT ${FUNNEL_SELECT}
+         FROM organizations o
+         WHERE o.deleted_at IS NULL AND o.is_demo = FALSE`
+      ),
+    ]);
+    res.json({ weeks: weekly.rows, totals: totals.rows[0] });
+  } catch (err) { next(err); }
+});
+
 router.get('/organizations', async (req, res, next) => {
   // Hide demo orgs from the list by default — they churn fast and would
   // drown out real signups. Pass ?include_demo=1 to see them.

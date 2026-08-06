@@ -5283,7 +5283,7 @@ function LandingPricing({ founder }) {
         <div className="ed-plan ed-plan-pro">
           <div className="ed-plan-name-row">
             <span className="ed-plan-name">Pro</span>
-            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Spring pricing · Limited time</span>}
+            {founderActive && <span className="ed-plan-tag ed-plan-tag-inline ed-plan-tag-founder">Limited-time offer</span>}
             {!founderActive && <span className="ed-plan-tag ed-plan-tag-inline">Most chosen</span>}
           </div>
           <div className="ed-plan-price">
@@ -5299,7 +5299,7 @@ function LandingPricing({ founder }) {
           </div>
           {founderActive && (
             <p className="ed-plan-founder-note">
-              Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.
+              Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.
             </p>
           )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
@@ -5440,7 +5440,7 @@ function LandingPage() {
         <div className="ed-hero-text">
           {founderActive && (
             <div className="sales-hero-badge fade-in">
-              ⏰ Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life
+              ⏰ Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life
             </div>
           )}
           <h1 className="ed-hero-headline fade-in-delay-1">
@@ -5564,7 +5564,7 @@ function LandingPage() {
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
           Free for your first five customers. {founderActive
-            ? <>Limited-time spring pricing — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
+            ? <>Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
             : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
         </p>
         <div className="sales-hero-actions">
@@ -5645,7 +5645,7 @@ function SalesLandingPage() {
       {/* Hero */}
       <header className="sales-hero">
         {founderActive && (
-          <div className="sales-hero-badge">⏰ Limited-time spring pricing — ${founderPrice}/mo, locked in for life</div>
+          <div className="sales-hero-badge">⏰ Limited-time offer — ${founderPrice}/mo, locked in for life</div>
         )}
         <h1 className="sales-hero-headline">
           Stop running your business<br/>out of a <em>spreadsheet</em>.
@@ -5723,7 +5723,7 @@ function SalesLandingPage() {
             <PrimaryCTA label="Start free" />
           </div>
           <div className="sales-plan sales-plan-pro">
-            {founderActive && <div className="sales-plan-flag">⏰ Limited-time spring pricing</div>}
+            {founderActive && <div className="sales-plan-flag">⏰ Limited-time offer</div>}
             <div className="sales-plan-name">Pro</div>
             <div className="sales-plan-price">
               {founderActive ? (
@@ -5737,7 +5737,7 @@ function SalesLandingPage() {
               <span className="sales-plan-suf">/mo</span>
             </div>
             {founderActive && (
-              <p className="sales-plan-note">Spring pricing locks in for life. Once it's gone, it's gone.</p>
+              <p className="sales-plan-note">This price locks in for life. Once it's gone, it's gone.</p>
             )}
             <ul className="sales-plan-list">
               <li>Everything in Free</li>
@@ -5778,7 +5778,7 @@ function SalesLandingPage() {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Free for your first five customers. {founderActive ? `Limited-time spring pricing — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+          Free for your first five customers. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
         </p>
         <div className="sales-hero-actions">
           <PrimaryCTA size="lg" />
@@ -11118,6 +11118,7 @@ const APP_ROUTES = {
   '/system/pricing': 'system',
   '/system/settings': 'system',
   '/system/overview': 'system',
+  '/system/funnel': 'system',
   // /system/orgs/:id handled specially in AppShell (see startsWith check)
   '/profile': 'profile',
   '/support': 'support',
@@ -11137,7 +11138,7 @@ function DemoBanner() {
       <span className="demo-banner-dot" />
       <span className="demo-banner-text">
         You're trying a demo — nothing here is real.
-        {founderActive && <> Limited-time spring pricing — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
+        {founderActive && <> Limited-time offer — <strong>${Math.round(founder.founder_price)}/mo</strong>.</>}
       </span>
       <button className="demo-banner-cta" onClick={() => {
         // Demo session is still in localStorage. Clear it before sending the
@@ -11145,7 +11146,7 @@ function DemoBanner() {
         clearSession();
         window.location.href = '/signup';
       }}>
-        {founderActive ? 'Lock in spring pricing →' : 'Start free →'}
+        {founderActive ? 'Lock in this price →' : 'Start free →'}
       </button>
     </div>
   );
@@ -11177,13 +11178,13 @@ function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
     color = 'var(--text-muted)';
     body = isAdmin
       ? (founderActive
-          ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to take advantage of our spring pricing.</>
+          ? <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to take advantage of our limited-time offer.</>
           : <>You're trying Pro free — {trialDaysLeft} days left. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Add billing now</button> to keep Pro after the trial.</>)
       : <>This organization is on a Pro trial — {trialDaysLeft} days left.</>;
   } else if (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     body = isAdmin
       ? (founderActive
-          ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to lock in spring pricing</button>, or do nothing to drop to Free.</>
+          ? <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to lock in this price</button>, or do nothing to drop to Free.</>
           : <>Your Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <button className="link-button" style={{ color: 'inherit', textDecoration: 'underline' }} onClick={() => navigate('/billing')}>Subscribe to keep Pro</button>, or do nothing to drop to Free.</>)
       : <>This organization's Pro trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}.</>;
   } else if (trialEnded && !dismissed) {
@@ -13708,6 +13709,7 @@ function SystemView({ session }) {
     : path === '/system/templates' ? 'templates'
     : path === '/system/pricing' || path === '/system/settings' ? 'settings'
     : path === '/system/overview' ? 'overview'
+    : path === '/system/funnel' ? 'funnel'
     : 'organizations';
   const isStaff = session.user && session.user.is_staff;
 
@@ -13728,6 +13730,10 @@ function SystemView({ session }) {
             onClick={() => navigate('/system/overview')}
           >Overview</button>
           <button
+            className={`chip ${subView === 'funnel' ? 'active' : ''}`}
+            onClick={() => navigate('/system/funnel')}
+          >Funnel</button>
+          <button
             className={`chip ${subView === 'organizations' ? 'active' : ''}`}
             onClick={() => navigate('/system')}
           >Organizations</button>
@@ -13746,6 +13752,7 @@ function SystemView({ session }) {
         </div>
       </div>
       {subView === 'overview' && <PlatformOverviewSection token={session.token} />}
+      {subView === 'funnel' && <FunnelSection token={session.token} />}
       {subView === 'organizations' && <OrganizationsSection session={session} />}
       {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
       {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
@@ -13813,9 +13820,9 @@ function SiteSettingsSection({ token }) {
       {error && <div className="error">{error}</div>}
       {saved && <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>}
       <form onSubmit={save} className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Spring pricing</div>
+        <div className="section-heading" style={{ marginTop: 0 }}>Limited-time offer</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 16 }}>
-          Auto-apply a Stripe coupon to the first N paying signups, marketed as a Spring pricing promotion. The discounted price shows on the public landing page until all seats are claimed.
+          Auto-apply a Stripe coupon to the first N paying signups, marketed as a limited-time offer. The discounted price shows on the public landing page until all seats are claimed.
         </p>
         <p className="hint" style={{ marginTop: 0 }}>
           <strong style={{ color: 'var(--text)' }}>{seatsUsed}</strong> of <strong style={{ color: 'var(--text)' }}>{seats}</strong> seats claimed · <strong style={{ color: 'var(--text)' }}>{seatsLeft}</strong> remaining
@@ -13826,7 +13833,7 @@ function SiteSettingsSection({ token }) {
           type="text"
           value={coupon}
           onChange={(e) => setCoupon(e.target.value)}
-          placeholder="e.g. AbCdEfGh — leave blank to disable spring pricing"
+          placeholder="e.g. AbCdEfGh — leave blank to disable the offer"
         />
         <span className="hint" style={{ display: 'block', marginTop: 6 }}>
           Create the coupon in your Stripe dashboard (Coupons → New), set duration to "Forever" and the amount off to the difference between your listed and founder price. Paste its ID here.
@@ -13842,7 +13849,7 @@ function SiteSettingsSection({ token }) {
             />
           </div>
           <div>
-            <label>Spring price ($/mo)</label>
+            <label>Offer price ($/mo)</label>
             <input
               type="number" min="0" step="1"
               value={founderPrice}
@@ -13890,6 +13897,96 @@ function SiteSettingsSection({ token }) {
           </button>
         </div>
       </form>
+    </>
+  );
+}
+
+// Signup funnel: where each weekly cohort of real orgs stalls on the way from
+// signup to paying. Counts come from /api/system/funnel (demo orgs excluded).
+function FunnelSection({ token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true); setError(null);
+    apiRequest('/api/system/funnel', { token })
+      .then((d) => { if (!cancelled) setData(d); })
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (loading) return <div className="list-empty">Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!data) return null;
+
+  const t = data.totals || {};
+  const weeks = data.weeks || [];
+  const pct = (n, of) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '—');
+  const cell = (n, of) => (
+    <td>{n}<span style={{ color: 'var(--text-muted)', fontSize: 11 }}> · {pct(n, of)}</span></td>
+  );
+
+  return (
+    <>
+      <div className="section-heading" style={{ marginTop: 0 }}>All time</div>
+      <div className="stats-grid row-fixed-3">
+        <div className="stat-card accent">
+          <div className="label">Signups</div>
+          <div className="value">{t.signups || 0}</div>
+          <div className="subvalue">real orgs, demos excluded</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Activated (created a job)</div>
+          <div className="value">{t.created_job || 0}</div>
+          <div className="subvalue">{pct(t.created_job || 0, t.signups || 0)} of signups · {t.added_customer || 0} added a customer</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Paying</div>
+          <div className="value">{t.paying || 0}</div>
+          <div className="subvalue">{pct(t.paying || 0, t.signups || 0)} of signups · {t.trialing || 0} trialing · {t.free || 0} free</div>
+        </div>
+      </div>
+
+      <div className="section-heading">Weekly cohorts (last 12 weeks)</div>
+      <div className="form-card">
+        {weeks.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>No signups in the last 12 weeks.</p>
+        ) : (
+          <div className="csv-preview-wrap">
+            <table className="csv-preview-table">
+              <thead>
+                <tr>
+                  <th>Week of</th><th>Signups</th><th>Onboarded</th><th>+{' '}Customer</th>
+                  <th>+{' '}Job</th><th>+{' '}Invoice</th><th>Paying</th><th>Trialing</th><th>Free</th><th>Churned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weeks.map((w) => (
+                  <tr key={w.week_start}>
+                    <td>{formatShortDate(w.week_start)}</td>
+                    <td><strong>{w.signups}</strong></td>
+                    {cell(w.onboarded, w.signups)}
+                    {cell(w.added_customer, w.signups)}
+                    {cell(w.created_job, w.signups)}
+                    {cell(w.created_invoice, w.signups)}
+                    {cell(w.paying, w.signups)}
+                    {cell(w.trialing, w.signups)}
+                    {cell(w.free, w.signups)}
+                    {cell(w.churned, w.signups)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="hint" style={{ marginBottom: 0 }}>
+          Each row is the orgs that signed up that week and how far they've gotten since —
+          steps are "ever did it", status columns are where they are today.
+        </p>
+      </div>
     </>
   );
 }
@@ -13956,9 +14053,9 @@ function PlatformOverviewSection({ token }) {
           <div className="subvalue">signups</div>
         </div>
         <div className="stat-card">
-          <div className="label">Spring seats claimed</div>
+          <div className="label">Offer seats claimed</div>
           <div className="value">{c.founder_seats_used}</div>
-          <div className="subvalue">orgs locked into spring pricing</div>
+          <div className="subvalue">orgs locked into the limited-time offer</div>
         </div>
       </div>
 
