@@ -78,20 +78,44 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
     :root {
       --bg: #f7f4ec; --card: #ffffff; --text: #19170f; --text-muted: #66635c;
       --border: #e8e1d1; --primary: #2c3e57; --primary-hover: #1b2940;
-      --accent: #c98558; --serif: 'Fraunces', Georgia, serif;
+      --accent: #c98558; --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
     }
     * { box-sizing: border-box; margin: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; line-height: 1.65; }
-    .site-header {
-      display: flex; justify-content: space-between; align-items: center;
-      max-width: 760px; margin: 0 auto; padding: 22px 20px;
+    /* Header + footer mirror the marketing landing page (.ed-nav /
+       .landing-footer in public/index.html), narrowed to the content column
+       so the brand lines up with the article. */
+    .ed-nav {
+      max-width: 760px; margin: 0 auto;
+      padding: 28px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: max(28px, env(safe-area-inset-top));
     }
-    .wordmark { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text); text-decoration: none; }
-    .header-cta {
-      background: var(--primary); color: #fff; text-decoration: none;
-      padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    .ed-brand {
+      display: inline-flex; align-items: center; gap: 9px;
+      font-family: var(--serif); font-weight: 600;
+      font-size: 20px; letter-spacing: -0.01em;
+      color: var(--text); text-decoration: none;
     }
-    .header-cta:hover { background: var(--primary-hover); }
+    .ed-brand-icon { width: 26px; height: 26px; display: block; flex-shrink: 0; }
+    .ed-nav-actions { display: flex; align-items: center; gap: 18px; }
+    .ed-nav-link {
+      font-size: 14px; color: var(--text-muted);
+      text-decoration: none; padding: 6px 4px;
+    }
+    .ed-nav-link:hover { color: var(--text); }
+    .ed-nav-cta {
+      background: var(--text); color: var(--bg);
+      border-radius: 999px; text-decoration: none;
+      padding: 9px 18px; font-size: 13px; font-weight: 600;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .ed-nav-cta:hover { transform: translateY(-1px); opacity: 0.92; }
+    @media (max-width: 600px) {
+      .ed-nav { padding: 20px; }
+      .ed-nav-actions { gap: 12px; }
+      .ed-nav-learn { display: none; }
+    }
     main { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
     .eyebrow {
       font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
@@ -122,20 +146,25 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
     .page-list a { font-family: var(--serif); font-weight: 600; font-size: 20px; color: var(--text); text-decoration: none; }
     .page-list a:hover { color: var(--primary); }
     .page-list p { margin: 6px 0 0; color: var(--text-muted); font-size: 14px; }
-    .site-footer {
-      max-width: 760px; margin: 0 auto; padding: 26px 20px 44px;
-      border-top: 1px solid var(--border);
-      color: var(--text-muted); font-size: 13px;
-      display: flex; gap: 16px; flex-wrap: wrap;
+    .landing-footer {
+      padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px;
+      border-top: 1px solid var(--border); margin-top: 40px;
     }
-    .site-footer a { color: var(--text-muted); }
+    .landing-footer a {
+      color: var(--text-muted); text-decoration: none; margin: 0 12px;
+    }
+    .landing-footer a:hover { color: var(--text); text-decoration: underline; }
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <a class="wordmark" href="/">Field Manager</a>
-    <a class="header-cta" href="/signup">Start free</a>
-  </header>
+  <nav class="ed-nav">
+    <a class="ed-brand" href="/"><img src="/favicon.svg" alt="" class="ed-brand-icon" />Field Manager</a>
+    <div class="ed-nav-actions">
+      <a class="ed-nav-link ed-nav-learn" href="/use-cases">Use cases</a>
+      <a class="ed-nav-link" href="/signin">Sign in</a>
+      <a class="ed-nav-cta" href="/signup">Start free</a>
+    </div>
+  </nav>
   <main>
     ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
     <h1>${esc(title)}</h1>
@@ -144,14 +173,15 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml })
 ${bodyHtml}
     </article>
   </main>
-  <footer class="site-footer">
-    <a href="/">Field Manager</a>
-    <a href="/use-cases">Use cases</a>
-    <a href="/learn">Learn</a>
-    <a href="/contact">Contact</a>
-    <a href="/terms">Terms</a>
-    <a href="/privacy">Privacy</a>
-    <span>© ${new Date().getFullYear()} Field Manager</span>
+  <footer class="landing-footer">
+    <div>
+      <a href="/use-cases">Use cases</a>
+      <a href="/learn">Learn</a>
+      <a href="/contact">Contact</a>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+    <div style="margin-top: 16px">© Field Manager</div>
   </footer>
 </body>
 </html>`;
