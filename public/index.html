@@ -14149,11 +14149,16 @@ function OrganizationsSection({ session }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const filtered = orgs.filter((o) => searchMatches(search, o.name, o.slug, o.subscription_status));
+  const activationSteps = (o) =>
+    (o.onboarding_completed_at ? 1 : 0) + (o.customer_count > 0 ? 1 : 0)
+    + (o.job_count > 0 ? 1 : 0) + (o.invoice_count > 0 ? 1 : 0);
   const sortKey = sort === 'name' ? (o) => (o.name || '').toLowerCase()
     : sort === 'status' ? 'subscription_status'
     : sort === 'users' ? (o) => -o.user_count
+    // Least-activated first; newest breaks ties so fresh stalls surface.
+    : sort === 'activation' ? (o) => activationSteps(o) * 1e15 - new Date(o.created_at).getTime()
     : 'created_at';
-  const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' || sort === 'status' ? 'asc' : 'desc');
+  const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' || sort === 'status' || sort === 'activation' ? 'asc' : 'desc');
 
   return (
     <>
@@ -14169,6 +14174,7 @@ function OrganizationsSection({ session }) {
           <option value="name">Sort: Name</option>
           <option value="status">Sort: Status</option>
           <option value="users">Sort: Most users</option>
+          <option value="activation">Sort: Least activated</option>
         </select>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
           <input type="checkbox" checked={includeDemo} onChange={(e) => setIncludeDemo(e.target.checked)} />
