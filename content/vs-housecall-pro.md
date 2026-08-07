@@ -25,7 +25,7 @@ So for a one-person business the real question isn't which first invoice is smal
 - **You want marketing that runs itself.** Postcards, email campaigns, review requests, automated appointment reminders. We don't have any of it.
 - **You need to plug into other software.** They have a large integrations marketplace. We don't have one.
 
-If two or more of those sound like you, the higher price is buying something real, and you should pay it.
+> If two or more of those sound like you, the higher price is buying something real, and you should pay it.
 
 ## When Field Manager is the right call
 

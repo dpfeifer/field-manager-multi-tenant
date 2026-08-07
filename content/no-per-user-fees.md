@@ -40,6 +40,6 @@ We charge **{{price}}/month, flat**. Unlimited customers, unlimited jobs, every 
 
 We're not the cheapest option in every scenario and we're not trying to be the biggest. If you need dispatching for six trucks, GPS tracking, or deep accounting sync, a per-seat platform is probably worth its price to you — see our honest comparisons with [Jobber](/learn/field-manager-vs-jobber) and [Housecall Pro](/learn/field-manager-vs-housecall-pro).
 
-But if you're one or two people who mostly need the schedule, the client book, the invoices, and a website, you shouldn't be paying by the head.
+> If you're one or two people who mostly need the schedule, the client book, the invoices, and a website, you shouldn't be paying by the head.
 
 <div class="cta">Free for your first five customers. {{price}}/month flat{{offer_note}} when you grow — teammates included. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>

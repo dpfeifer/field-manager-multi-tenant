@@ -22,7 +22,7 @@ We make Field Manager, so we have an obvious bias. We've tried to counter it by 
 - **You want built-in retail/inventory.** Selling pomade and beard oil at the chair? Square does that natively; we don't do inventory at all.
 - **You want a client-facing marketplace and reminder texts out of the box.** Square's consumer booking presence and automated SMS reminders are more mature than ours — we don't send automated reminders yet.
 
-If those are your priorities, use Square. We'd tell a friend the same thing.
+> If those are your priorities, use Square. We'd tell a friend the same thing.
 
 ## Where Field Manager is better
 

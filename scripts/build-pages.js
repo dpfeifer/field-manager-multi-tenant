@@ -288,13 +288,36 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     article h2 { font-family: var(--serif); font-weight: 600; font-size: 26px; margin: 38px 0 12px; }
     article h3 { font-size: 18px; font-weight: 700; margin: 26px 0 8px; }
     article p, article li { font-size: 17px; line-height: 1.7; color: #33302a; }
-    /* Standfirst: the opening paragraph under the photo, centred and set a
-       little larger, then normal reading measure resumes. */
+    /* Standfirst: the opening paragraph, centred and set a little larger,
+       then normal reading measure resumes. */
     article > p.standfirst {
       text-align: center; font-size: 19px; line-height: 1.6;
       color: var(--text-muted); max-width: 620px;
       margin: 0 auto 28px;
     }
+    /* Without a photo to close the opening, a rule separates hero from body. */
+    main:not(.has-photo) article > p.standfirst {
+      padding-bottom: 44px; margin-bottom: 44px;
+      border-bottom: 1px solid var(--border);
+    }
+    /* Sections read as bands, echoing the feature blocks. */
+    article h2 {
+      border-top: 1px solid var(--border);
+      padding-top: 44px; margin-top: 52px;
+    }
+    /* …except where a rule already sits immediately above. */
+    article > p.standfirst + h2,
+    .page-chapter + h2,
+    article > h2:first-child { border-top: none; padding-top: 0; margin-top: 38px; }
+    /* Key point — authored as a markdown blockquote. */
+    article blockquote {
+      margin: 30px 0; padding: 4px 0 4px 22px;
+      border-left: 3px solid var(--accent);
+      font-family: var(--serif); font-weight: 500;
+      font-size: 21px; line-height: 1.45; letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    article blockquote p { font-size: inherit; line-height: inherit; color: inherit; margin: 0; }
     article p { margin: 0 0 16px; }
     article ul, article ol { margin: 0 0 16px; padding-left: 24px; }
     article li { margin-bottom: 8px; }
@@ -496,7 +519,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       <a class="ed-nav-cta" href="/signup">Start free</a>
     </div>
   </nav>
-  <main${hero ? ' class="has-hero"' : ''}>
+  <main class="${hero ? 'has-hero' : ''}${photo ? ' has-photo' : ''}">
     ${headerHtml}
     ${photo ? `<div class="page-photo"><img src="${unsplash(photo)}" alt="${esc(photoAlt || '')}" width="1400" height="640" loading="eager"></div>
     ${photoCredit ? `<div class="photo-credit">Photo: ${esc(photoCredit)} / <a href="https://unsplash.com" rel="noopener">Unsplash</a></div>` : ''}` : ''}

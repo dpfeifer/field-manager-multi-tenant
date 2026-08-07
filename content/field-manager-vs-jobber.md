@@ -48,7 +48,7 @@ Be honest with yourself about these, because getting it wrong costs more than th
 - **You live in QuickBooks.** Jobber's accounting sync is deep; ours doesn't exist yet.
 - **You want built-in card processing** rather than pay-links to your own Stripe/PayPal/Square account.
 
-If two of those describe you, use Jobber. It's the right tool for that situation, and the per-seat price is buying you something real.
+> If two of those describe you, use Jobber. It's the right tool for that situation, and the per-seat price is buying you something real.
 
 ## When Field Manager is the better fit
 
