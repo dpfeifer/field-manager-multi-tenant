@@ -11,19 +11,23 @@ photo_alt: Gloved hands wiping down a surface
 
 House cleaning runs on repetition: the same homes, the same rotation, month after month. The software problem isn't complexity — it's that a recurring route creates a pile of small billing chores, and most tools make you do them by hand.
 
-## Built for the rotation
-
 **Weekly, biweekly, and monthly schedules.** Set a home to every other Thursday once and the calendar fills itself. Skip a week when a client travels, move one for a holiday, end the schedule when they cancel — without rebuilding anything.
 
 **Everything the job needs, on the job.** Alarm code, key location, which dog is friendly, "don't touch the office desk." Notes live with the client and show up with the visit, so a fill-in or a new helper isn't calling you from the driveway.
 
-**Mark complete as you leave.** One tap per home, with an optional note. Every completion records who did it and when — which settles the "you skipped us last week" conversation permanently.
+{{chapter:route}}
+The rotation, handled
+The day's homes, in the order you clean them.
+One tap per home as you leave, with an optional note. Every completion records who did it and when — which settles the "you skipped us last week" conversation permanently.
+{{/chapter}}
 
-{{mock:route|The day's homes, in order, tapped off as you leave each one.}}
+{{chapter:invoices}}
+The billing pile, gone
+Monthly invoices that build themselves.
+Every completed clean rolls into one invoice per client automatically — monthly on the day you choose, or weekly — at each client's rate, itemised by visit.
 
-**Monthly invoices that build themselves.** This is the piece that saves the evening. Field Manager can roll every completed clean into one invoice per client automatically — monthly on the day you choose, or weekly — at each client's rate, itemized by visit. Prefer to review first? Generate it per client from their completed visits in a couple of clicks. Clients who prepay or pay per visit can be excluded.
-
-{{mock:invoices|Month end, already itemised by visit — before you sit down.}}
+Prefer to review first? Generate it per client in a couple of clicks. Clients who prepay or pay per visit can be excluded.
+{{/chapter}}
 
 **Prepaid packages, handled.** Sell a block of cleans up front? Record the payment as account credit and apply it to invoices as the work happens — the remaining balance is always visible on the client's page.
 

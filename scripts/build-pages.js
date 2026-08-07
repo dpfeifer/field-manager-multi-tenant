@@ -47,52 +47,91 @@ const unsplash = (id, w = 1400) =>
 // at any density. Authors drop {{mock:name}} on its own line in the markdown.
 const MOCKS = {
   route: `<div class="cm-frame">
-  <div class="cm-bar">Schedule · Tuesday</div>
-  <div class="cm-body">
-    <div class="cm-row cm-done"><span>14 Alder Court</span><span class="cm-check">✓</span></div>
-    <div class="cm-row cm-done"><span>802 Fairview</span><span class="cm-check">✓</span></div>
-    <div class="cm-row"><span>1130 Weller Rd</span><span class="cm-muted">10:30 AM</span></div>
-    <div class="cm-row"><span>27 Sumner Lane</span><span class="cm-muted">11:15 AM</span></div>
-    <div class="cm-row"><span>Riverbend HOA</span><span class="cm-muted">1:00 PM</span></div>
+  <div class="cm-bar"><span>Schedule · Tuesday</span></div>
+  <div class="cm-card">
+    <div class="cm-card-row cm-card-done"><span>Heather Stahl</span><span class="cm-card-check">✓</span></div>
+    <div class="cm-card-row cm-card-done"><span>Crowley residence</span><span class="cm-card-check">✓</span></div>
+    <div class="cm-card-row"><span>Marcus Bell</span><span class="cm-card-time">10:30 AM</span></div>
+    <div class="cm-card-row"><span>Dee Whitfield</span><span class="cm-card-time">11:15 AM</span></div>
+    <div class="cm-card-row"><span>Riverbend HOA</span><span class="cm-card-time">1:00 PM</span></div>
   </div>
 </div>`,
   invoices: `<div class="cm-frame">
-  <div class="cm-bar">Invoices · Ready to send</div>
-  <div class="cm-body">
-    <div class="cm-row"><span><strong>#1041</strong> · 4 visits</span><span class="cm-amt">$220</span></div>
-    <div class="cm-row"><span><strong>#1042</strong> · 2 visits</span><span class="cm-amt">$130</span></div>
-    <div class="cm-row"><span><strong>#1043</strong> · 4 visits</span><span class="cm-amt">$260</span></div>
+  <div class="cm-bar"><span>Invoices · Drafts</span></div>
+  <div class="cm-list">
+    <div class="cm-list-row"><div><strong>#1041</strong> · Heather Stahl</div><div class="cm-amt">$220</div></div>
+    <div class="cm-list-row"><div><strong>#1042</strong> · Marcus Bell</div><div class="cm-amt">$130</div></div>
+    <div class="cm-list-row"><div><strong>#1043</strong> · Dee Whitfield</div><div class="cm-amt">$260</div></div>
   </div>
-  <div class="cm-cta">Generated from last month's completed work</div>
+  <div class="cm-cta">Review &amp; send all</div>
 </div>`,
   booking: `<div class="cm-frame">
-  <div class="cm-bar">Request an appointment</div>
-  <div class="cm-body">
-    <div class="cm-row"><span class="cm-muted">Name</span><span>Marcus B.</span></div>
-    <div class="cm-row"><span class="cm-muted">Service</span><span>Full cut + beard</span></div>
-    <div class="cm-row"><span class="cm-muted">Preferred</span><span>Thu, 4:00 PM</span></div>
+  <div class="cm-bar"><span>Request an appointment</span></div>
+  <div class="cm-list">
+    <div class="cm-list-row"><div>Name</div><div>Marcus Bell</div></div>
+    <div class="cm-list-row"><div>Service</div><div>Full cut + beard</div></div>
+    <div class="cm-list-row"><div>Preferred</div><div>Thu, 4:00 PM</div></div>
   </div>
   <div class="cm-cta">Send request</div>
 </div>`,
   client: `<div class="cm-frame">
-  <div class="cm-bar">Client · Marcus B.</div>
-  <div class="cm-body">
-    <div class="cm-row"><span>Full cut + beard</span><span class="cm-muted">Jul 18 · $45</span></div>
-    <div class="cm-row"><span>Full cut</span><span class="cm-muted">Jun 27 · $35</span></div>
-    <div class="cm-row"><span>Full cut + beard</span><span class="cm-muted">Jun 6 · $45</span></div>
-    <div class="cm-row"><span class="cm-muted">Notes</span><span>#2 on the sides, likes it tight</span></div>
+  <div class="cm-bar"><span>Client · Marcus Bell</span></div>
+  <div class="cm-card">
+    <div class="cm-card-row"><span>Full cut + beard</span><span class="cm-card-time">Jul 18 · $45</span></div>
+    <div class="cm-card-row"><span>Full cut</span><span class="cm-card-time">Jun 27 · $35</span></div>
+    <div class="cm-card-row"><span>Full cut + beard</span><span class="cm-card-time">Jun 6 · $45</span></div>
+    <div class="cm-card-row"><span>Notes</span><span class="cm-card-time">#2 sides, tight</span></div>
   </div>
 </div>`,
   quote: `<div class="cm-frame">
-  <div class="cm-bar">Quote #308 · <span class="cm-pill">Accepted</span></div>
-  <div class="cm-body">
-    <div class="cm-row"><span>Labor — 6 hrs</span><span class="cm-amt">$390</span></div>
-    <div class="cm-row"><span>Materials</span><span class="cm-amt">$145</span></div>
-    <div class="cm-row"><span><strong>Total</strong></span><span class="cm-amt">$535</span></div>
+  <div class="cm-bar"><span>Quote #308 · Accepted</span></div>
+  <div class="cm-list">
+    <div class="cm-list-row"><div>Labor · 6 hrs</div><div class="cm-amt">$390</div></div>
+    <div class="cm-list-row"><div>Materials</div><div class="cm-amt">$145</div></div>
+    <div class="cm-list-row"><div><strong>Total</strong></div><div class="cm-amt">$535</div></div>
   </div>
   <div class="cm-cta">Convert to job → invoice</div>
 </div>`,
 };
+
+// Feature rows. Authored as a block in the markdown, parsed BEFORE marked so
+// the prose still renders as markdown:
+//
+//   {{chapter:route}}
+//   Kicker line
+//   Title line
+//   Prose, which may run to several paragraphs.
+//   {{/chapter}}
+//
+// Prose sits left, the mock right — the landing page's chapter layout.
+function extractChapters(md, file) {
+  const chapters = [];
+  const out = md.replace(/\{\{chapter:([a-z]+)\}\}\n([\s\S]*?)\n\{\{\/chapter\}\}/g, (_m, mock, inner) => {
+    if (!MOCKS[mock]) fail(`${file}: unknown mock "${mock}" in chapter block`);
+    const lines = inner.split('\n');
+    const kicker = (lines.shift() || '').trim();
+    const title = (lines.shift() || '').trim();
+    const prose = lines.join('\n').trim();
+    if (!kicker || !title) fail(`${file}: chapter needs a kicker line and a title line`);
+    chapters.push({ mock, kicker, title, prose });
+    return `\n\n{{CHAPTER_${chapters.length - 1}}}\n\n`;
+  });
+  return { md: out, chapters };
+}
+
+function renderChapters(html, chapters) {
+  return html.replace(/<p>\{\{CHAPTER_(\d+)\}\}<\/p>|\{\{CHAPTER_(\d+)\}\}/g, (_m, a, b) => {
+    const c = chapters[Number(a ?? b)];
+    return `<section class="page-chapter">
+  <div class="ed-chapter-body-col">
+    <p class="ed-chapter-kicker">${esc(c.kicker)}</p>
+    <h2 class="ed-chapter-title">${esc(c.title)}</h2>
+    <div class="ed-chapter-prose">${marked.parse(c.prose)}</div>
+  </div>
+  <div class="ed-chapter-mock">${MOCKS[c.mock]}</div>
+</section>`;
+  });
+}
 
 // {{mock:name}} → the markup above, with an optional caption line beneath:
 // {{mock:route|Your route for the day, in order.}}
@@ -196,13 +235,16 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       .ed-nav-learn { display: none; }
     }
     main { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+    /* Prose column matches the marketing page's measure (~17px over a narrow
+       column) rather than running the full container width. */
+    article { max-width: 620px; }
+    main.has-hero > article { max-width: 620px; margin: 0 auto; }
     .eyebrow {
       font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--accent); margin-bottom: 10px;
     }
     /* Index-page hero, in the marketing hero's key (.ed-hero* in index.html). */
     main.has-hero { max-width: 980px; padding-top: 40px; }
-    main.has-hero > article { max-width: 760px; margin: 0 auto; }
     .page-hero { text-align: center; margin-bottom: 56px; }
     .ed-eyebrow {
       display: inline-block;
@@ -231,7 +273,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     .page-date { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
     article h2 { font-family: var(--serif); font-weight: 600; font-size: 26px; margin: 38px 0 12px; }
     article h3 { font-size: 18px; font-weight: 700; margin: 26px 0 8px; }
-    article p, article li { font-size: 16px; color: #33302a; }
+    article p, article li { font-size: 17px; line-height: 1.7; color: #33302a; }
     article p { margin: 0 0 16px; }
     article ul, article ol { margin: 0 0 16px; padding-left: 24px; }
     article li { margin-bottom: 8px; }
@@ -272,8 +314,63 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     /* UI mockups, in the same key as the landing page's chapter mocks — drawn
        in CSS rather than screenshotted, so they stay sharp, weigh nothing, and
        can never leak real customer data. */
+    /* Feature rows: prose left, mock right — the landing page's .ed-chapter.
+       Breaks out of the 760px article column so the two columns get the same
+       room they do on the marketing page. */
+    .page-chapter {
+      /* Full column width by default; only breaks out of the prose column
+         when the viewport can actually accommodate it (see media query
+         below) — otherwise the negative offset pushes content off-screen. */
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+      justify-content: center;
+      gap: 48px;
+      /* Outer spacing matches the inner padding so the band breathes evenly. */
+      padding: 52px 0; margin: 52px 0;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    /* Adjacent blocks share one rule rather than stacking two. */
+    .page-chapter + .page-chapter { border-top: none; }
+    .ed-chapter-body-col { max-width: 460px; }
+    .ed-chapter-mock { display: flex; justify-content: center; }
+    .ed-chapter-mock .cm-frame { margin: 0; }
+    .ed-chapter-kicker {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--text-muted); margin: 0 0 14px;
+    }
+    .ed-chapter-title {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(26px, 3.2vw, 36px);
+      line-height: 1.1; letter-spacing: -0.025em;
+      margin: 0 0 16px; color: var(--text);
+    }
+    .ed-chapter-prose p {
+      font-size: 17px; line-height: 1.65;
+      color: var(--text-muted); margin: 0 0 12px;
+    }
+    .ed-chapter-prose p:last-child { margin-bottom: 0; }
+    .ed-chapter-prose em { font-style: italic; color: var(--text); }
+    /* Two columns only when both fit; below that, stack. */
+    @media (max-width: 780px) {
+      .page-chapter {
+        grid-template-columns: 1fr; gap: 28px; padding: 40px 0; margin: 40px 0;
+        align-items: start;
+      }
+      .ed-chapter-mock { justify-content: flex-start; }
+    }
+    /* Break out of the prose column once there's room on both sides. */
+    @media (min-width: 1000px) {
+      .page-chapter {
+        width: 880px;
+        margin-left: 50%; transform: translateX(-50%);
+      }
+    }
     .cm-frame {
-      width: 100%; max-width: 400px; margin: 28px auto;
+      width: 100%; max-width: 360px; margin: 28px auto;
       background: var(--card);
       border: 1px solid var(--border-strong);
       border-radius: 10px;
@@ -287,31 +384,44 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       text-transform: uppercase; letter-spacing: 0.12em;
       color: var(--text-muted);
     }
-    .cm-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-    .cm-row {
+    /* Schedule-style rows: tight, dashed (matches .cm-card-row on the landing page). */
+    .cm-card { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .cm-card-row {
       display: flex; justify-content: space-between; align-items: center;
       font-size: 12px; color: var(--text);
-      padding: 7px 0; border-bottom: 1px dashed var(--border);
+      padding: 6px 0; border-bottom: 1px dashed var(--border);
     }
-    .cm-row:last-child { border-bottom: none; }
-    .cm-muted { font-size: 11px; color: var(--text-muted); }
-    .cm-done span:first-child { text-decoration: line-through; opacity: 0.55; }
-    .cm-check {
+    .cm-card-row:last-child { border-bottom: none; }
+    .cm-card-time { font-size: 11px; color: var(--text-muted); }
+    .cm-card-done span:first-child { text-decoration: line-through; opacity: 0.6; }
+    .cm-card-check {
       display: inline-flex; align-items: center; justify-content: center;
       width: 18px; height: 18px; border-radius: 50%;
       background: #2f6b46; color: #fff; font-size: 11px; font-weight: 700;
     }
-    .cm-amt { font-family: var(--serif); font-weight: 600; }
+    /* List-style rows: roomier, solid (matches .cm-list-row on the landing page). */
+    .cm-list { padding: 6px 14px 14px; }
+    .cm-list-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text);
+    }
+    .cm-list-row:last-child { border-bottom: none; }
+    .cm-list-row strong { font-weight: 600; }
+    .cm-amt {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 14px; color: var(--text);
+    }
     .cm-cta {
-      margin: 4px 14px 14px; padding: 9px; text-align: center;
+      margin: 0 14px 14px; padding: 10px 12px;
       background: var(--text); color: var(--bg);
-      border-radius: 8px; font-size: 12px; font-weight: 600;
+      font-size: 12px; font-weight: 600;
+      text-align: center; border-radius: 6px;
     }
     .cm-pill {
       display: inline-block; padding: 2px 9px; border-radius: 999px;
-      background: var(--tinted); color: var(--text-muted);
-      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase;
+      background: var(--card); color: var(--text-muted);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
     }
     .cm-figcap {
       font-size: 13px; color: var(--text-muted);
@@ -403,7 +513,9 @@ const pages = [];
 for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).sort()) {
   const raw = fs.readFileSync(path.join(CONTENT_DIR, file), 'utf8');
   const { meta, body } = parseFrontmatter(raw, file);
-  let bodyHtml = marked.parse(body);
+  const { md, chapters } = extractChapters(body, file);
+  let bodyHtml = marked.parse(md);
+  bodyHtml = renderChapters(bodyHtml, chapters);
   // Horizontal scroll for wide tables on phones.
   bodyHtml = bodyHtml.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, '</table></div>');
   // marked wraps a standalone {{mock:…}} in a <p>; unwrap so the frame isn't
