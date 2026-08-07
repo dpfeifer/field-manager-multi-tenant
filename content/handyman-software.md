@@ -12,7 +12,6 @@ photo_alt: Hand tools hung on a workshop wall
 Handyman work is mostly one-off jobs from repeat customers, which makes it an awkward fit for two kinds of software: booking apps that assume fixed appointment types, and field-service platforms built around dispatching a crew. What the work actually needs is a fast path from *quote* to *scheduled* to *paid*.
 
 {{chapter:quote}}
-Written once, billed once
 Quotes that become jobs.
 Write the estimate, send it, they accept it online — and it converts into a scheduled job, then an invoice carrying the same numbers.
 

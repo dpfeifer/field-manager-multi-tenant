@@ -12,13 +12,11 @@ photo_alt: Gloved hands wiping down a surface
 House cleaning runs on repetition: the same homes, the same rotation, month after month. The software problem isn't complexity — it's that a recurring route creates a pile of small billing chores, and most tools make you do them by hand.
 
 {{chapter:route}}
-The rotation, handled
 The day's homes, in the order you clean them.
 One tap per home as you leave, with an optional note. Every completion records who did it and when — which settles the "you skipped us last week" conversation permanently.
 {{/chapter}}
 
 {{chapter:invoices}}
-The billing pile, gone
 Monthly invoices that build themselves.
 Every completed clean rolls into one invoice per client automatically — monthly on the day you choose, or weekly — at each client's rate, itemised by visit.
 

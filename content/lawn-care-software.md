@@ -12,7 +12,6 @@ photo_alt: A mower cutting a stripe into a lawn
 Field Manager is built by people who mow. The weekly routes, the skipped visits, the month-end invoicing — it all runs on this software every week, in a real operation. The features below exist because hauling a trailer around town leaves no patience for software that makes the paperwork worse.
 
 {{chapter:route}}
-The week you already have
 Your route, in the order you drive it.
 Set a customer to every Tuesday, or every other Friday, once — the calendar fills itself from there. Skip a visit when they're on vacation, push one back for rain, end the schedule when the season ends.
 
@@ -20,7 +19,6 @@ The day view lists the route in order, and warns you before you double-book a sl
 {{/chapter}}
 
 {{chapter:invoices}}
-Money, without the Sunday evening
 Month-end billing that does itself.
 Every completed visit rolls into one invoice per customer automatically — monthly on the day you pick, or weekly — at each customer's rate, itemised by visit.
 

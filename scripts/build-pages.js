@@ -98,7 +98,6 @@ const MOCKS = {
 // the prose still renders as markdown:
 //
 //   {{chapter:route}}
-//   Kicker line
 //   Title line
 //   Prose, which may run to several paragraphs.
 //   {{/chapter}}
@@ -109,11 +108,10 @@ function extractChapters(md, file) {
   const out = md.replace(/\{\{chapter:([a-z]+)\}\}\n([\s\S]*?)\n\{\{\/chapter\}\}/g, (_m, mock, inner) => {
     if (!MOCKS[mock]) fail(`${file}: unknown mock "${mock}" in chapter block`);
     const lines = inner.split('\n');
-    const kicker = (lines.shift() || '').trim();
     const title = (lines.shift() || '').trim();
     const prose = lines.join('\n').trim();
-    if (!kicker || !title) fail(`${file}: chapter needs a kicker line and a title line`);
-    chapters.push({ mock, kicker, title, prose });
+    if (!title) fail(`${file}: chapter needs a title line`);
+    chapters.push({ mock, title, prose });
     return `\n\n{{CHAPTER_${chapters.length - 1}}}\n\n`;
   });
   return { md: out, chapters };
@@ -124,7 +122,6 @@ function renderChapters(html, chapters) {
     const c = chapters[Number(a ?? b)];
     return `<section class="page-chapter">
   <div class="ed-chapter-body-col">
-    <p class="ed-chapter-kicker">${esc(c.kicker)}</p>
     <h2 class="ed-chapter-title">${esc(c.title)}</h2>
     <div class="ed-chapter-prose">${marked.parse(c.prose)}</div>
   </div>
@@ -295,10 +292,18 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       color: var(--text-muted); max-width: 620px;
       margin: 0 auto 28px;
     }
-    /* Without a photo to close the opening, a rule separates hero from body. */
+    /* Without a photo to close the opening, a rule does it — at the same
+       width the photo and feature blocks use, so openings line up sitewide. */
     main:not(.has-photo) article > p.standfirst {
-      padding-bottom: 44px; margin-bottom: 44px;
+      width: 100%; max-width: 620px;
+      padding-bottom: 44px; margin: 0 auto 44px;
       border-bottom: 1px solid var(--border);
+    }
+    @media (min-width: 1000px) {
+      main:not(.has-photo) article > p.standfirst {
+        width: 880px; max-width: none;
+        margin-left: 50%; transform: translateX(-50%);
+      }
     }
     /* Sections read as bands, echoing the feature blocks. */
     article h2 {
@@ -309,6 +314,11 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     article > p.standfirst + h2,
     .page-chapter + h2,
     article > h2:first-child { border-top: none; padding-top: 0; margin-top: 38px; }
+    /* Section banding is for the article's own sections — a block's title is
+       inside a bordered band already and must not draw its own rule. */
+    .page-chapter h2.ed-chapter-title {
+      border-top: none; padding-top: 0; margin-top: 0;
+    }
     /* Key point — authored as a markdown blockquote. */
     article blockquote {
       margin: 30px 0; padding: 4px 0 4px 22px;
@@ -388,11 +398,6 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     .ed-chapter-body-col { max-width: 460px; }
     .ed-chapter-mock { display: flex; justify-content: center; }
     .ed-chapter-mock .cm-frame { margin: 0; }
-    .ed-chapter-kicker {
-      font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--text-muted); margin: 0 0 14px;
-    }
     .ed-chapter-title {
       font-family: var(--serif); font-weight: 500;
       font-size: clamp(26px, 3.2vw, 36px);

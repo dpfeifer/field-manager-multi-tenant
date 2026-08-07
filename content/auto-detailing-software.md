@@ -12,7 +12,6 @@ photo_alt: A freshly detailed car in a dark bay
 Mobile detailing lives or dies on two things: the booking that comes in from Instagram at 9pm, and getting paid before you pull away. Everything below is aimed at those two moments.
 
 {{chapter:booking}}
-The 9pm enquiry, handled
 A booking page that takes the DM off your plate.
 Your own link and QR code — bio, business card, the back of the van. Customers pick a time and describe the vehicle; you approve or decline.
 
