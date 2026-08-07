@@ -5,6 +5,8 @@ path: /handyman
 eyebrow: For handymen
 collection: use-cases
 date: 2026-08-06
+photo: photo-1426927308491-6380b6a9936f
+photo_alt: Hand tools hung on a workshop wall
 ---
 
 Handyman work is mostly one-off jobs from repeat customers, which makes it an awkward fit for two kinds of software: booking apps that assume fixed appointment types, and field-service platforms built around dispatching a crew. What the work actually needs is a fast path from *quote* to *scheduled* to *paid*.
@@ -12,6 +14,8 @@ Handyman work is mostly one-off jobs from repeat customers, which makes it an aw
 ## Quote → schedule → invoice, without retyping
 
 **Quotes that become jobs.** Write the estimate, send it, they accept it online — and it converts into a scheduled job and then an invoice carrying the same numbers. No re-entering the line items three times.
+
+{{mock:quote|Accepted quote → scheduled job → invoice, same numbers throughout.}}
 
 **A schedule that fits real jobs.** Set a start time and a duration, because a two-hour fixture swap and a full day of trim aren't the same block. Day, week, and month views, with a conflict warning before you double-book yourself.
 

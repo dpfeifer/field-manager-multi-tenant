@@ -38,13 +38,79 @@ function parseFrontmatter(raw, file) {
 }
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const unsplash = (id, w = 1400) =>
+  `https://images.unsplash.com/${id}?w=${w}&q=75&auto=format&fit=crop`;
+
+// UI mockups drawn in markup, not screenshots: nothing to keep in sync with
+// the app's real data, no customer information can leak, and they stay crisp
+// at any density. Authors drop {{mock:name}} on its own line in the markdown.
+const MOCKS = {
+  route: `<div class="cm-frame">
+  <div class="cm-bar">Schedule · Tuesday</div>
+  <div class="cm-body">
+    <div class="cm-row cm-done"><span>14 Alder Court</span><span class="cm-check">✓</span></div>
+    <div class="cm-row cm-done"><span>802 Fairview</span><span class="cm-check">✓</span></div>
+    <div class="cm-row"><span>1130 Weller Rd</span><span class="cm-muted">10:30 AM</span></div>
+    <div class="cm-row"><span>27 Sumner Lane</span><span class="cm-muted">11:15 AM</span></div>
+    <div class="cm-row"><span>Riverbend HOA</span><span class="cm-muted">1:00 PM</span></div>
+  </div>
+</div>`,
+  invoices: `<div class="cm-frame">
+  <div class="cm-bar">Invoices · Ready to send</div>
+  <div class="cm-body">
+    <div class="cm-row"><span><strong>#1041</strong> · 4 visits</span><span class="cm-amt">$220</span></div>
+    <div class="cm-row"><span><strong>#1042</strong> · 2 visits</span><span class="cm-amt">$130</span></div>
+    <div class="cm-row"><span><strong>#1043</strong> · 4 visits</span><span class="cm-amt">$260</span></div>
+  </div>
+  <div class="cm-cta">Generated from last month's completed work</div>
+</div>`,
+  booking: `<div class="cm-frame">
+  <div class="cm-bar">Request an appointment</div>
+  <div class="cm-body">
+    <div class="cm-row"><span class="cm-muted">Name</span><span>Marcus B.</span></div>
+    <div class="cm-row"><span class="cm-muted">Service</span><span>Full cut + beard</span></div>
+    <div class="cm-row"><span class="cm-muted">Preferred</span><span>Thu, 4:00 PM</span></div>
+  </div>
+  <div class="cm-cta">Send request</div>
+</div>`,
+  client: `<div class="cm-frame">
+  <div class="cm-bar">Client · Marcus B.</div>
+  <div class="cm-body">
+    <div class="cm-row"><span>Full cut + beard</span><span class="cm-muted">Jul 18 · $45</span></div>
+    <div class="cm-row"><span>Full cut</span><span class="cm-muted">Jun 27 · $35</span></div>
+    <div class="cm-row"><span>Full cut + beard</span><span class="cm-muted">Jun 6 · $45</span></div>
+    <div class="cm-row"><span class="cm-muted">Notes</span><span>#2 on the sides, likes it tight</span></div>
+  </div>
+</div>`,
+  quote: `<div class="cm-frame">
+  <div class="cm-bar">Quote #308 · <span class="cm-pill">Accepted</span></div>
+  <div class="cm-body">
+    <div class="cm-row"><span>Labor — 6 hrs</span><span class="cm-amt">$390</span></div>
+    <div class="cm-row"><span>Materials</span><span class="cm-amt">$145</span></div>
+    <div class="cm-row"><span><strong>Total</strong></span><span class="cm-amt">$535</span></div>
+  </div>
+  <div class="cm-cta">Convert to job → invoice</div>
+</div>`,
+};
+
+// {{mock:name}} → the markup above, with an optional caption line beneath:
+// {{mock:route|Your route for the day, in order.}}
+function expandMocks(html, file) {
+  return html.replace(/\{\{mock:([a-z]+)(?:\|([^}]*))?\}\}/g, (_m, name, caption) => {
+    if (!MOCKS[name]) fail(`${file}: unknown mock "${name}" (have: ${Object.keys(MOCKS).join(', ')})`);
+    // Runs after marked.parse, so the caption is already HTML-escaped —
+    // escaping again would turn a typographic apostrophe into &amp;#39;.
+    return MOCKS[name] + (caption ? `\n<div class="cm-figcap">${caption.trim()}</div>` : '');
+  });
+}
 const routeToFile = (p) => p.replace(/^\//, '').replace(/\//g, '__') + '.html';
 
 // `hero` (index pages only) swaps the article header for a centered hero in
 // the marketing page's key: spaced/underlined eyebrow, oversized serif
 // headline with an italic accent, and a lede. headlineHtml is authored here,
 // so it may contain <em>.
-function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, hero }) {
+function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, hero, photo, photoAlt, photoCredit }) {
   const canonical = BASE_URL + pagePath;
   const dateLine = date
     ? `<div class="page-date">Updated ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>`
@@ -73,11 +139,11 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
   <meta property="og:site_name" content="Field Manager" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(description)}" />
-  <meta property="og:image" content="${BASE_URL}/og-image.png" />
+  <meta property="og:image" content="${photo ? unsplash(photo, 1200) : `${BASE_URL}/og-image.png`}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(description)}" />
-  <meta name="twitter:image" content="${BASE_URL}/og-image.png" />
+  <meta name="twitter:image" content="${photo ? unsplash(photo, 1200) : `${BASE_URL}/og-image.png`}" />
   <script type="application/ld+json">${JSON.stringify({
     '@context': 'https://schema.org', '@type': 'Article',
     headline: title, description, url: canonical,
@@ -176,6 +242,82 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     article th, article td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
     article th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     article tr:last-child td { border-bottom: none; }
+    /* Trade photography. Served from Unsplash's CDN with sizing params, per
+       their guidance — no binaries in the repo. */
+    .page-photo {
+      margin: 0 0 40px; border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 44px -28px rgba(40,30,20,0.45);
+      background: var(--tinted);
+    }
+    .page-photo img {
+      display: block; width: 100%; height: clamp(200px, 34vw, 320px);
+      object-fit: cover;
+    }
+    article figure { margin: 28px 0; }
+    article figure img {
+      display: block; width: 100%; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    article figcaption {
+      font-size: 13px; color: var(--text-muted);
+      margin-top: 10px; text-align: center;
+    }
+    .photo-credit {
+      font-size: 11px; color: var(--text-muted); text-align: right;
+      margin: -30px 0 34px; opacity: 0.8;
+    }
+    .photo-credit a { color: inherit; }
+
+    /* UI mockups, in the same key as the landing page's chapter mocks — drawn
+       in CSS rather than screenshotted, so they stay sharp, weigh nothing, and
+       can never leak real customer data. */
+    .cm-frame {
+      width: 100%; max-width: 400px; margin: 28px auto;
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      box-shadow: 0 14px 36px -22px rgba(40,30,20,0.25);
+      overflow: hidden; font-size: 12px;
+    }
+    .cm-bar {
+      padding: 10px 14px; background: var(--tinted);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+    .cm-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .cm-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: var(--text);
+      padding: 7px 0; border-bottom: 1px dashed var(--border);
+    }
+    .cm-row:last-child { border-bottom: none; }
+    .cm-muted { font-size: 11px; color: var(--text-muted); }
+    .cm-done span:first-child { text-decoration: line-through; opacity: 0.55; }
+    .cm-check {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #2f6b46; color: #fff; font-size: 11px; font-weight: 700;
+    }
+    .cm-amt { font-family: var(--serif); font-weight: 600; }
+    .cm-cta {
+      margin: 4px 14px 14px; padding: 9px; text-align: center;
+      background: var(--text); color: var(--bg);
+      border-radius: 8px; font-size: 12px; font-weight: 600;
+    }
+    .cm-pill {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      background: var(--tinted); color: var(--text-muted);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .cm-figcap {
+      font-size: 13px; color: var(--text-muted);
+      text-align: center; margin: -14px 0 30px;
+    }
+
     .cta {
       background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
       border-radius: 12px; padding: 20px 24px; margin: 34px 0 0; font-size: 16px;
@@ -217,6 +359,8 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
   </nav>
   <main${hero ? ' class="has-hero"' : ''}>
     ${headerHtml}
+    ${photo ? `<div class="page-photo"><img src="${unsplash(photo)}" alt="${esc(photoAlt || '')}" width="1400" height="640" loading="eager"></div>
+    ${photoCredit ? `<div class="photo-credit">Photo: ${esc(photoCredit)} / <a href="https://unsplash.com" rel="noopener">Unsplash</a></div>` : ''}` : ''}
     <article>
 ${bodyHtml}
     </article>
@@ -262,6 +406,10 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   let bodyHtml = marked.parse(body);
   // Horizontal scroll for wide tables on phones.
   bodyHtml = bodyHtml.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, '</table></div>');
+  // marked wraps a standalone {{mock:…}} in a <p>; unwrap so the frame isn't
+  // nested in a paragraph, then expand.
+  bodyHtml = bodyHtml.replace(/<p>(\{\{mock:[^}]*\}\})<\/p>/g, '$1');
+  bodyHtml = expandMocks(bodyHtml, file);
   pages.push({ ...meta, bodyHtml });
 }
 
@@ -271,6 +419,7 @@ for (const p of pages) {
   fs.writeFileSync(path.join(OUT_DIR, fileName), pageTemplate({
     title: p.title, description: p.description, pagePath: p.path,
     eyebrow: p.eyebrow, date: p.date, bodyHtml: p.bodyHtml,
+    photo: p.photo, photoAlt: p.photo_alt, photoCredit: p.photo_credit,
   }));
   manifest[p.path] = `_pages/${fileName}`;
 }

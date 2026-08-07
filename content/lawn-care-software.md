@@ -5,6 +5,8 @@ path: /lawncare
 eyebrow: For lawn care
 collection: use-cases
 date: 2026-08-06
+photo: photo-1458245201577-fc8a130b8829
+photo_alt: A mower cutting a stripe into a lawn
 ---
 
 Field Manager is run by a lawn mowing professional. The founder runs his own operation, Pfeifer Lawn Care, on this exact software — the weekly routes, the month-end invoicing, all of it. The features below exist because hauling a trailer around town leaves no patience for software that makes the paperwork worse.
@@ -13,9 +15,13 @@ Field Manager is run by a lawn mowing professional. The founder runs his own ope
 
 **Weekly and biweekly schedules that run themselves.** Set a customer to every Tuesday, or every other Friday, once — the calendar fills itself from there. Skip a visit when they're on vacation, push one back for rain, end the schedule when the season ends. The day view shows your route in order; a conflict warning catches you before you double-book a time slot.
 
+{{mock:route|Tuesday's route, in order, tapped off as you go.}}
+
 **Mark complete from the truck.** One tap when you finish a yard, with an optional note ("gate was locked, skipped backyard"). Every completion is stamped with who did it and when — which matters the day a customer swears you never showed.
 
 **Month-end billing that does itself.** This is the one that saves the Sunday evening. Field Manager can roll every completed visit into one invoice per customer automatically — monthly on the day you pick, or weekly — at each customer's rate, listing each visit. Prefer control? Generate the invoice per customer from their completed visits in two clicks, or have each completion append to a running draft. Customers who prepay or pay per-visit can be excluded.
+
+{{mock:invoices|Month end: every completed visit, already totalled per customer.}}
 
 **Pay links on every invoice.** Drop in your Stripe, PayPal, Square, or Venmo details and every invoice carries a "pay now" link. Money goes straight to your account — we never touch it or take a cut.
 

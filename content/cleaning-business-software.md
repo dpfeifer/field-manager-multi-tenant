@@ -5,6 +5,8 @@ path: /cleaners
 eyebrow: For cleaning
 collection: use-cases
 date: 2026-08-06
+photo: photo-1585421514284-efb74c2b69ba
+photo_alt: Gloved hands wiping down a surface
 ---
 
 House cleaning runs on repetition: the same homes, the same rotation, month after month. The software problem isn't complexity — it's that a recurring route creates a pile of small billing chores, and most tools make you do them by hand.
@@ -17,7 +19,11 @@ House cleaning runs on repetition: the same homes, the same rotation, month afte
 
 **Mark complete as you leave.** One tap per home, with an optional note. Every completion records who did it and when — which settles the "you skipped us last week" conversation permanently.
 
+{{mock:route|The day's homes, in order, tapped off as you leave each one.}}
+
 **Monthly invoices that build themselves.** This is the piece that saves the evening. Field Manager can roll every completed clean into one invoice per client automatically — monthly on the day you choose, or weekly — at each client's rate, itemized by visit. Prefer to review first? Generate it per client from their completed visits in a couple of clicks. Clients who prepay or pay per visit can be excluded.
+
+{{mock:invoices|Month end, already itemised by visit — before you sit down.}}
 
 **Prepaid packages, handled.** Sell a block of cleans up front? Record the payment as account credit and apply it to invoices as the work happens — the remaining balance is always visible on the client's page.
 

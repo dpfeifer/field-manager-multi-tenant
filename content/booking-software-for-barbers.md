@@ -5,6 +5,8 @@ path: /barbers
 eyebrow: For barbers
 collection: use-cases
 date: 2026-08-06
+photo: photo-1593702275687-f8b402bf1fb5
+photo_alt: A barber finishing a fade
 ---
 
 Field Manager runs real barber shops. [Barbersthetic](/barbersthetic), a Las Vegas barber studio, books its clients, keeps its client book, and runs its whole website on this exact software — that link is the live page, not a mockup. The features below earn their place by working on a real chair, not by demoing well.
@@ -13,7 +15,11 @@ Field Manager runs real barber shops. [Barbersthetic](/barbersthetic), a Las Veg
 
 **A booking page clients actually use.** Your own link and a QR code — put it in your Instagram bio, text it to clients, tape it to your station mirror. Clients pick a time and request it; you approve or decline. No app for them to download, no account for them to create.
 
+{{mock:booking|What a client sees when they tap your link.}}
+
 **A client book with real history.** Every client, every visit, what they paid, and your notes — the fade number, the beard preference, the "always runs 10 minutes late." When someone you haven't seen in six months books in, you're not starting from zero.
+
+{{mock:client|Every visit, what they paid, and your notes — on one screen.}}
 
 **A schedule built around appointments.** Day, week, and month views, recurring standing appointments for your weekly regulars, conflict warnings when you double-book, and one-tap "mark complete" as you finish each cut.
 

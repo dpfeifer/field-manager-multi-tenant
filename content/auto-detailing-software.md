@@ -5,6 +5,8 @@ path: /detailers
 eyebrow: For detailing
 collection: use-cases
 date: 2026-08-06
+photo: photo-1567808291548-fc3ee04dbcf0
+photo_alt: A freshly detailed car in a dark bay
 ---
 
 Mobile detailing lives or dies on two things: the booking that comes in from Instagram at 9pm, and getting paid before you pull away. Everything below is aimed at those two moments.
@@ -12,6 +14,8 @@ Mobile detailing lives or dies on two things: the booking that comes in from Ins
 ## Built for working out of a van
 
 **A booking page that takes the DM off your plate.** Your own link and QR code — bio, business card, the back of the van. Customers pick a time and describe the vehicle; you approve or decline. No app for them, no account to create.
+
+{{mock:booking|The 9pm booking, handled without a DM thread.}}
 
 **Quote the packages, don't retype them.** Interior-only, full correction, ceramic coating — send a quote with your tiers, they accept online, and it converts straight into a scheduled job and then an invoice.
 
