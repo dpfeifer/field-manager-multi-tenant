@@ -19,6 +19,8 @@ Write the estimate, send it, they accept it online — and it converts into a sc
 No re-entering the line items three times.
 {{/chapter}}
 
+## Everything else you’ll use
+
 **A schedule that fits real jobs.** Set a start time and a duration, because a two-hour fixture swap and a full day of trim aren't the same block. Day, week, and month views, with a conflict warning before you double-book yourself.
 
 **Every property, remembered.** What you did last time, what it cost, the gate code, the fact that the basement panel is behind the shelving. Notes and full job history live with the customer, so a callback six months later doesn't start from zero.

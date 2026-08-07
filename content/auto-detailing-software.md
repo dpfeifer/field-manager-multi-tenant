@@ -19,6 +19,8 @@ Your own link and QR code — bio, business card, the back of the van. Customers
 No app for them, no account to create, no thread to keep scrolling back through.
 {{/chapter}}
 
+## The rest of the job
+
 **Quote the packages, don't retype them.** Interior-only, full correction, ceramic coating — send a quote with your tiers, they accept online, and it converts straight into a scheduled job and then an invoice.
 
 **Time-aware scheduling.** A three-hour correction and a 45-minute maintenance wash aren't the same appointment. Set the start time and duration; the day view lays out your actual working day and warns you before you double-book.

@@ -11,10 +11,6 @@ photo_alt: Gloved hands wiping down a surface
 
 House cleaning runs on repetition: the same homes, the same rotation, month after month. The software problem isn't complexity — it's that a recurring route creates a pile of small billing chores, and most tools make you do them by hand.
 
-**Weekly, biweekly, and monthly schedules.** Set a home to every other Thursday once and the calendar fills itself. Skip a week when a client travels, move one for a holiday, end the schedule when they cancel — without rebuilding anything.
-
-**Everything the job needs, on the job.** Alarm code, key location, which dog is friendly, "don't touch the office desk." Notes live with the client and show up with the visit, so a fill-in or a new helper isn't calling you from the driveway.
-
 {{chapter:route}}
 The rotation, handled
 The day's homes, in the order you clean them.
@@ -28,6 +24,12 @@ Every completed clean rolls into one invoice per client automatically — monthl
 
 Prefer to review first? Generate it per client in a couple of clicks. Clients who prepay or pay per visit can be excluded.
 {{/chapter}}
+
+## The rest of the rotation
+
+**Weekly, biweekly, and monthly schedules.** Set a home to every other Thursday once and the calendar fills itself. Skip a week when a client travels, move one for a holiday, end the schedule when they cancel — without rebuilding anything.
+
+**Everything the job needs, on the job.** Alarm code, key location, which dog is friendly, "don't touch the office desk." Notes live with the client and show up with the visit, so a fill-in or a new helper isn't calling you from the driveway.
 
 **Prepaid packages, handled.** Sell a block of cleans up front? Record the payment as account credit and apply it to invoices as the work happens — the remaining balance is always visible on the client's page.
 

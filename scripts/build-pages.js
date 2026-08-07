@@ -160,9 +160,10 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       <h1 class="ed-hero-headline">${hero.headlineHtml}</h1>
       ${hero.lede ? `<p class="ed-hero-lede">${esc(hero.lede)}</p>` : ''}
     </header>`
-    : `${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
-    <h1>${esc(title)}</h1>
-    ${dateLine}`;
+    : `<header class="page-head">
+      ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
+      <h1>${esc(title)}</h1>
+    </header>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -237,12 +238,20 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     main { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
     /* Prose column matches the marketing page's measure (~17px over a narrow
        column) rather than running the full container width. */
-    article { max-width: 620px; }
+    article { max-width: 620px; margin-left: auto; margin-right: auto; }
     main.has-hero > article { max-width: 620px; margin: 0 auto; }
+    /* Article header is centred like the marketing hero; the prose below
+       stays left-aligned for reading. */
+    .page-head { text-align: center; margin-bottom: 36px; }
     .eyebrow {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--accent); margin-bottom: 10px;
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.22em;
+      color: var(--text-muted); margin-bottom: 28px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
     }
+    .page-head h1 { margin-left: auto; margin-right: auto; max-width: 20ch; }
     /* Index-page hero, in the marketing hero's key (.ed-hero* in index.html). */
     main.has-hero { max-width: 980px; padding-top: 40px; }
     .page-hero { text-align: center; margin-bottom: 56px; }
@@ -269,11 +278,23 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       color: var(--text-muted); margin: 0 auto;
       max-width: 560px;
     }
-    h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(30px, 5vw, 42px); line-height: 1.12; letter-spacing: -0.01em; margin-bottom: 10px; }
+    h1 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: clamp(36px, 5.2vw, 56px);
+      line-height: 1.06; letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
     .page-date { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
     article h2 { font-family: var(--serif); font-weight: 600; font-size: 26px; margin: 38px 0 12px; }
     article h3 { font-size: 18px; font-weight: 700; margin: 26px 0 8px; }
     article p, article li { font-size: 17px; line-height: 1.7; color: #33302a; }
+    /* Standfirst: the opening paragraph under the photo, centred and set a
+       little larger, then normal reading measure resumes. */
+    article > p.standfirst {
+      text-align: center; font-size: 19px; line-height: 1.6;
+      color: var(--text-muted); max-width: 620px;
+      margin: 0 auto 28px;
+    }
     article p { margin: 0 0 16px; }
     article ul, article ol { margin: 0 0 16px; padding-left: 24px; }
     article li { margin-bottom: 8px; }
@@ -287,7 +308,10 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     /* Trade photography. Served from Unsplash's CDN with sizing params, per
        their guidance — no binaries in the repo. */
     .page-photo {
-      margin: 0 0 40px; border-radius: 14px; overflow: hidden;
+      /* Matches the prose column until the breakout kicks in, so the photo
+         and the feature blocks always share an edge. */
+      width: 100%; max-width: 620px;
+      margin: 0 auto 44px; border-radius: 14px; overflow: hidden;
       border: 1px solid var(--border);
       box-shadow: 0 18px 44px -28px rgba(40,30,20,0.45);
       background: var(--tinted);
@@ -332,8 +356,12 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
-    /* Adjacent blocks share one rule rather than stacking two. */
-    .page-chapter + .page-chapter { border-top: none; }
+    /* Consecutive blocks read as one banded run — they butt together and
+       share a single divider, the way the landing page's chapters do. */
+    .page-chapter + .page-chapter { border-top: none; margin-top: 0; }
+    /* …and the preceding one drops its trailing gap. Degrades to a normal
+       gap where :has() is unsupported, which still reads fine. */
+    .page-chapter:has(+ .page-chapter) { margin-bottom: 0; }
     .ed-chapter-body-col { max-width: 460px; }
     .ed-chapter-mock { display: flex; justify-content: center; }
     .ed-chapter-mock .cm-frame { margin: 0; }
@@ -364,10 +392,11 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     }
     /* Break out of the prose column once there's room on both sides. */
     @media (min-width: 1000px) {
-      .page-chapter {
-        width: 880px;
+      .page-chapter, .page-photo {
+        width: 880px; max-width: none;
         margin-left: 50%; transform: translateX(-50%);
       }
+      .page-photo { margin-bottom: 44px; }
     }
     .cm-frame {
       width: 100%; max-width: 360px; margin: 28px auto;
@@ -516,6 +545,8 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   const { md, chapters } = extractChapters(body, file);
   let bodyHtml = marked.parse(md);
   bodyHtml = renderChapters(bodyHtml, chapters);
+  // First paragraph acts as the standfirst under the photo.
+  bodyHtml = bodyHtml.replace('<p>', '<p class="standfirst">', 1);
   // Horizontal scroll for wide tables on phones.
   bodyHtml = bodyHtml.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, '</table></div>');
   // marked wraps a standalone {{mock:…}} in a <p>; unwrap so the frame isn't

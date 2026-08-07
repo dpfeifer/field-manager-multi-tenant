@@ -19,8 +19,6 @@ Set a customer to every Tuesday, or every other Friday, once — the calendar fi
 The day view lists the route in order, and warns you before you double-book a slot.
 {{/chapter}}
 
-**Mark complete from the truck.** One tap when you finish a yard, with an optional note ("gate was locked, skipped backyard"). Every completion is stamped with who did it and when — which matters the day a customer swears you never showed.
-
 {{chapter:invoices}}
 Money, without the Sunday evening
 Month-end billing that does itself.
@@ -28,6 +26,10 @@ Every completed visit rolls into one invoice per customer automatically — mont
 
 Prefer to review first? Generate it per customer in two clicks instead. Customers who prepay or pay per visit can be excluded.
 {{/chapter}}
+
+## The rest of the week
+
+**Mark complete from the truck.** One tap when you finish a yard, with an optional note ("gate was locked, skipped backyard"). Every completion is stamped with who did it and when — which matters the day a customer swears you never showed.
 
 **Pay links on every invoice.** Drop in your Stripe, PayPal, Square, or Venmo details and every invoice carries a "pay now" link. Money goes straight to your account — we never touch it or take a cut.
 

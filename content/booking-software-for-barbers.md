@@ -27,6 +27,8 @@ Every client, every visit, what they paid, and your notes — the fade number, t
 When someone you haven't seen in six months books in, you're not starting from zero.
 {{/chapter}}
 
+## The rest of the day
+
 **A schedule built around appointments.** Day, week, and month views, recurring standing appointments for your weekly regulars, conflict warnings when you double-book, and one-tap "mark complete" as you finish each cut.
 
 **A simple website, included.** Turn on your landing page and you've got a real site — your photos, services and prices, client reviews, and the booking form — at your own link. If you're paying someone $20/month to keep a WordPress site alive, this replaces it. [Barbersthetic's page](/barbersthetic) is what it looks like filled in.
