@@ -10549,6 +10549,43 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
   const [localFeatures, setLocalFeatures] = useState(features);
   const [featuresBusy, setFeaturesBusy] = useState(false);
   const [featuresSaved, setFeaturesSaved] = useState(false);
+  const [editIdentity, setEditIdentity] = useState(false);
+  const [orgName, setOrgName] = useState('');
+  const [orgSlug, setOrgSlug] = useState('');
+
+  function startEditIdentity() {
+    setOrgName((settings && settings.organization_name) || '');
+    setOrgSlug((settings && settings.organization_slug) || session.slug);
+    setError(null);
+    setEditIdentity(true);
+  }
+
+  async function saveIdentity() {
+    const nextSlug = orgSlug.trim().toLowerCase();
+    const slugChanged = nextSlug !== session.slug;
+    if (slugChanged && !confirm(
+      `Change your address from /${session.slug} to /${nextSlug}?\n\n`
+      + 'Any booking link or QR code you have already shared or printed will stop working, '
+      + 'and everyone on the account will need to sign in again.'
+    )) return;
+    setBusy(true); setError(null);
+    try {
+      const org = await apiRequest('/api/settings/organization', {
+        method: 'PUT', slug: session.slug, token: session.token,
+        body: { name: orgName.trim(), slug: nextSlug },
+      });
+      setEditIdentity(false);
+      if (slugChanged) {
+        // The app resolves the org by slug on every request, so the stored
+        // session has to move with it before anything else is fetched.
+        saveSession({ token: session.token, user: session.user, organization: org });
+        window.location.reload();
+        return;
+      }
+      await load();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
 
   const isAdmin = session.user.role === 'admin';
 
@@ -10999,6 +11036,48 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
       {saved && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
       )}
+      <div className="form-card">
+        <div className="section-heading" style={{ marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Account name &amp; address</span>
+          {isAdmin && !editIdentity && (
+            <button className="secondary" onClick={startEditIdentity}>Edit</button>
+          )}
+        </div>
+        {!editIdentity ? (
+          <dl className="detail-info">
+            <dt>Name</dt><dd>{(settings && settings.organization_name) || '—'}</dd>
+            <dt>Address</dt><dd><code>/{session.slug}</code></dd>
+          </dl>
+        ) : (
+          <>
+            <label>Account name</label>
+            <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme Hauling" />
+            <label>Address <span className="hint">(your public URLs — booking link, profile, and landing page)</span></label>
+            <input
+              value={orgSlug}
+              onChange={(e) => setOrgSlug(e.target.value)}
+              placeholder="acme-hauling"
+              style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}
+            />
+            <span className="hint" style={{ display: 'block', marginTop: 6 }}>
+              {window.location.origin}/book/{orgSlug.trim().toLowerCase() || session.slug}
+            </span>
+            {orgSlug.trim().toLowerCase() !== session.slug && (
+              <p className="hint" style={{ color: 'var(--danger)' }}>
+                Links and QR codes you have already shared will stop working, and everyone on the account will be signed out.
+              </p>
+            )}
+            <div className="form-actions">
+              <button className="primary" disabled={busy || !orgName.trim()} onClick={saveIdentity}>Save</button>
+              <button className="secondary" disabled={busy} onClick={() => setEditIdentity(false)}>Cancel</button>
+            </div>
+          </>
+        )}
+        <p className="hint" style={{ marginBottom: 0 }}>
+          The company name customers see on invoices and your booking page is set below.
+        </p>
+      </div>
+
       <form onSubmit={submit} className="form-card">
         <div className="section-heading" style={{ marginTop: 0 }}>Public links</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
@@ -14517,6 +14596,10 @@ function OrgDetailView({ session, orgId }) {
   const [addRole, setAddRole] = useState('admin');
   const [addBusy, setAddBusy] = useState(false);
   const [addMsg, setAddMsg] = useState(null);
+  const [editIdentity, setEditIdentity] = useState(false);
+  const [idName, setIdName] = useState('');
+  const [idCompany, setIdCompany] = useState('');
+  const [idSlug, setIdSlug] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -14592,6 +14675,34 @@ function OrgDetailView({ session, orgId }) {
     finally { setAddBusy(false); }
   }
 
+  function startEditIdentity() {
+    const org = data.organization;
+    setIdName(org.name || '');
+    setIdCompany((data.settings && data.settings.company_name) || '');
+    setIdSlug(org.slug || '');
+    setError(null);
+    setEditIdentity(true);
+  }
+
+  async function saveIdentity() {
+    const nextSlug = idSlug.trim().toLowerCase();
+    if (nextSlug !== data.organization.slug && !confirm(
+      `Change the address from /${data.organization.slug} to /${nextSlug}?\n\n`
+      + 'Existing booking links, QR codes, and the landing page URL will stop working, '
+      + 'and anyone signed in to this account will need to sign in again.'
+    )) return;
+    setBusy(true); setError(null);
+    try {
+      await apiRequest(`/api/system/organizations/${orgId}`, {
+        method: 'PUT', token: session.token,
+        body: { name: idName.trim(), company_name: idCompany.trim(), slug: nextSlug },
+      });
+      setEditIdentity(false);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
   async function toggleLandingAccess(enabled) {
     setBusy(true); setError(null);
     try {
@@ -14640,7 +14751,36 @@ function OrgDetailView({ session, orgId }) {
       {error && <div className="error">{error}</div>}
 
       <div className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Details</div>
+        <div className="section-heading" style={{ marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Details</span>
+          {!editIdentity && (
+            <button className="secondary" onClick={startEditIdentity}>Edit name &amp; address</button>
+          )}
+        </div>
+        {editIdentity && (
+          <div style={{ marginBottom: 18 }}>
+            <label>Account name <span className="hint">(what you see in this panel)</span></label>
+            <input value={idName} onChange={(e) => setIdName(e.target.value)} placeholder="Acme Hauling" />
+            <label>Company name <span className="hint">(what customers see on invoices, booking, and the landing page)</span></label>
+            <input value={idCompany} onChange={(e) => setIdCompany(e.target.value)} placeholder="Leave blank to use the account name" />
+            <label>Address <span className="hint">(their public URLs: /book/&lt;address&gt;, /o/&lt;address&gt;, and the landing page)</span></label>
+            <input
+              value={idSlug}
+              onChange={(e) => setIdSlug(e.target.value)}
+              placeholder="acme-hauling"
+              style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}
+            />
+            {idSlug.trim().toLowerCase() !== o.slug && (
+              <p className="hint" style={{ color: 'var(--danger)' }}>
+                Changing the address breaks existing booking links and QR codes, and signs out anyone currently using the account.
+              </p>
+            )}
+            <div className="form-actions">
+              <button className="primary" disabled={busy || !idName.trim()} onClick={saveIdentity}>Save</button>
+              <button className="secondary" disabled={busy} onClick={() => setEditIdentity(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
         <dl className="detail-info">
           <dt>Slug</dt><dd>{o.slug}</dd>
           <dt>Created</dt><dd>{formatDateString(o.created_at.split('T')[0])}</dd>

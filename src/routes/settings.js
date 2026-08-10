@@ -3,6 +3,8 @@ const { query } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { cloudinarySignature } = require('../utils/cloudinary');
 const { normalizeLandingPageConfig } = require('../utils/landing');
+const { validateSlug } = require('../utils/slug');
+const { withTransaction } = require('../config/db');
 
 const router = express.Router();
 
@@ -45,8 +47,13 @@ router.get('/', async (req, res, next) => {
     const { rows } = await query(SELECT, [req.organization.id]);
     const out = rows[0] || emptyDefaults();
     // Landing-page feature entitlement lives on the org (system-admin set).
-    const org = await query('SELECT landing_enabled FROM organizations WHERE id = $1', [req.organization.id]);
+    const org = await query(
+      'SELECT landing_enabled, name, slug FROM organizations WHERE id = $1',
+      [req.organization.id]
+    );
     out.landing_enabled = !!(org.rows[0] && org.rows[0].landing_enabled);
+    out.organization_name = org.rows[0] ? org.rows[0].name : '';
+    out.organization_slug = org.rows[0] ? org.rows[0].slug : '';
     res.json(out);
   } catch (err) {
     next(err);
@@ -75,6 +82,57 @@ router.put('/landing', requireRole('admin'), async (req, res, next) => {
     );
     res.json({ ok: true, landing_page_config: cfg });
   } catch (err) { next(err); }
+});
+
+// Org identity: the account name and the slug that forms every public URL
+// (/book/<slug>, /o/<slug>, and the landing page at /<slug>). Admin only.
+//
+// Changing the slug breaks previously shared links and printed QR codes, and
+// invalidates the caller's own session — the client resolves the org by slug
+// on every request — so the response returns the new slug for the client to
+// store before its next call.
+router.put('/organization', requireRole('admin'), async (req, res, next) => {
+  const body = req.body || {};
+  const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+  const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : undefined;
+
+  if (name !== undefined && !name) return res.status(400).json({ error: 'Name cannot be empty' });
+  if (slug !== undefined) {
+    const slugErr = validateSlug(slug);
+    if (slugErr) return res.status(400).json({ error: slugErr });
+  }
+  if (name === undefined && slug === undefined) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+
+  try {
+    const result = await withTransaction(async (client) => {
+      if (slug !== undefined) {
+        const { rowCount: taken } = await client.query(
+          'SELECT 1 FROM organizations WHERE slug = $1 AND id <> $2',
+          [slug, req.organization.id]
+        );
+        if (taken) throw Object.assign(new Error('That address is already taken'), { status: 409 });
+      }
+      await client.query(
+        `UPDATE organizations
+            SET name = COALESCE($2, name),
+                slug = COALESCE($3, slug),
+                updated_at = NOW()
+          WHERE id = $1`,
+        [req.organization.id, name ?? null, slug ?? null]
+      );
+      const { rows } = await client.query(
+        'SELECT id, name, slug FROM organizations WHERE id = $1',
+        [req.organization.id]
+      );
+      return rows[0];
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 });
 
 const TERMINOLOGY_FIELDS = new Set([

@@ -1,9 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const { query } = require('../config/db');
+const { query, withTransaction } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
+const { validateSlug } = require('../utils/slug');
 const { sendEmail } = require('../utils/email');
 const { teamInviteTemplate } = require('../utils/emailTemplates');
 const { cloudinarySignature } = require('../utils/cloudinary');
@@ -224,6 +225,78 @@ router.post('/upload-signature', (req, res) => {
 
 // Grant/revoke the landing-page feature for an org (entitlement). When on,
 // the org's admins get the self-serve editor in their Settings.
+// Rename an organization. Two names exist and they drift apart: the org
+// record's name (staff panel, and the fallback customers see) and
+// organization_settings.company_name (invoices, booking page, landing page).
+// Both are editable here so a signup typo can be fixed in one pass.
+router.put('/organizations/:id', async (req, res, next) => {
+  const body = req.body || {};
+  const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+  const companyName = typeof body.company_name === 'string' ? body.company_name.trim() : undefined;
+  const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : undefined;
+
+  if (name !== undefined && !name) {
+    return res.status(400).json({ error: 'name cannot be empty' });
+  }
+  if (slug !== undefined) {
+    const slugErr = validateSlug(slug);
+    if (slugErr) return res.status(400).json({ error: slugErr });
+  }
+  if (name === undefined && companyName === undefined && slug === undefined) {
+    return res.status(400).json({ error: 'nothing to update' });
+  }
+
+  try {
+    const result = await withTransaction(async (client) => {
+      const { rowCount } = await client.query(
+        'SELECT 1 FROM organizations WHERE id = $1 AND deleted_at IS NULL',
+        [req.params.id]
+      );
+      if (rowCount === 0) throw Object.assign(new Error('Not found'), { status: 404 });
+
+      if (name !== undefined) {
+        await client.query(
+          'UPDATE organizations SET name = $2, updated_at = NOW() WHERE id = $1',
+          [req.params.id, name.slice(0, 200)]
+        );
+      }
+      if (slug !== undefined) {
+        const { rowCount: taken } = await client.query(
+          'SELECT 1 FROM organizations WHERE slug = $1 AND id <> $2',
+          [slug, req.params.id]
+        );
+        if (taken) throw Object.assign(new Error('That slug is already taken'), { status: 409 });
+        await client.query(
+          'UPDATE organizations SET slug = $2, updated_at = NOW() WHERE id = $1',
+          [req.params.id, slug]
+        );
+      }
+      if (companyName !== undefined) {
+        await client.query(
+          `INSERT INTO organization_settings (organization_id, company_name)
+           VALUES ($1, $2)
+           ON CONFLICT (organization_id)
+           DO UPDATE SET company_name = $2, updated_at = NOW()`,
+          [req.params.id, companyName ? companyName.slice(0, 200) : null]
+        );
+      }
+
+      const { rows } = await client.query(
+        `SELECT o.name, o.slug, s.company_name
+         FROM organizations o
+         LEFT JOIN organization_settings s ON s.organization_id = o.id
+         WHERE o.id = $1`,
+        [req.params.id]
+      );
+      return rows[0];
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
 router.put('/organizations/:id/landing-access', async (req, res, next) => {
   const enabled = req.body && req.body.enabled === true;
   try {
