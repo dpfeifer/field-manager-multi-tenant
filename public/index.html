@@ -2272,6 +2272,28 @@
       }
       .nav button { touch-action: pan-x; }
       .nav::-webkit-scrollbar { display: none; }
+      /* The nav scrolls on a phone, but nothing hinted that more tabs
+         existed past the right edge. These fades are sticky flex items, so
+         they pin to the edges of the scroller rather than sliding away with
+         the content, and negative margins keep them out of the layout.
+         Each one only appears when there is actually more to scroll to. */
+      .nav::before, .nav::after {
+        content: ''; flex: 0 0 auto; align-self: stretch;
+        position: sticky; width: 44px; z-index: 1;
+        pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      }
+      /* The solid stop matters: a straight colour-to-transparent ramp over a
+         white nav is nearly invisible. Holding the card colour for the first
+         30% dims the clipped tab enough to read as "this continues". */
+      .nav::before {
+        left: 0; margin-right: -44px;
+        background: linear-gradient(to right, var(--card) 30%, transparent);
+      }
+      .nav::after {
+        right: 0; margin-left: -44px;
+        background: linear-gradient(to left, var(--card) 30%, transparent);
+      }
+      .nav.can-scroll-left::before, .nav.can-scroll-right::after { opacity: 1; }
       /* Stack icon over label on mobile so each tab is a proper tap target
          (≥ 56px tall) with the icon big enough to read at a glance. */
       .nav button {
@@ -4429,6 +4451,7 @@ const ICONS = {
   customers: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   invoices: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
   quotes: 'M3 21l3-3h13a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM9 9h.01M12 9h.01M15 9h.01',
+  requests: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
   reports: 'M3 3v18h18M7 14l4-4 4 4 5-5',
   team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   billing: 'M22 4H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM2 10h20',
@@ -11761,6 +11784,17 @@ function UserMenu({ session, onLogout, onSwitch }) {
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/profile'); }}>
             Profile
           </button>
+          {session.user.role === 'admin' && (
+            <>
+              <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/settings'); }}>
+                Settings
+              </button>
+              <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/billing'); }}>
+                Billing
+              </button>
+            </>
+          )}
+          <div className="user-menu-divider" />
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/support'); }}>
             Help &amp; support
           </button>
@@ -11780,6 +11814,34 @@ function UserMenu({ session, onLogout, onSwitch }) {
       )}
     </div>
   );
+}
+
+// Reports whether a horizontal scroller has content past either edge, so the
+// mobile nav can fade an edge only when there is somewhere to scroll to — a
+// permanent fade would imply tabs that aren't there. Remeasures when
+// `signature` changes, because the tab list is built from data (role, plan,
+// enabled modules) that arrives after the first render.
+function useScrollEdges(ref, signature) {
+  const [edges, setEdges] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const update = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      setEdges({
+        left: el.scrollLeft > 1,
+        right: max > 1 && el.scrollLeft < max - 1,
+      });
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [ref, signature]);
+  return edges;
 }
 
 function AppShell({ session, onLogout, onSessionUpdate }) {
@@ -11837,6 +11899,12 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
   };
   const customersAtCap = isFree && counts.customers >= limits.customers;
   const jobsAtCap = isFree && counts.jobs >= limits.jobs;
+
+  const navRef = useRef(null);
+  const navEdges = useScrollEdges(navRef, [
+    session.user.role, isFree, terms.jobs, terms.customers,
+    features.requests, features.invoices, features.quotes, features.reports, features.team,
+  ].join('|'));
   const needsOnboarding = me && !me.onboarding_completed_at && isAdmin;
 
   if (needsOnboarding) {
@@ -11894,7 +11962,10 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} orgId={me && me.organization_id} session={session} />}
       {me && me.is_demo && <DemoBanner />}
       <TeamNotesBanner session={session} />
-      <div className="nav">
+      <div
+        className={`nav${navEdges.left ? ' can-scroll-left' : ''}${navEdges.right ? ' can-scroll-right' : ''}`}
+        ref={navRef}
+      >
         <button className={view === 'dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}><Icon name="dashboard" />Dashboard</button>
         <button className={view === 'jobs' ? 'active' : ''} onClick={() => navigate('/jobs')}>
           <Icon name="jobs" />{terms.jobs}
@@ -11906,7 +11977,7 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
         </button>
         {features.requests && (
           <button className={view === 'requests' ? 'active' : ''} onClick={() => navigate('/requests')}>
-            <Icon name="quotes" />Requests
+            <Icon name="requests" />Requests
             {pendingRequestsCount > 0 && (
               <span className="nav-badge">{pendingRequestsCount}</span>
             )}
@@ -11946,12 +12017,6 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
             <Icon name="team" />Team
             {isFree && <span className="nav-lock">Pro</span>}
           </button>
-        )}
-        {session.user.role === 'admin' && (
-          <button className={view === 'billing' ? 'active' : ''} onClick={() => navigate('/billing')}><Icon name="billing" />Billing</button>
-        )}
-        {session.user.role === 'admin' && (
-          <button className={view === 'settings' ? 'active' : ''} onClick={() => navigate('/settings')}><Icon name="settings" />Settings</button>
         )}
       </div>
       <div className="content">
