@@ -2279,18 +2279,23 @@
          Each one only appears when there is actually more to scroll to. */
       .nav::before, .nav::after {
         content: ''; flex: 0 0 auto; align-self: stretch;
-        position: sticky; width: 44px; z-index: 1;
+        position: sticky; width: 48px; z-index: 1;
         pointer-events: none; opacity: 0; transition: opacity 0.15s;
       }
-      /* The solid stop matters: a straight colour-to-transparent ramp over a
-         white nav is nearly invisible. Holding the card colour for the first
-         30% dims the clipped tab enough to read as "this continues". */
+      /* Two things are load-bearing here.
+         The negative offset must match the nav's own horizontal padding
+         (4px above): overflow clips at the padding box, so tabs stay visible
+         while scrolling through that strip, and a fade pinned to 0 leaves a
+         sliver of sharp content showing at each edge.
+         The solid stop matters too — a straight colour-to-transparent ramp
+         over a white nav is nearly invisible. Holding the card colour for the
+         first 30% dims the clipped tab enough to read as "this continues". */
       .nav::before {
-        left: 0; margin-right: -44px;
+        left: -4px; margin-right: -48px;
         background: linear-gradient(to right, var(--card) 30%, transparent);
       }
       .nav::after {
-        right: 0; margin-left: -44px;
+        right: -4px; margin-left: -48px;
         background: linear-gradient(to left, var(--card) 30%, transparent);
       }
       .nav.can-scroll-left::before, .nav.can-scroll-right::after { opacity: 1; }
