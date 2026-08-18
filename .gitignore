@@ -24,3 +24,6 @@ public/index.built.html
 public/app.*.js
 public/_pages/
 public/sitemap.xml
+
+# Local Claude Code dev-server config
+.claude/launch.json
