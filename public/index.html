@@ -4821,7 +4821,7 @@ function SignupForm({ onSuccess }) {
       const data = await apiRequest('/api/signup', {
         method: 'POST',
         body: {
-          organization: { name: orgName },
+          organization: { name: orgName, timezone: browserTimezone() },
           user: { email, password, name: name || undefined },
         },
       });
@@ -10268,6 +10268,58 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
   );
 }
 
+// Time zone picker for the organization. The full IANA list comes from the
+// runtime itself (Intl.supportedValuesOf), so it stays current without us
+// shipping a table; the North American zones are floated to the top because
+// that is where the accounts are. Labels carry the current abbreviation
+// (PDT, EST) since that is what people actually recognise.
+const COMMON_TIMEZONES = [
+  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Phoenix',
+  'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu',
+];
+
+let ALL_TIMEZONES = null;
+function allTimezones() {
+  if (!ALL_TIMEZONES) {
+    try { ALL_TIMEZONES = Intl.supportedValuesOf('timeZone') || []; }
+    catch (err) { ALL_TIMEZONES = []; }
+    if (!ALL_TIMEZONES.length) ALL_TIMEZONES = COMMON_TIMEZONES.slice();
+  }
+  return ALL_TIMEZONES;
+}
+
+function timezoneLabel(zone) {
+  try {
+    const abbr = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'short' })
+      .formatToParts(new Date()).find((part) => part.type === 'timeZoneName');
+    return `${zone.replace(/_/g, ' ')}${abbr ? ` (${abbr.value})` : ''}`;
+  } catch (err) { return zone; }
+}
+
+function browserTimezone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }
+  catch (err) { return ''; }
+}
+
+function TimezoneSelect({ value, onChange, disabled }) {
+  // A saved zone the runtime does not know still has to be selectable, or
+  // opening the editor would silently change it.
+  const all = allTimezones();
+  const list = value && all.indexOf(value) === -1 ? [value].concat(all) : all;
+  const common = COMMON_TIMEZONES.filter((z) => list.indexOf(z) !== -1);
+  const rest = list.filter((z) => common.indexOf(z) === -1);
+  return (
+    <select value={value || ''} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+      <optgroup label="Common">
+        {common.map((z) => <option key={z} value={z}>{timezoneLabel(z)}</option>)}
+      </optgroup>
+      <optgroup label="All time zones">
+        {rest.map((z) => <option key={z} value={z}>{timezoneLabel(z)}</option>)}
+      </optgroup>
+    </select>
+  );
+}
+
 function CopyButton({ text, label = 'Copy' }) {
   const [copied, setCopied] = useState(false);
   async function doCopy() {
@@ -10433,10 +10485,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
   const [editIdentity, setEditIdentity] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [orgSlug, setOrgSlug] = useState('');
+  const [orgTimezone, setOrgTimezone] = useState('');
 
   function startEditIdentity() {
     setOrgName((settings && settings.organization_name) || '');
     setOrgSlug((settings && settings.organization_slug) || session.slug);
+    setOrgTimezone((settings && settings.organization_timezone) || browserTimezone());
     setError(null);
     setEditIdentity(true);
   }
@@ -10453,7 +10507,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     try {
       const org = await apiRequest('/api/settings/organization', {
         method: 'PUT', slug: session.slug, token: session.token,
-        body: { name: orgName.trim(), slug: nextSlug },
+        body: { name: orgName.trim(), slug: nextSlug, timezone: orgTimezone || undefined },
       });
       setEditIdentity(false);
       if (slugChanged) {
@@ -10928,6 +10982,8 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           <dl className="detail-info">
             <dt>Name</dt><dd>{(settings && settings.organization_name) || '—'}</dd>
             <dt>Address</dt><dd><code>/{session.slug}</code></dd>
+            <dt>Time zone</dt>
+            <dd>{settings && settings.organization_timezone ? timezoneLabel(settings.organization_timezone) : '—'}</dd>
           </dl>
         ) : (
           <>
@@ -10948,6 +11004,8 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
                 Links and QR codes you have already shared will stop working, and everyone on the account will be signed out.
               </p>
             )}
+            <label>Time zone <span className="hint">(used to time reminders and scheduled emails)</span></label>
+            <TimezoneSelect value={orgTimezone} onChange={setOrgTimezone} disabled={busy} />
             <div className="form-actions">
               <button className="primary" disabled={busy || !orgName.trim()} onClick={saveIdentity}>Save</button>
               <button className="secondary" disabled={busy} onClick={() => setEditIdentity(false)}>Cancel</button>
@@ -14481,6 +14539,7 @@ function OrgDetailView({ session, orgId }) {
   const [idName, setIdName] = useState('');
   const [idCompany, setIdCompany] = useState('');
   const [idSlug, setIdSlug] = useState('');
+  const [idTimezone, setIdTimezone] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -14561,6 +14620,7 @@ function OrgDetailView({ session, orgId }) {
     setIdName(org.name || '');
     setIdCompany((data.settings && data.settings.company_name) || '');
     setIdSlug(org.slug || '');
+    setIdTimezone(org.timezone || '');
     setError(null);
     setEditIdentity(true);
   }
@@ -14576,7 +14636,7 @@ function OrgDetailView({ session, orgId }) {
     try {
       await apiRequest(`/api/system/organizations/${orgId}`, {
         method: 'PUT', token: session.token,
-        body: { name: idName.trim(), company_name: idCompany.trim(), slug: nextSlug },
+        body: { name: idName.trim(), company_name: idCompany.trim(), slug: nextSlug, timezone: idTimezone || undefined },
       });
       setEditIdentity(false);
       await refresh();
@@ -14656,6 +14716,8 @@ function OrgDetailView({ session, orgId }) {
                 Changing the address breaks existing booking links and QR codes, and signs out anyone currently using the account.
               </p>
             )}
+            <label>Time zone <span className="hint">(when reminders and scheduled sends fire for them)</span></label>
+            <TimezoneSelect value={idTimezone} onChange={setIdTimezone} disabled={busy} />
             <div className="form-actions">
               <button className="primary" disabled={busy || !idName.trim()} onClick={saveIdentity}>Save</button>
               <button className="secondary" disabled={busy} onClick={() => setEditIdentity(false)}>Cancel</button>
@@ -14664,6 +14726,7 @@ function OrgDetailView({ session, orgId }) {
         )}
         <dl className="detail-info">
           <dt>Slug</dt><dd>{o.slug}</dd>
+          <dt>Time zone</dt><dd>{o.timezone ? timezoneLabel(o.timezone) : '—'}</dd>
           <dt>Created</dt><dd>{formatDateString(o.created_at.split('T')[0])}</dd>
           {o.trial_ends_at && (<><dt>Trial ends</dt><dd>{formatDateString(o.trial_ends_at.split('T')[0])}</dd></>)}
           <dt>Next invoice #</dt><dd>{o.next_invoice_number}</dd>

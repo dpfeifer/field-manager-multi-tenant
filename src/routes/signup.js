@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { withTransaction } = require('../config/db');
 const { slugify, validateSlug } = require('../utils/slug');
+const { normalizeTimezone } = require('../utils/timezone');
 const { validatePassword } = require('../utils/password');
 const { isSystemAdminEmail } = require('../utils/systemAdmin');
 const { sendEmail } = require('../utils/email');
@@ -30,6 +31,9 @@ const router = express.Router();
 router.post('/', async (req, res, next) => {
   const { organization = {}, user = {} } = req.body || {};
   const orgName = (organization.name || '').trim();
+  // The browser sends its IANA zone; anything unrecognised falls back to the
+  // default rather than failing a signup over it.
+  const timezone = normalizeTimezone(organization.timezone);
   const userEmail = (user.email || '').trim().toLowerCase();
   const userName = (user.name || '').trim() || null;
   const userPassword = user.password;
@@ -65,10 +69,10 @@ router.post('/', async (req, res, next) => {
     const result = await withTransaction(async (client) => {
       const orgRes = await client.query(
         `INSERT INTO organizations
-          (slug, name, subscription_status, trial_ends_at)
-         VALUES ($1, $2, 'trialing', NOW() + INTERVAL '14 days')
+          (slug, name, timezone, subscription_status, trial_ends_at)
+         VALUES ($1, $2, $3, 'trialing', NOW() + INTERVAL '14 days')
          RETURNING id, slug, name, created_at`,
-        [slug, orgName]
+        [slug, orgName, timezone]
       );
       const org = orgRes.rows[0];
 

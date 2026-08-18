@@ -5,6 +5,7 @@ const { query, withTransaction } = require('../config/db');
 const { requireAuth, requireSystemAdmin } = require('../middleware/auth');
 const { validatePassword } = require('../utils/password');
 const { validateSlug } = require('../utils/slug');
+const { isValidTimezone } = require('../utils/timezone');
 const { sendEmail } = require('../utils/email');
 const { teamInviteTemplate } = require('../utils/emailTemplates');
 const { cloudinarySignature } = require('../utils/cloudinary');
@@ -178,7 +179,7 @@ router.get('/organizations/:id', async (req, res, next) => {
   try {
     const orgRow = await query(
       `SELECT o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
-              o.subscription_status, o.trial_ends_at, o.landing_enabled,
+              o.subscription_status, o.trial_ends_at, o.landing_enabled, o.timezone,
               o.stripe_customer_id, o.stripe_subscription_id,
               (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
               (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,
@@ -234,6 +235,7 @@ router.put('/organizations/:id', async (req, res, next) => {
   const name = typeof body.name === 'string' ? body.name.trim() : undefined;
   const companyName = typeof body.company_name === 'string' ? body.company_name.trim() : undefined;
   const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : undefined;
+  const timezone = typeof body.timezone === 'string' ? body.timezone.trim() : undefined;
 
   if (name !== undefined && !name) {
     return res.status(400).json({ error: 'name cannot be empty' });
@@ -242,7 +244,10 @@ router.put('/organizations/:id', async (req, res, next) => {
     const slugErr = validateSlug(slug);
     if (slugErr) return res.status(400).json({ error: slugErr });
   }
-  if (name === undefined && companyName === undefined && slug === undefined) {
+  if (timezone !== undefined && !isValidTimezone(timezone)) {
+    return res.status(400).json({ error: 'invalid time zone' });
+  }
+  if (name === undefined && companyName === undefined && slug === undefined && timezone === undefined) {
     return res.status(400).json({ error: 'nothing to update' });
   }
 
@@ -271,6 +276,12 @@ router.put('/organizations/:id', async (req, res, next) => {
           [req.params.id, slug]
         );
       }
+      if (timezone !== undefined) {
+        await client.query(
+          'UPDATE organizations SET timezone = $2, updated_at = NOW() WHERE id = $1',
+          [req.params.id, timezone]
+        );
+      }
       if (companyName !== undefined) {
         await client.query(
           `INSERT INTO organization_settings (organization_id, company_name)
@@ -282,7 +293,7 @@ router.put('/organizations/:id', async (req, res, next) => {
       }
 
       const { rows } = await client.query(
-        `SELECT o.name, o.slug, s.company_name
+        `SELECT o.name, o.slug, o.timezone, s.company_name
          FROM organizations o
          LEFT JOIN organization_settings s ON s.organization_id = o.id
          WHERE o.id = $1`,
