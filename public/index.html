@@ -1479,6 +1479,8 @@
       font-size: 13px; color: var(--text-muted);
       font-weight: 500;
     }
+    .cal-day-revenue { color: var(--text); font-weight: 600; white-space: nowrap; }
+    .cal-day-sep { color: var(--text-muted); font-weight: 500; margin: 0 5px; }
     @media (max-width: 600px) {
       .cal-mode-row { gap: 10px; }
       .cal-day-nav { margin-left: 0; width: 100%; }
@@ -7460,6 +7462,18 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, onCreat
     });
   })();
 
+  // Everything on the day's schedule, completed or not — this is what the day
+  // is worth, not what has been collected. default_price arrives as a string
+  // from Postgres numeric, so parse before adding.
+  const dayRevenue = dayOccurrences.reduce(
+    (sum, o) => sum + (parseFloat(o.job.default_price) || 0), 0
+  );
+  // "No price set" means the field is empty, not that the price is zero — a
+  // deliberate $0 visit is priced, and shouldn't make the total look partial.
+  const dayUnpriced = dayOccurrences.filter(
+    (o) => o.job.default_price == null || o.job.default_price === ''
+  ).length;
+
   const weekByDate = (() => {
     if (view !== 'week') return {};
     const map = {};
@@ -7528,6 +7542,14 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, onCreat
             <h3>{selectedDateLabel}</h3>
             <span className="cal-day-count">
               {dayOccurrences.length} {dayOccurrences.length === 1 ? terms.jobLower : terms.jobsLower}
+              {dayRevenue > 0 && (
+                <span
+                  className="cal-day-revenue"
+                  title={dayUnpriced > 0
+                    ? `${dayUnpriced} ${dayUnpriced === 1 ? `${terms.jobLower} has` : `${terms.jobsLower} have`} no price set, so the total covers the rest.`
+                    : undefined}
+                ><span className="cal-day-sep">·</span>{formatPrice(dayRevenue)}{dayUnpriced > 0 ? '+' : ''}</span>
+              )}
             </span>
           </div>
           <DayTimeGrid
