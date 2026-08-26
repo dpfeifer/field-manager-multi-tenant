@@ -1185,7 +1185,17 @@
       border-radius: 12px; box-shadow: var(--shadow-sm);
       padding: 14px 16px; margin-bottom: 16px;
     }
-    .two-pane-narrow .two-pane-body { padding: 4px 0 0; }
+    /* The section's content gets the same white card the pane is on desktop.
+       The back link and section title stay outside it, so the card holds the
+       content and nothing else. .two-pane-body .list already drops its own
+       surface, which is what stops this becoming a card inside a card. */
+    .two-pane-narrow .two-pane-body {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      padding: 6px 16px;
+    }
     .drill-list {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden;
