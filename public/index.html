@@ -11230,41 +11230,15 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </>
         )}
         <p className="hint" style={{ marginBottom: 0 }}>
-          This is the name on your account. The name customers see is set separately, under Company below.
+          Only your team sees this one. The name customers see is directly below.
         </p>
       </div>
 
       <form onSubmit={submit} className="form-card">
-        <div className="section-heading" style={{ marginTop: 0 }}>Public links</div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-          {features.requests
-            ? "Two URLs you can share. The profile is your at-a-glance business card; the booking link drops customers straight into the request form."
-            : "Your public profile URL. Booking link is hidden because the Requests module is off."}
-        </p>
-        <label>Profile</label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-          <input
-            readOnly
-            value={`${window.location.origin}/o/${session.slug}`}
-            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-          />
-          <CopyButton text={`${window.location.origin}/o/${session.slug}`} />
-        </div>
-        {features.requests && (
-          <>
-            <label>Booking</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-              <input
-                readOnly
-                value={`${window.location.origin}/book/${session.slug}`}
-                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-              />
-              <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
-            </div>
-          </>
-        )}
-
-        <div className="section-heading">Company</div>
+        {/* The name customers see sits directly under the name on the
+            account, so the difference between the two is visible rather than
+            explained. The shareable URLs used to run between them. */}
+        <div className="section-heading" style={{ marginTop: 0 }}>Your public details</div>
         <div className="form-grid">
           <div className="full">
             <label>Company name <span className="hint">(what customers see on invoices, your booking page, and your landing page)</span></label>
@@ -11309,6 +11283,35 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
             <input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={!isAdmin} />
           </div>
         </div>
+
+        <div className="section-heading">Links you can share</div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+          {features.requests
+            ? "The profile is your at-a-glance business card; the booking link drops customers straight into the request form."
+            : "Your public profile URL. The booking link is hidden because the Requests section is off."}
+        </p>
+        <label>Profile</label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+          <input
+            readOnly
+            value={`${window.location.origin}/o/${session.slug}`}
+            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+          />
+          <CopyButton text={`${window.location.origin}/o/${session.slug}`} />
+        </div>
+        {features.requests && (
+          <>
+            <label>Booking</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <input
+                readOnly
+                value={`${window.location.origin}/book/${session.slug}`}
+                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+              />
+              <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+            </div>
+          </>
+        )}
 
         {isAdmin && (
           <div className="form-actions">
