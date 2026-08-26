@@ -17,6 +17,8 @@ function pickFields(body) {
   return out;
 }
 
+const NAME_FIELDS = ['first_name', 'last_name', 'business_name'];
+
 function hasName(body) {
   return Boolean(body.first_name || body.last_name || body.business_name);
 }
@@ -27,6 +29,7 @@ router.get('/', async (req, res, next) => {
       `SELECT
          c.id, c.first_name, c.last_name, c.business_name,
          c.phone, c.email, c.address, c.notes,
+         c.auto_invoice_excluded,
          c.created_at, c.updated_at,
          COALESCE((
            SELECT SUM(
@@ -68,7 +71,8 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, first_name, last_name, business_name, phone, email, address, notes, created_at, updated_at
+      `SELECT id, first_name, last_name, business_name, phone, email, address, notes,
+              auto_invoice_excluded, created_at, updated_at
        FROM customers
        WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
        LIMIT 1`,
@@ -90,9 +94,11 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
     const fields = pickFields(body);
     const { rows } = await query(
-      `INSERT INTO customers (organization_id, first_name, last_name, business_name, phone, email, address, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, first_name, last_name, business_name, phone, email, address, notes, created_at, updated_at`,
+      `INSERT INTO customers
+         (organization_id, first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, FALSE))
+       RETURNING id, first_name, last_name, business_name, phone, email, address, notes,
+                 auto_invoice_excluded, created_at, updated_at`,
       [
         req.organization.id,
         fields.first_name ?? null,
@@ -102,6 +108,7 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
         fields.email ?? null,
         fields.address ?? null,
         fields.notes ?? null,
+        fields.auto_invoice_excluded ?? null,
       ]
     );
     res.status(201).json(rows[0]);
@@ -113,35 +120,43 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
 router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   const body = req.body || {};
   const fields = pickFields(body);
+  const keys = Object.keys(fields);
 
-  if (Object.keys(fields).length === 0) {
+  if (keys.length === 0) {
     return res.status(400).json({ error: 'No updatable fields provided' });
   }
 
+  // The SET list is built from the keys the request actually sent, because
+  // COALESCE($n, col) cannot tell "leave this alone" apart from "make this
+  // empty" — pickFields turns '' into null, so under COALESCE the old value
+  // came straight back and no optional field could ever be cleared once set.
+  // Key names come from the FIELDS allowlist, never from the request.
+  const assignments = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
+
   try {
+    // Clearing now works, which makes it possible to erase every name and
+    // leave a customer that renders as blank everywhere. Check the merged
+    // result rather than the patch, since a request may only touch one name.
+    if (keys.some((k) => NAME_FIELDS.includes(k))) {
+      const current = await query(
+        `SELECT first_name, last_name, business_name FROM customers
+         WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+        [req.params.id, req.organization.id]
+      );
+      if (current.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+      if (!hasName({ ...current.rows[0], ...fields })) {
+        return res.status(400).json({
+          error: 'A customer needs a first name, last name, or business name',
+        });
+      }
+    }
+
     const { rows } = await query(
-      `UPDATE customers SET
-         first_name    = COALESCE($3, first_name),
-         last_name     = COALESCE($4, last_name),
-         business_name = COALESCE($5, business_name),
-         phone         = COALESCE($6, phone),
-         email         = COALESCE($7, email),
-         address       = COALESCE($8, address),
-         notes         = COALESCE($9, notes),
-         updated_at    = NOW()
+      `UPDATE customers SET ${assignments}, updated_at = NOW()
        WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
-       RETURNING id, first_name, last_name, business_name, phone, email, address, notes, created_at, updated_at`,
-      [
-        req.params.id,
-        req.organization.id,
-        fields.first_name,
-        fields.last_name,
-        fields.business_name,
-        fields.phone,
-        fields.email,
-        fields.address,
-        fields.notes,
-      ]
+       RETURNING id, first_name, last_name, business_name, phone, email, address, notes,
+                 auto_invoice_excluded, created_at, updated_at`,
+      [req.params.id, req.organization.id, ...keys.map((k) => fields[k])]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
