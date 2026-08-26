@@ -850,6 +850,22 @@
       align-items: center;
     }
     .team-row .team-role { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .role-legend {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 16px;
+    }
+    .role-legend-item {
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--tinted); padding: 13px 15px;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+      font-size: 13px; color: var(--text-muted); line-height: 1.5;
+    }
+    @media (max-width: 720px) {
+      /* Three columns would leave each panel too narrow to read on a phone.
+         Only the column count changes — the badge stays above its text, as on
+         desktop, so the three panels read identically at any width. */
+      .role-legend { grid-template-columns: 1fr; gap: 8px; }
+    }
     .team-row .actions { margin: 0; }
     .team-row .team-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .team-avatar {
@@ -11063,7 +11079,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </>
         )}
         <p className="hint" style={{ marginBottom: 0 }}>
-          The company name customers see on invoices and your booking page is set below.
+          This is the name on your account. The name customers see is set separately, under Company below.
         </p>
       </div>
 
@@ -11100,7 +11116,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         <div className="section-heading">Company</div>
         <div className="form-grid">
           <div className="full">
-            <label>Company name</label>
+            <label>Company name <span className="hint">(what customers see on invoices, your booking page, and your landing page)</span></label>
             <input value={form.company_name} onChange={(e) => setField('company_name', e.target.value)} disabled={!isAdmin} />
           </div>
           <div className="full">
@@ -13501,6 +13517,48 @@ function SupportView({ session }) {
   );
 }
 
+// What each role can actually do, read off the server's own gating: job
+// completion is deliberately ungated so crew can close out work, everything
+// structural is requireRole('admin', 'lead'), and reports/team/billing/
+// settings are admin-only.
+//
+// One list because the invite form and the role editor had already drifted:
+// invite claimed "Lead — no invoicing" while leads have always had the full
+// invoice lifecycle (create, send, apply credit, mark paid, delete), and the
+// role editor explained nothing at all.
+const ROLE_OPTIONS = [
+  { value: 'employee', label: 'Employee', summary: 'Sees the schedule, marks visits complete, adds customer notes.' },
+  { value: 'lead', label: 'Lead', summary: 'Everything above, plus creating and editing work, customers, invoices and quotes.' },
+  { value: 'admin', label: 'Admin', summary: 'Everything, plus reports, team, billing and settings.' },
+];
+
+function RoleSelect({ value, onChange, disabled, style }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} style={style}>
+      {ROLE_OPTIONS.map((r) => (
+        <option key={r.value} value={r.value}>{r.label}</option>
+      ))}
+    </select>
+  );
+}
+
+// Stated once above the list rather than under every dropdown. Three panels
+// side by side, so the roles read as a progression — each one is the previous
+// plus more — which a stacked list obscured. The badges are the same ones each
+// row shows for its role, tying the key to the list beneath it.
+function RoleLegend() {
+  return (
+    <div className="role-legend">
+      {ROLE_OPTIONS.map((r) => (
+        <div key={r.value} className="role-legend-item">
+          <span className="badge">{r.label}</span>
+          <span>{r.summary}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function InviteForm({ onSubmit, onCancel, busy }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -13527,11 +13585,7 @@ function InviteForm({ onSubmit, onCancel, busy }) {
         </div>
         <div>
           <label>Role</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="employee">Employee — schedule + completion only</option>
-            <option value="lead">Lead — no invoicing</option>
-            <option value="admin">Admin — full access</option>
-          </select>
+          <RoleSelect value={role} onChange={setRole} />
         </div>
       </div>
       <div className="form-actions">
@@ -13633,6 +13687,7 @@ function TeamView({ session }) {
       <div>
         <div className="page-header"><h2>Invite teammate</h2></div>
         {error && <div className="error">{error}</div>}
+        <RoleLegend />
         <div className="form-card">
           <InviteForm
             onSubmit={inviteUser}
@@ -13660,6 +13715,7 @@ function TeamView({ session }) {
       {resendSuccess && (
         <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>{resendSuccess}</div>
       )}
+      <RoleLegend />
       <div className="list">
         {loading ? (
           <div className="list-empty">Loading...</div>
@@ -13700,15 +13756,11 @@ function TeamView({ session }) {
                 <div className="team-role">
                   {editingRoleId === u.id ? (
                     <>
-                      <select
-                        defaultValue={u.role}
-                        onChange={(e) => changeRole(u.id, e.target.value)}
+                      <RoleSelect
+                        value={u.role}
+                        onChange={(next) => changeRole(u.id, next)}
                         style={{ width: 'auto', padding: '7px 10px', fontSize: 13 }}
-                      >
-                        <option value="employee">Employee</option>
-                        <option value="lead">Lead</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      />
                       <button className="secondary" onClick={() => setEditingRoleId(null)}>Cancel</button>
                     </>
                   ) : (
