@@ -1525,9 +1525,69 @@
       .viewas-banner { padding: 9px 16px; }
       .viewas-banner button { margin-left: 0; }
     }
-    .dash-edit-layout { display: flex; justify-content: center; margin: 4px 0 8px; }
-    .dash-edit-layout button { font-size: 13px; }
-    .dash-layout-editor { max-width: 620px; }
+    .dash-top { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .dash-top .link-button { font-size: 13px; }
+
+    /* Edit mode: the real cards, with a handle and a hide control. */
+    .dash-edit-bar {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dash-edit-hint { font-size: 13px; color: var(--text-muted); flex: 1 1 auto; }
+    .dash-edit-card {
+      border: 1px dashed var(--border-strong); border-radius: 12px;
+      padding: 8px; margin-bottom: 14px; background: var(--bg-elevated);
+      cursor: grab;
+    }
+    .dash-edit-card.dragging { opacity: 0.45; cursor: grabbing; }
+    .dash-edit-head {
+      display: flex; align-items: center; gap: 10px; padding: 2px 6px 8px;
+    }
+    .dash-edit-grip { color: var(--border-strong); font-size: 14px; line-height: 1; letter-spacing: -2px; }
+    @media (pointer: coarse) {
+      /* No drag on touch, so the grip would be promising something it
+         cannot do. The arrows are the control there. */
+      .dash-edit-grip { display: none; }
+      .dash-edit-card { cursor: default; }
+    }
+    .dash-edit-name {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); flex: 1 1 auto;
+    }
+    .dash-edit-hide, .dash-edit-step {
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      color: var(--text-muted); background: var(--card);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 10px; cursor: pointer;
+    }
+    .dash-edit-step { padding: 4px 9px; line-height: 1; }
+    .dash-edit-step:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+    .dash-edit-step:disabled { opacity: 0.35; cursor: default; }
+    .dash-edit-hide:hover { color: var(--danger); border-color: var(--danger); }
+    /* The live widget is a preview here, not something to operate. */
+    .dash-edit-body { pointer-events: none; }
+    .dash-edit-body > * { margin-bottom: 0 !important; }
+
+    .dash-hidden {
+      border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px;
+    }
+    .dash-hidden-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px;
+    }
+    .dash-hidden-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dash-hidden-chip {
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); background: var(--card);
+      border: 1px dashed var(--border-strong); border-radius: 999px;
+      padding: 7px 14px; cursor: pointer;
+    }
+    .dash-hidden-chip:hover {
+      color: var(--text); border-style: solid; border-color: var(--primary);
+    }
     .dash-widget-list {
       display: flex; flex-direction: column; gap: 8px;
     }
@@ -12780,16 +12840,35 @@ const DASHBOARD_WIDGET_REGISTRY = {
   top_customers: { label: 'Top customers', help: 'Highest lifetime paid totals.', render: DashboardWidgetTopCustomers },
 };
 
-// Widget list with its toggles and drag handles. Lives next to the dashboard
-// it configures, rather than on a settings page where you pick from a list of
-// names and then navigate somewhere else to find out what you did.
-function DashboardLayoutEditor({ session, widgets, onSaved, onCancel }) {
+// Edit mode for the dashboard: the real widgets stay on screen and gain a
+// handle to drag and a control to hide. A list of widget names would have
+// been the settings page again, just relocated — the point of moving it here
+// is that you rearrange the thing while looking at the thing.
+//
+// Widget bodies are inert while editing (pointer-events: none) so a drag or a
+// click lands on the card being arranged rather than on a button inside it.
+function DashboardLayoutMode({ session, ctx, widgets, isVisibleForRole, onSaved, onCancel }) {
   const [draft, setDraft] = useState(() => widgets.map((w) => ({ ...w })));
+  const [dragId, setDragId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  function toggle(id) {
-    setDraft((list) => list.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : w)));
+  const known = (w) => DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id);
+  const shown = draft.filter((w) => w.enabled && known(w));
+  const hidden = draft.filter((w) => !w.enabled && known(w));
+
+  function setEnabled(id, enabled) {
+    setDraft((list) => list.map((w) => (w.id === id ? { ...w, enabled } : w)));
+  }
+
+  // Drag is mouse-only — HTML5 drag-and-drop does not fire for touch — so
+  // reordering also gets buttons, which work on a phone and from a keyboard.
+  function step(id, delta) {
+    const order = shown.map((w) => w.id);
+    const at = order.indexOf(id);
+    const to = at + delta;
+    if (at === -1 || to < 0 || to >= order.length) return;
+    move(id, order[to]);
   }
 
   function move(fromId, toId) {
@@ -12807,8 +12886,8 @@ function DashboardLayoutEditor({ session, widgets, onSaved, onCancel }) {
   async function save() {
     setBusy(true); setError(null);
     try {
-      // The settings endpoint builds its SET from the keys it receives, so
-      // sending only this one leaves every other setting untouched.
+      // Only this key is sent; the settings endpoint builds its SET from
+      // whatever it receives, so no other setting is touched.
       await apiRequest('/api/settings', {
         method: 'PUT', slug: session.slug, token: session.token,
         body: { dashboard_widgets: draft },
@@ -12819,51 +12898,92 @@ function DashboardLayoutEditor({ session, widgets, onSaved, onCancel }) {
   }
 
   return (
-    <div className="form-card dash-layout-editor">
-      <div className="section-heading" style={{ marginTop: 0 }}>Edit layout</div>
-      <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-        Turn widgets on or off and drag to reorder. Some hide themselves when
-        they have nothing to show — overdue, outstanding, pending requests, tomorrow.
-      </p>
-      {error && <div className="error">{error}</div>}
-      <div className="dash-widget-list">
-        {draft.map((w) => {
-          const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
-          if (!meta) return null;
-          return (
-            <div
-              key={w.id}
-              className="dash-widget-row"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', w.id);
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const fromId = e.dataTransfer.getData('text/plain');
-                if (fromId && fromId !== w.id) move(fromId, w.id);
-              }}
-            >
-              <span className="dash-widget-drag" aria-hidden="true">⋮⋮</span>
-              <label className="dash-widget-toggle">
-                <input type="checkbox" checked={!!w.enabled} onChange={() => toggle(w.id)} />
-              </label>
-              <div className="dash-widget-text">
-                <div className="dash-widget-name">{meta.label}</div>
-                <div className="dash-widget-help">{meta.help}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="form-actions">
-        <button className="primary" disabled={busy} onClick={save}>
-          {busy ? 'Saving...' : 'Save layout'}
-        </button>
+    <div className="dash-editing">
+      <div className="dash-edit-bar">
+        {/* Says arrows rather than drag: dragging is mouse-only, so promising
+            it would be wrong on the device where this text is most likely
+            being read. On a mouse you can drag as well. */}
+        <span className="dash-edit-hint">
+          Use the arrows to reorder, and hide the cards you don&rsquo;t use.
+        </span>
         <button className="secondary" disabled={busy} onClick={onCancel}>Cancel</button>
+        <button className="primary" disabled={busy} onClick={save}>
+          {busy ? 'Saving...' : 'Done'}
+        </button>
       </div>
+      {error && <div className="error">{error}</div>}
+
+      {shown.map((w, i) => {
+        const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
+        const W = meta.render;
+        return (
+          <div
+            key={w.id}
+            className={`dash-edit-card${dragId === w.id ? ' dragging' : ''}`}
+            draggable
+            onDragStart={(e) => {
+              setDragId(w.id);
+              e.dataTransfer.setData('text/plain', w.id);
+              e.dataTransfer.effectAllowed = 'move';
+            }}
+            onDragEnd={() => setDragId(null)}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const fromId = e.dataTransfer.getData('text/plain');
+              if (fromId && fromId !== w.id) move(fromId, w.id);
+              setDragId(null);
+            }}
+          >
+            <div className="dash-edit-head">
+              <span className="dash-edit-grip" aria-hidden="true">⋮⋮</span>
+              <span className="dash-edit-name">{meta.label}</span>
+              <button
+                type="button"
+                className="dash-edit-step"
+                disabled={i === 0}
+                aria-label={`Move ${meta.label} up`}
+                onClick={() => step(w.id, -1)}
+              >↑</button>
+              <button
+                type="button"
+                className="dash-edit-step"
+                disabled={i === shown.length - 1}
+                aria-label={`Move ${meta.label} down`}
+                onClick={() => step(w.id, 1)}
+              >↓</button>
+              <button
+                type="button"
+                className="dash-edit-hide"
+                onClick={() => setEnabled(w.id, false)}
+              >Hide</button>
+            </div>
+            <div className="dash-edit-body" aria-hidden="true"><W ctx={ctx} /></div>
+          </div>
+        );
+      })}
+
+      {hidden.length > 0 && (
+        <div className="dash-hidden">
+          <p className="dash-hidden-label">Hidden</p>
+          <div className="dash-hidden-row">
+            {hidden.map((w) => {
+              const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  className="dash-hidden-chip"
+                  onClick={() => setEnabled(w.id, true)}
+                  title={meta.help}
+                >
+                  {meta.label}<span aria-hidden="true"> +</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -13036,14 +13156,25 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
       {loading ? (
         <div className="list-empty">Loading...</div>
       ) : editingLayout ? (
-        <DashboardLayoutEditor
+        <DashboardLayoutMode
           session={session}
+          ctx={ctx}
           widgets={widgets}
+          isVisibleForRole={isVisibleForRole}
           onSaved={(next) => { setLayoutOverride(next); setEditingLayout(false); }}
           onCancel={() => setEditingLayout(false)}
         />
       ) : (
         <>
+          {/* Above the widgets, not below them — you decide to rearrange when
+              you look at the thing, not after scrolling past all of it. */}
+          {role === 'admin' && (
+            <div className="dash-top">
+              <button className="link-button" onClick={() => setEditingLayout(true)}>
+                Edit layout
+              </button>
+            </div>
+          )}
           {role === 'admin' && !(me && me.is_demo) && (
             <GettingStartedChecklist
               session={session}
@@ -13059,16 +13190,6 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
               const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
               return <W key={w.id} ctx={ctx} />;
             })}
-          {/* Sits at the end of what it edits, so you change the layout while
-              looking at it rather than from a settings page. Admin only —
-              the layout is org-wide, same as it was in Settings. */}
-          {role === 'admin' && (
-            <div className="dash-edit-layout">
-              <button className="secondary" onClick={() => setEditingLayout(true)}>
-                Edit layout
-              </button>
-            </div>
-          )}
         </>
       )}
     </div>
