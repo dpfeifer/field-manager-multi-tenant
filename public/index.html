@@ -6390,7 +6390,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
       <TwoPane
         ariaLabel={`${customerDisplayName(customer)} sections`}
-        backLabel={customerDisplayName(customer)}
+        backLabel="All sections"
         active={tab}
         onSelect={setTab}
         sections={[
@@ -12088,8 +12088,13 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
   const current = sections.find((s) => s.key === active);
   return (
     <div className="two-pane-narrow">
+      {/* The aside stays put inside a section, so a phone number is still on
+          screen here exactly as it is on the wide layout. It also puts space
+          between this back link and whatever back link the page itself
+          carries, which otherwise sit on top of each other. */}
+      {aside && <div className="two-pane-aside">{aside}</div>}
       <button type="button" className="drill-back" onClick={() => setDrilled(false)}>
-        ‹ {backLabel || 'Back'}
+        ‹ {backLabel || 'All sections'}
       </button>
       {current && <h3 className="drill-title">{current.label}</h3>}
       <div className="two-pane-body">{children}</div>
