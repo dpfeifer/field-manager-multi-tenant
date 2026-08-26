@@ -11342,6 +11342,15 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
 
 // Which URL each settings section lives at. The rail is presentation; these
 // routes are unchanged, so existing links and bookmarks still land correctly.
+const SYSTEM_ROUTES = {
+  overview: '/system/overview',
+  funnel: '/system/funnel',
+  organizations: '/system',
+  staff: '/system/staff',
+  templates: '/system/templates',
+  settings: '/system/settings',
+};
+
 const SETTINGS_ROUTES = {
   company: '/settings',
   payments: '/settings/payments',
@@ -14351,40 +14360,28 @@ function SystemView({ session }) {
         <h2>System</h2>
         <span className="badge">{isStaff ? 'Staff' : 'System admin'}</span>
       </div>
-      <div className="filter-bar">
-        <div className="chip-group">
-          <button
-            className={`chip ${subView === 'overview' ? 'active' : ''}`}
-            onClick={() => navigate('/system/overview')}
-          >Overview</button>
-          <button
-            className={`chip ${subView === 'funnel' ? 'active' : ''}`}
-            onClick={() => navigate('/system/funnel')}
-          >Funnel</button>
-          <button
-            className={`chip ${subView === 'organizations' ? 'active' : ''}`}
-            onClick={() => navigate('/system')}
-          >Organizations</button>
-          <button
-            className={`chip ${subView === 'staff' ? 'active' : ''}`}
-            onClick={() => navigate('/system/staff')}
-          >Staff accounts</button>
-          <button
-            className={`chip ${subView === 'templates' ? 'active' : ''}`}
-            onClick={() => navigate('/system/templates')}
-          >Email templates</button>
-          <button
-            className={`chip ${subView === 'settings' ? 'active' : ''}`}
-            onClick={() => navigate('/system/settings')}
-          >Site settings</button>
-        </div>
-      </div>
-      {subView === 'overview' && <PlatformOverviewSection token={session.token} />}
-      {subView === 'funnel' && <FunnelSection token={session.token} />}
-      {subView === 'organizations' && <OrganizationsSection session={session} />}
-      {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
-      {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
-      {subView === 'settings' && <SiteSettingsSection token={session.token} />}
+      {/* Watching the funnel is a different activity from editing an email
+          template. A single chip row could not say so; a rail can. */}
+      <TwoPane
+        ariaLabel="System sections"
+        active={subView}
+        onSelect={(key) => navigate(SYSTEM_ROUTES[key])}
+        sections={[
+          { key: 'overview', label: 'Overview', group: 'Watch' },
+          { key: 'funnel', label: 'Funnel', group: 'Watch' },
+          { key: 'organizations', label: 'Organizations', group: 'Manage' },
+          { key: 'staff', label: 'Staff accounts', group: 'Manage' },
+          { key: 'templates', label: 'Email templates', group: 'Configure' },
+          { key: 'settings', label: 'Site settings', group: 'Configure' },
+        ]}
+      >
+        {subView === 'overview' && <PlatformOverviewSection token={session.token} />}
+        {subView === 'funnel' && <FunnelSection token={session.token} />}
+        {subView === 'organizations' && <OrganizationsSection session={session} />}
+        {subView === 'staff' && <StaffManagementSection token={session.token} currentUserId={session.user.id} />}
+        {subView === 'templates' && <EmailTemplatesSection token={session.token} />}
+        {subView === 'settings' && <SiteSettingsSection token={session.token} />}
+      </TwoPane>
     </div>
   );
 }
