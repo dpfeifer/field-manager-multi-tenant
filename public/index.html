@@ -1167,6 +1167,7 @@
     .money-pill.owes { color: var(--danger); background: var(--danger-bg); }
     .money-pill.credit { color: var(--success); background: var(--success-bg); }
     .two-pane-body { padding: 16px 18px 18px; min-width: 0; }
+    .two-pane-narrow { min-width: 0; }
     /* The pane is already a white card. A .list carries its own surface, so
        inside the pane it drops the background, border and shadow and keeps
        just its row dividers — otherwise every section reads as a card in a
@@ -1178,21 +1179,40 @@
     .two-pane-body .list > .row { padding-left: 0; padding-right: 0; }
     .two-pane-body .list-empty { padding: 34px 8px; }
 
-    @media (max-width: 720px) {
-      .two-pane {
-        grid-template-columns: minmax(0, 1fr);
-        border: 0; border-radius: 0; background: transparent;
-      }
-      .two-pane-rail {
-        border-right: 0; border-bottom: 0;
-        background: transparent; padding: 0;
-      }
-      .two-pane-aside {
-        background: var(--card); border: 1px solid var(--border);
-        border-radius: 12px; box-shadow: var(--shadow-sm);
-        padding: 14px 16px; margin-bottom: 16px;
-      }
-      .two-pane-body { padding: 14px 0 0; }
+    /* Narrow: the rail becomes a full-width list you drill into. */
+    .two-pane-narrow .two-pane-aside {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow-sm);
+      padding: 14px 16px; margin-bottom: 16px;
+    }
+    .two-pane-narrow .two-pane-body { padding: 4px 0 0; }
+    .drill-list {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden;
+    }
+    .drill-row {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      background: none; border: 0; border-bottom: 1px solid var(--border);
+      padding: 15px 16px; cursor: pointer; text-align: left;
+      font-family: inherit; color: var(--text);
+    }
+    .drill-row:last-child { border-bottom: 0; }
+    .drill-row:hover { background: var(--row-hover); }
+    .drill-name { font-size: 15px; font-weight: 500; flex: 1 1 auto; }
+    .drill-count {
+      font-size: 13px; color: var(--text-muted);
+      font-variant-numeric: tabular-nums; flex: none;
+    }
+    .drill-chev { color: var(--border-strong); font-size: 17px; flex: none; line-height: 1; }
+    .drill-back {
+      background: none; border: 0; padding: 0; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 500;
+      color: var(--primary); margin-bottom: 10px;
+    }
+    .drill-back:hover { text-decoration: underline; }
+    .drill-title {
+      font-family: var(--serif); font-size: 20px; font-weight: 600;
+      letter-spacing: -0.01em; margin: 0 0 6px; color: var(--text);
     }
 
     /* Day view — time grid */
@@ -6370,6 +6390,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
       <TwoPane
         ariaLabel={`${customerDisplayName(customer)} sections`}
+        backLabel={customerDisplayName(customer)}
         active={tab}
         onSelect={setTab}
         sections={[
@@ -12004,59 +12025,73 @@ function useMediaQuery(query) {
 // [{ key, label, count }]; `aside` is optional content pinned above the rail
 // (customer detail puts the phone and address there so they stay on screen).
 //
-// Narrow screens fall back to the existing scrolling tab strip rather than a
-// drill-down: on the screens using this today you move between sections
-// constantly, and a drill-down would charge a tap in each direction.
-function TwoPane({ sections, active, onSelect, aside, ariaLabel, children }) {
+// Below the breakpoint a 232px rail can't sit beside anything, so the pattern
+// changes shape rather than shrinking: the sections become a full-width list,
+// and choosing one opens it with a link back out. `backLabel` names what you
+// return to, so the way back reads as a place and not just "Back".
+function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, children }) {
   const wide = useMediaQuery('(min-width: 721px)');
+  const [drilled, setDrilled] = useState(false);
 
-  const nav = wide ? (
-    <div className="two-pane-rail">
-      {aside && <div className="two-pane-aside">{aside}</div>}
-      <div role="tablist" aria-label={ariaLabel} aria-orientation="vertical">
-        {sections.map((s) => (
-          <button
-            key={s.key}
-            type="button"
-            role="tab"
-            aria-selected={active === s.key}
-            className={`two-pane-btn${active === s.key ? ' active' : ''}`}
-            onClick={() => onSelect(s.key)}
-          >
-            <span>{s.label}</span>
-            {s.count != null && s.count !== '' && (
-              <span className="two-pane-count">{s.count}</span>
-            )}
-          </button>
-        ))}
+  if (wide) {
+    return (
+      <div className="two-pane">
+        <div className="two-pane-rail">
+          {aside && <div className="two-pane-aside">{aside}</div>}
+          <div role="tablist" aria-label={ariaLabel} aria-orientation="vertical">
+            {sections.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                role="tab"
+                aria-selected={active === s.key}
+                className={`two-pane-btn${active === s.key ? ' active' : ''}`}
+                onClick={() => onSelect(s.key)}
+              >
+                <span>{s.label}</span>
+                {s.count != null && s.count !== '' && (
+                  <span className="two-pane-count">{s.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="two-pane-body">{children}</div>
       </div>
-    </div>
-  ) : (
-    <div className="two-pane-rail">
-      {aside && <div className="two-pane-aside">{aside}</div>}
-      <div className="jobs-tabs" role="tablist" aria-label={ariaLabel}>
-        {sections.map((s) => (
-          <button
-            key={s.key}
-            type="button"
-            role="tab"
-            aria-selected={active === s.key}
-            className={`jobs-tab${active === s.key ? ' active' : ''}`}
-            onClick={() => onSelect(s.key)}
-          >
-            {s.label}
-            {s.count != null && s.count !== '' && (
-              <span style={{ opacity: 0.5, fontWeight: 500 }}> · {s.count}</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  }
 
+  if (!drilled) {
+    return (
+      <div className="two-pane-narrow">
+        {aside && <div className="two-pane-aside">{aside}</div>}
+        <nav className="drill-list" aria-label={ariaLabel}>
+          {sections.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              className="drill-row"
+              onClick={() => { onSelect(s.key); setDrilled(true); }}
+            >
+              <span className="drill-name">{s.label}</span>
+              {s.count != null && s.count !== '' && (
+                <span className="drill-count">{s.count}</span>
+              )}
+              <span className="drill-chev" aria-hidden="true">›</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    );
+  }
+
+  const current = sections.find((s) => s.key === active);
   return (
-    <div className="two-pane">
-      {nav}
+    <div className="two-pane-narrow">
+      <button type="button" className="drill-back" onClick={() => setDrilled(false)}>
+        ‹ {backLabel || 'Back'}
+      </button>
+      {current && <h3 className="drill-title">{current.label}</h3>}
       <div className="two-pane-body">{children}</div>
     </div>
   );
