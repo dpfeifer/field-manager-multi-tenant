@@ -1503,6 +1503,9 @@
     .dash-quick-actions button { font-size: 13px; }
 
     /* Dashboard widget editor in Settings */
+    .dash-edit-layout { display: flex; justify-content: center; margin: 4px 0 8px; }
+    .dash-edit-layout button { font-size: 13px; }
+    .dash-layout-editor { max-width: 620px; }
     .dash-widget-list {
       display: flex; flex-direction: column; gap: 8px;
     }
@@ -10903,7 +10906,12 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     setSaved(false);
   }
 
-  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'dashboard' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
+  // Widget layout moved onto the dashboard itself, so this URL just forwards.
+  useEffect(() => {
+    if (subView === 'dashboard') navigate('/dashboard');
+  }, [subView]);
+
+  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -10936,7 +10944,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           isAdmin && { key: 'modules', label: 'Sections', group: 'How the app works' },
           { key: 'terminology', label: 'Wording', group: 'How the app works' },
           { key: 'quick-text', label: 'Quick text', group: 'How the app works' },
-          { key: 'dashboard', label: 'Dashboard', group: 'How the app works' },
         ].filter(Boolean)}
       >
 
@@ -11067,64 +11074,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           error={error}
           submit={submit}
         />
-      )}
-
-      {subView === 'dashboard' && (
-        <>
-          {error && <div className="error">{error}</div>}
-          {saved && (
-            <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
-          )}
-          <form onSubmit={submit} className="form-card">
-            <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-              Pick the widgets that appear on the Dashboard and drag the handles to reorder them. Some widgets auto-hide when they're empty (overdue, outstanding, pending requests, tomorrow).
-            </p>
-            <div className="dash-widget-list">
-              {(form.dashboard_widgets || []).map((w, i) => {
-                const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
-                if (!meta) return null;
-                return (
-                  <div
-                    key={w.id}
-                    className="dash-widget-row"
-                    draggable={isAdmin}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', w.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const fromId = e.dataTransfer.getData('text/plain');
-                      if (fromId && fromId !== w.id) moveDashboardWidget(fromId, w.id);
-                    }}
-                  >
-                    <span className="dash-widget-drag" aria-hidden="true">⋮⋮</span>
-                    <label className="dash-widget-toggle">
-                      <input
-                        type="checkbox"
-                        checked={!!w.enabled}
-                        onChange={() => toggleDashboardWidget(w.id)}
-                        disabled={!isAdmin}
-                      />
-                    </label>
-                    <div className="dash-widget-text">
-                      <div className="dash-widget-name">{meta.label}</div>
-                      <div className="dash-widget-help">{meta.help}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {isAdmin && (
-              <div className="form-actions">
-                <button type="submit" className="primary" disabled={busy}>
-                  {busy ? 'Saving...' : 'Save dashboard'}
-                </button>
-              </div>
-            )}
-          </form>
-        </>
       )}
 
       {subView === 'quick-text' && (
@@ -11380,7 +11329,6 @@ const SETTINGS_ROUTES = {
   modules: '/settings/modules',
   terminology: '/settings/terminology',
   'quick-text': '/settings/quick-text',
-  dashboard: '/settings/dashboard',
 };
 
 const APP_ROUTES = {
@@ -12754,6 +12702,94 @@ const DASHBOARD_WIDGET_REGISTRY = {
   top_customers: { label: 'Top customers', help: 'Highest lifetime paid totals.', render: DashboardWidgetTopCustomers },
 };
 
+// Widget list with its toggles and drag handles. Lives next to the dashboard
+// it configures, rather than on a settings page where you pick from a list of
+// names and then navigate somewhere else to find out what you did.
+function DashboardLayoutEditor({ session, widgets, onSaved, onCancel }) {
+  const [draft, setDraft] = useState(() => widgets.map((w) => ({ ...w })));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  function toggle(id) {
+    setDraft((list) => list.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : w)));
+  }
+
+  function move(fromId, toId) {
+    setDraft((list) => {
+      const next = list.slice();
+      const from = next.findIndex((w) => w.id === fromId);
+      const to = next.findIndex((w) => w.id === toId);
+      if (from === -1 || to === -1 || from === to) return list;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  async function save() {
+    setBusy(true); setError(null);
+    try {
+      // The settings endpoint builds its SET from the keys it receives, so
+      // sending only this one leaves every other setting untouched.
+      await apiRequest('/api/settings', {
+        method: 'PUT', slug: session.slug, token: session.token,
+        body: { dashboard_widgets: draft },
+      });
+      onSaved(draft);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="form-card dash-layout-editor">
+      <div className="section-heading" style={{ marginTop: 0 }}>Edit layout</div>
+      <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+        Turn widgets on or off and drag to reorder. Some hide themselves when
+        they have nothing to show — overdue, outstanding, pending requests, tomorrow.
+      </p>
+      {error && <div className="error">{error}</div>}
+      <div className="dash-widget-list">
+        {draft.map((w) => {
+          const meta = DASHBOARD_WIDGET_REGISTRY[w.id];
+          if (!meta) return null;
+          return (
+            <div
+              key={w.id}
+              className="dash-widget-row"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', w.id);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromId = e.dataTransfer.getData('text/plain');
+                if (fromId && fromId !== w.id) move(fromId, w.id);
+              }}
+            >
+              <span className="dash-widget-drag" aria-hidden="true">⋮⋮</span>
+              <label className="dash-widget-toggle">
+                <input type="checkbox" checked={!!w.enabled} onChange={() => toggle(w.id)} />
+              </label>
+              <div className="dash-widget-text">
+                <div className="dash-widget-name">{meta.label}</div>
+                <div className="dash-widget-help">{meta.help}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="form-actions">
+        <button className="primary" disabled={busy} onClick={save}>
+          {busy ? 'Saving...' : 'Save layout'}
+        </button>
+        <button className="secondary" disabled={busy} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, features = {} }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
@@ -12898,9 +12934,14 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
     onMarkPaid: markInvoicePaid,
   };
 
-  const widgets = (me && Array.isArray(me.dashboard_widgets) && me.dashboard_widgets.length > 0)
-    ? me.dashboard_widgets
-    : DEFAULT_DASHBOARD_WIDGETS;
+  // Local copy so a saved layout takes effect immediately, without waiting
+  // for `me` to be refetched by the shell.
+  const [layoutOverride, setLayoutOverride] = useState(null);
+  const [editingLayout, setEditingLayout] = useState(false);
+  const widgets = layoutOverride
+    || ((me && Array.isArray(me.dashboard_widgets) && me.dashboard_widgets.length > 0)
+      ? me.dashboard_widgets
+      : DEFAULT_DASHBOARD_WIDGETS);
 
   // Employees don't see money widgets (stats, outstanding invoices, top customers
   // by revenue, quick actions — most quick actions create things they can't).
@@ -12916,6 +12957,13 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
 
       {loading ? (
         <div className="list-empty">Loading...</div>
+      ) : editingLayout ? (
+        <DashboardLayoutEditor
+          session={session}
+          widgets={widgets}
+          onSaved={(next) => { setLayoutOverride(next); setEditingLayout(false); }}
+          onCancel={() => setEditingLayout(false)}
+        />
       ) : (
         <>
           {role === 'admin' && !(me && me.is_demo) && (
@@ -12933,6 +12981,16 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
               const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
               return <W key={w.id} ctx={ctx} />;
             })}
+          {/* Sits at the end of what it edits, so you change the layout while
+              looking at it rather than from a settings page. Admin only —
+              the layout is org-wide, same as it was in Settings. */}
+          {role === 'admin' && (
+            <div className="dash-edit-layout">
+              <button className="secondary" onClick={() => setEditingLayout(true)}>
+                Edit layout
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
