@@ -1503,6 +1503,28 @@
     .dash-quick-actions button { font-size: 13px; }
 
     /* Dashboard widget editor in Settings */
+    .viewas-banner {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--primary); color: #eef2f8;
+      padding: 9px 24px; font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .viewas-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); flex: none;
+    }
+    .viewas-banner strong { font-weight: 600; }
+    .viewas-banner button {
+      margin-left: auto; font-family: inherit; font-size: 12px; font-weight: 600;
+      color: #eef2f8; background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 6px; padding: 5px 11px; cursor: pointer;
+    }
+    .viewas-banner button:hover { background: rgba(255,255,255,0.22); }
+    @media (max-width: 600px) {
+      .viewas-banner { padding: 9px 16px; }
+      .viewas-banner button { margin-left: 0; }
+    }
     .dash-edit-layout { display: flex; justify-content: center; margin: 4px 0 8px; }
     .dash-edit-layout button { font-size: 13px; }
     .dash-layout-editor { max-width: 620px; }
@@ -11846,7 +11868,7 @@ function PlanError({ error, session }) {
   );
 }
 
-function UserMenu({ session, onLogout, onSwitch }) {
+function UserMenu({ session, onLogout, onSwitch, onViewAs }) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState(null);
   const [switching, setSwitching] = useState(false);
@@ -11944,6 +11966,22 @@ function UserMenu({ session, onLogout, onSwitch }) {
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/profile'); }}>
             Profile
           </button>
+          {session.user.role === 'admin' && onViewAs && (
+            <>
+              <div className="user-menu-section">View as</div>
+              {ROLE_OPTIONS.filter((r) => r.value !== 'admin').map((r) => (
+                <button
+                  key={r.value}
+                  className="user-menu-item"
+                  onClick={() => { setOpen(false); onViewAs(r.value); }}
+                >
+                  <span>{r.label}</span>
+                  <span className="user-menu-item-meta">preview</span>
+                </button>
+              ))}
+              <div className="user-menu-divider" />
+            </>
+          )}
           {session.user.role === 'admin' && (
             <>
               <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/settings'); }}>
@@ -12136,7 +12174,20 @@ function useScrollEdges(ref, signature) {
   return edges;
 }
 
-function AppShell({ session, onLogout, onSessionUpdate }) {
+function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
+  // Preview the app as a less-privileged role. Everything below reads
+  // `session`, so swapping it here re-renders the whole shell — nav, gating
+  // and views — without touching a single call site.
+  //
+  // This is presentation only. The token is the real one, so the server still
+  // decides what is actually permitted; and because only an admin can start a
+  // preview, and the roles it offers are strictly narrower, it can only ever
+  // hide things, never reveal them.
+  const [viewAsRole, setViewAsRole] = useState(null);
+  const session = viewAsRole
+    ? { ...realSession, user: { ...realSession.user, role: viewAsRole } }
+    : realSession;
+
   const path = useLocation();
   const view = APP_ROUTES[path] || (path.startsWith('/system/') ? 'system' : 'dashboard');
   const [billing, setBilling] = useState(null);
@@ -12236,7 +12287,15 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
               {isFree ? 'Free' : 'Pro'}{isFree && isAdmin && ' · Upgrade'}
             </span>
           )}
-          <UserMenu session={session} onLogout={onLogout} onSwitch={(s) => { saveSession(s); window.location.reload(); }} />
+          {/* The menu is driven by who you really are, not who you are
+              previewing — otherwise previewing as an employee would hide the
+              control you need to stop previewing. */}
+          <UserMenu
+            session={realSession}
+            onLogout={onLogout}
+            onSwitch={(s) => { saveSession(s); window.location.reload(); }}
+            onViewAs={realSession.user.role === 'admin' ? setViewAsRole : undefined}
+          />
         </div>
       </div>
       {showVerifyBanner && (
@@ -12253,6 +12312,16 @@ function AppShell({ session, onLogout, onSessionUpdate }) {
       )}
       {isAdmin && billing && <BillingBanner status={billing.status} trialDaysLeft={trialDaysLeft} isAdmin={isAdmin} orgId={me && me.organization_id} session={session} />}
       {me && me.is_demo && <DemoBanner />}
+      {viewAsRole && (
+        <div className="viewas-banner">
+          <span className="viewas-dot" aria-hidden="true" />
+          <span>
+            Viewing as <strong>{ROLE_OPTIONS.find((r) => r.value === viewAsRole).label}</strong>
+            {' '}&mdash; this is what your team sees. Nothing you do here is restricted.
+          </span>
+          <button type="button" onClick={() => setViewAsRole(null)}>Back to my view</button>
+        </div>
+      )}
       <TeamNotesBanner session={session} />
       <div
         className={`nav${navEdges.left ? ' can-scroll-left' : ''}${navEdges.right ? ' can-scroll-right' : ''}`}
