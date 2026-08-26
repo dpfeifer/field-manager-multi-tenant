@@ -1214,15 +1214,14 @@
       font-variant-numeric: tabular-nums; flex: none;
     }
     .drill-chev { color: var(--border-strong); font-size: 17px; flex: none; line-height: 1; }
-    .drill-back {
-      background: none; border: 0; padding: 0; cursor: pointer;
-      font-family: inherit; font-size: 14px; font-weight: 500;
-      color: var(--primary); margin-bottom: 10px;
+    .drill-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 10px;
     }
-    .drill-back:hover { text-decoration: underline; }
+    .drill-back { flex: none; }
     .drill-title {
       font-family: var(--serif); font-size: 20px; font-weight: 600;
-      letter-spacing: -0.01em; margin: 0 0 6px; color: var(--text);
+      letter-spacing: -0.01em; margin: 0; color: var(--text);
     }
 
     /* Day view — time grid */
@@ -6400,7 +6399,6 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 
       <TwoPane
         ariaLabel={`${customerDisplayName(customer)} sections`}
-        backLabel="All sections"
         active={tab}
         onSelect={setTab}
         sections={[
@@ -12103,10 +12101,16 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
           between this back link and whatever back link the page itself
           carries, which otherwise sit on top of each other. */}
       {aside && <div className="two-pane-aside">{aside}</div>}
-      <button type="button" className="drill-back" onClick={() => setDrilled(false)}>
-        ‹ {backLabel || 'All sections'}
-      </button>
-      {current && <h3 className="drill-title">{current.label}</h3>}
+      {/* Title left, way out right — the same shape as the page header above
+          it, so the two rows read as one pattern rather than two. */}
+      <div className="drill-head">
+        {current && <h3 className="drill-title">{current.label}</h3>}
+        <button
+          type="button"
+          className="secondary drill-back"
+          onClick={() => setDrilled(false)}
+        >{backLabel || 'Back'}</button>
+      </div>
       <div className="two-pane-body">{children}</div>
     </div>
   );
