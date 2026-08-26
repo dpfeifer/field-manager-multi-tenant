@@ -1147,6 +1147,19 @@
       background: var(--primary); color: #fff; font-weight: 600;
     }
     .two-pane-btn.active .two-pane-count { color: #fff; }
+    .two-pane-group {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin: 14px 0 4px; padding: 0 11px;
+    }
+    .two-pane-rail > [role="tablist"] > *:first-child.two-pane-group { margin-top: 2px; }
+    .drill-group {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin: 18px 0 6px; padding: 0 2px;
+    }
+    .two-pane-narrow nav > *:first-child.drill-group { margin-top: 0; }
+    .two-pane-narrow .drill-list + .drill-group { margin-top: 18px; }
     .two-pane-count {
       font-size: 11.5px; color: var(--text-muted);
       font-variant-numeric: tabular-nums; opacity: 0.75;
@@ -1172,9 +1185,22 @@
        inside the pane it drops the background, border and shadow and keeps
        just its row dividers — otherwise every section reads as a card in a
        card. Rows lose their side padding too, since the pane supplies it. */
-    .two-pane-body .list {
+    .two-pane-body .list,
+    .two-pane-body > .form-card,
+    .two-pane-body > form.form-card,
+    .two-pane-body > * > .form-card {
       background: transparent; border: 0; border-radius: 0;
       box-shadow: none; overflow: visible;
+    }
+    .two-pane-body > .form-card,
+    .two-pane-body > form.form-card,
+    .two-pane-body > * > .form-card { padding: 0; }
+    /* Consecutive cards inside the pane keep a rule between them, so the
+       sections they used to separate as boxes stay separated as bands. */
+    .two-pane-body > .form-card + .form-card,
+    .two-pane-body > * > .form-card + .form-card {
+      border-top: 1px solid var(--border);
+      padding-top: 22px; margin-top: 22px;
     }
     .two-pane-body .list > .row { padding-left: 0; padding-right: 0; }
     .two-pane-body .list-empty { padding: 34px 8px; }
@@ -10892,54 +10918,27 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         <h2>Settings</h2>
         {!isAdmin && <span className="badge">Read-only</span>}
       </div>
-      <div className="filter-bar">
-        <div className="chip-group">
-          <button
-            className={`chip ${subView === 'company' ? 'active' : ''}`}
-            onClick={() => navigate('/settings')}
-          >Company</button>
-          <button
-            className={`chip ${subView === 'payments' ? 'active' : ''}`}
-            onClick={() => navigate('/settings/payments')}
-          >Payments</button>
-          <button
-            className={`chip ${subView === 'terminology' ? 'active' : ''}`}
-            onClick={() => navigate('/settings/terminology')}
-          >Terminology</button>
-          <button
-            className={`chip ${subView === 'quick-text' ? 'active' : ''}`}
-            onClick={() => navigate('/settings/quick-text')}
-          >Quick text</button>
-          <button
-            className={`chip ${subView === 'dashboard' ? 'active' : ''}`}
-            onClick={() => navigate('/settings/dashboard')}
-          >Dashboard</button>
-          {isAdmin && features.requests && (
-            <button
-              className={`chip ${subView === 'booking-form' ? 'active' : ''}`}
-              onClick={() => navigate('/settings/booking-form')}
-            >Booking form</button>
-          )}
-          {isAdmin && (
-            <button
-              className={`chip ${subView === 'auto-invoice' ? 'active' : ''}`}
-              onClick={() => navigate('/settings/auto-invoice')}
-            >Auto-invoice</button>
-          )}
-          {isAdmin && settings && settings.landing_enabled && (
-            <button
-              className={`chip ${subView === 'landing' ? 'active' : ''}`}
-              onClick={() => navigate('/settings/landing')}
-            >Landing page</button>
-          )}
-          {isAdmin && (
-            <button
-              className={`chip ${subView === 'modules' ? 'active' : ''}`}
-              onClick={() => navigate('/settings/modules')}
-            >Modules</button>
-          )}
-        </div>
-      </div>
+      {/* One flat row of nine chips treated the account's name, how it gets
+          paid, what customers see and how the app behaves as peers. Same nine
+          destinations, now grouped by what you came here to do. */}
+      <TwoPane
+        ariaLabel="Settings sections"
+        active={subView}
+        onSelect={(key) => navigate(SETTINGS_ROUTES[key])}
+        sections={[
+          { key: 'company', label: 'Business', group: 'Your business' },
+          { key: 'payments', label: 'Payments', group: 'Getting paid' },
+          isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', group: 'Getting paid' },
+          isAdmin && features.requests
+            && { key: 'booking-form', label: 'Booking form', group: 'What customers see' },
+          isAdmin && settings && settings.landing_enabled
+            && { key: 'landing', label: 'Landing page', group: 'What customers see' },
+          isAdmin && { key: 'modules', label: 'Sections', group: 'How the app works' },
+          { key: 'terminology', label: 'Wording', group: 'How the app works' },
+          { key: 'quick-text', label: 'Quick text', group: 'How the app works' },
+          { key: 'dashboard', label: 'Dashboard', group: 'How the app works' },
+        ].filter(Boolean)}
+      >
 
       {subView === 'landing' && isAdmin && (
         <>
@@ -10968,7 +10967,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           {error && <div className="error">{error}</div>}
           <form className="form-card" onSubmit={(e) => { e.preventDefault(); saveFeatures(); }}>
             <p className="hint" style={{ marginBottom: 14, marginTop: 0 }}>
-              Turn features on or off. Disabled modules disappear from the nav and any related buttons throughout the app. Your data is preserved.
+              Turn sections of the app on or off. A section that is off disappears from the nav along with any related buttons. Your data is kept either way.
             </p>
             <FeatureRow
               enabled={localFeatures.invoices} onToggle={() => toggleFeature('invoices')}
@@ -11362,9 +11361,24 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </form>
         </>
       )}
+      </TwoPane>
     </div>
   );
 }
+
+// Which URL each settings section lives at. The rail is presentation; these
+// routes are unchanged, so existing links and bookmarks still land correctly.
+const SETTINGS_ROUTES = {
+  company: '/settings',
+  payments: '/settings/payments',
+  'auto-invoice': '/settings/auto-invoice',
+  'booking-form': '/settings/booking-form',
+  landing: '/settings/landing',
+  modules: '/settings/modules',
+  terminology: '/settings/terminology',
+  'quick-text': '/settings/quick-text',
+  dashboard: '/settings/dashboard',
+};
 
 const APP_ROUTES = {
   '/': 'dashboard',
@@ -12029,6 +12043,19 @@ function useMediaQuery(query) {
   return matches;
 }
 
+// Collapses a flat section list into consecutive runs that share a `group`,
+// so the narrow layout can put each run in its own card. Sections without a
+// group come back as a single unnamed run.
+function groupSections(sections) {
+  const out = [];
+  sections.forEach((s) => {
+    const last = out[out.length - 1];
+    if (last && last.name === (s.group || null)) last.items.push(s);
+    else out.push({ name: s.group || null, items: [s] });
+  });
+  return out;
+}
+
 // A rail of destinations beside their content. `sections` is
 // [{ key, label, count }]; `aside` is optional content pinned above the rail
 // (customer detail puts the phone and address there so they stay on screen).
@@ -12047,20 +12074,27 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
         <div className="two-pane-rail">
           {aside && <div className="two-pane-aside">{aside}</div>}
           <div role="tablist" aria-label={ariaLabel} aria-orientation="vertical">
-            {sections.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                role="tab"
-                aria-selected={active === s.key}
-                className={`two-pane-btn${active === s.key ? ' active' : ''}`}
-                onClick={() => onSelect(s.key)}
-              >
-                <span>{s.label}</span>
-                {s.count != null && s.count !== '' && (
-                  <span className="two-pane-count">{s.count}</span>
+            {sections.map((s, i) => (
+              <React.Fragment key={s.key}>
+                {/* A heading whenever the group changes, so related
+                    destinations read as belonging together — the thing a
+                    single row of chips could never express. */}
+                {s.group && s.group !== (sections[i - 1] || {}).group && (
+                  <p className="two-pane-group">{s.group}</p>
                 )}
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={active === s.key}
+                  className={`two-pane-btn${active === s.key ? ' active' : ''}`}
+                  onClick={() => onSelect(s.key)}
+                >
+                  <span>{s.label}</span>
+                  {s.count != null && s.count !== '' && (
+                    <span className="two-pane-count">{s.count}</span>
+                  )}
+                </button>
+              </React.Fragment>
             ))}
           </div>
         </div>
@@ -12073,20 +12107,27 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
     return (
       <div className="two-pane-narrow">
         {aside && <div className="two-pane-aside">{aside}</div>}
-        <nav className="drill-list" aria-label={ariaLabel}>
-          {sections.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              className="drill-row"
-              onClick={() => { onSelect(s.key); setDrilled(true); }}
-            >
-              <span className="drill-name">{s.label}</span>
-              {s.count != null && s.count !== '' && (
-                <span className="drill-count">{s.count}</span>
-              )}
-              <span className="drill-chev" aria-hidden="true">›</span>
-            </button>
+        <nav aria-label={ariaLabel}>
+          {groupSections(sections).map((g, gi) => (
+            <React.Fragment key={g.name || gi}>
+              {g.name && <p className="drill-group">{g.name}</p>}
+              <div className="drill-list">
+                {g.items.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    className="drill-row"
+                    onClick={() => { onSelect(s.key); setDrilled(true); }}
+                  >
+                    <span className="drill-name">{s.label}</span>
+                    {s.count != null && s.count !== '' && (
+                      <span className="drill-count">{s.count}</span>
+                    )}
+                    <span className="drill-chev" aria-hidden="true">›</span>
+                  </button>
+                ))}
+              </div>
+            </React.Fragment>
           ))}
         </nav>
       </div>
