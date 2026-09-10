@@ -43,6 +43,21 @@ const match = html.match(JSX_BLOCK);
 if (!match) fail('No <script type="text/babel"> block found in public/index.html');
 const jsx = match[1];
 
+// The block is delimited by the first closing script tag, so a literal one
+// written anywhere inside the JSX — in a string, or even in a comment — ends
+// the extraction early. The remainder still tends to parse, so Babel succeeds
+// and we ship a silently truncated bundle with half the app missing.
+//
+// The mount call is the last statement in the real block, so its absence means
+// the extraction stopped short. Write the tag as <\/script> to avoid this.
+if (!/ReactDOM\s*\.\s*createRoot/.test(jsx)) {
+  fail(
+    'Extracted JSX is missing the ReactDOM.createRoot mount call, so the\n'
+    + '       <script type="text/babel"> block was cut short. Something inside it\n'
+    + '       contains a literal closing script tag — escape it as <\\/script>.'
+  );
+}
+
 if (!BABEL_TAG.test(html)) {
   console.warn('[build-client] warning: no @babel/standalone tag found — nothing to strip');
 }

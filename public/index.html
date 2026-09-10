@@ -7327,6 +7327,7 @@ function RequestsView({ session }) {
   const [decliningId, setDecliningId] = useState(null);
   const [declineReason, setDeclineReason] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [showEmbed, setShowEmbed] = useState(false);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
@@ -7401,8 +7402,38 @@ function RequestsView({ session }) {
           />
           <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
           <button type="button" className="secondary" onClick={() => setShowQr(true)}>QR code</button>
+          <button type="button" className="secondary" onClick={() => setShowEmbed(true)}>Add to website</button>
         </div>
       </div>
+      {showEmbed && (
+        <div className="modal-overlay" onClick={() => setShowEmbed(false)}>
+          <div className="modal-card" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head" style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Put this form on your website</h3>
+              <button className="modal-close" onClick={() => setShowEmbed(false)}>×</button>
+            </div>
+            <p className="hint" style={{ marginTop: 0 }}>
+              Paste this where you want the form to appear. It sizes itself to
+              fit and needs no styling. Requests arrive here exactly as they do
+              from the link.
+            </p>
+            <textarea
+              readOnly
+              rows={3}
+              value={bookingEmbedSnippet(session.slug)}
+              onFocus={(e) => e.target.select()}
+              style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5, resize: 'vertical' }}
+            />
+            <div className="form-actions" style={{ marginTop: 12 }}>
+              <CopyButton text={bookingEmbedSnippet(session.slug)} label="Copy code" />
+              <button className="secondary" onClick={() => setShowEmbed(false)}>Done</button>
+            </div>
+            <p className="hint" style={{ marginBottom: 0 }}>
+              Works on WordPress, Squarespace, Wix and plain HTML.
+            </p>
+          </div>
+        </div>
+      )}
       {showQr && (
         <div className="modal-overlay" onClick={() => setShowQr(false)}>
           <div className="modal-card" style={{ maxWidth: 420, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
@@ -10649,6 +10680,17 @@ function TimezoneSelect({ value, onChange, disabled }) {
   );
 }
 
+// The one-line embed a client pastes into their own website.
+//
+// The closing tag is escaped as <\/script> deliberately. Written literally,
+// it terminates the <script> element that holds this whole inline JSX block —
+// the browser and the build script both stop reading there, and the build
+// quietly emits a half-sized bundle rather than failing. The escape is
+// invisible at runtime; the string still ends in a normal closing tag.
+function bookingEmbedSnippet(slug) {
+  return `<script src="${window.location.origin}/embed.js" data-org="${slug}"><\/script>`;
+}
+
 function CopyButton({ text, label = 'Copy' }) {
   const [copied, setCopied] = useState(false);
   async function doCopy() {
@@ -11353,11 +11395,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               <textarea
                 readOnly
                 rows={2}
-                value={`<script src="${window.location.origin}/embed.js" data-org="${session.slug}"><\/script>`}
+                value={bookingEmbedSnippet(session.slug)}
                 onFocus={(e) => e.target.select()}
                 style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5, resize: 'vertical' }}
               />
-              <CopyButton text={`<script src="${window.location.origin}/embed.js" data-org="${session.slug}"><\/script>`} />
+              <CopyButton text={bookingEmbedSnippet(session.slug)} />
             </div>
             <p className="hint" style={{ marginTop: 6 }}>
               Works on WordPress, Squarespace, Wix and plain HTML. Requests land
