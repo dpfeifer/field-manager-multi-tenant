@@ -10835,7 +10835,8 @@ function BookingFormPanel({ form, setField, busy, saved, error, submit }) {
 
 function SettingsView({ session, features = { invoices: true, quotes: true, reports: true, team: true, requests: true }, onFeaturesChange }) {
   const path = useLocation();
-  const subView = path === '/settings/modules' ? 'modules'
+  const subView = path === '/settings/links' ? 'links'
+    : path === '/settings/modules' ? 'modules'
     : path === '/settings/terminology' ? 'terminology'
     : path === '/settings/quick-text' ? 'quick-text'
     : path === '/settings/dashboard' ? 'dashboard'
@@ -11035,7 +11036,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     if (subView === 'dashboard') navigate('/dashboard');
   }, [subView]);
 
-  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
+  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'links' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -11061,6 +11062,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           { key: 'company', label: 'Business', group: 'Your business' },
           { key: 'payments', label: 'Payments', group: 'Getting paid' },
           isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', group: 'Getting paid' },
+          { key: 'links', label: 'Share links', group: 'What customers see' },
           isAdmin && features.requests
             && { key: 'booking-form', label: 'Booking form', group: 'What customers see' },
           isAdmin && settings && settings.landing_enabled
@@ -11357,57 +11359,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         </div>
 
-        <div className="section-heading">Links you can share</div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-          {features.requests
-            ? "The profile is your at-a-glance business card; the booking link drops customers straight into the request form."
-            : "Your public profile URL. The booking link is hidden because the Requests section is off."}
-        </p>
-        <label>Profile</label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-          <input
-            readOnly
-            value={`${window.location.origin}/o/${session.slug}`}
-            style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-          />
-          <CopyButton text={`${window.location.origin}/o/${session.slug}`} />
-        </div>
-        {features.requests && (
-          <>
-            <label>Booking</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-              <input
-                readOnly
-                value={`${window.location.origin}/book/${session.slug}`}
-                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
-              />
-              <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
-            </div>
-
-            {/* For a customer who already has a website and doesn't want a
-                hosted landing page: the same form, dropped into their own
-                site. One tag, sizes itself, no styling to fight. */}
-            <label style={{ marginTop: 14 }}>
-              Put the booking form on your own website
-              <span className="hint"> (paste this where you want it to appear)</span>
-            </label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <textarea
-                readOnly
-                rows={2}
-                value={bookingEmbedSnippet(session.slug)}
-                onFocus={(e) => e.target.select()}
-                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5, resize: 'vertical' }}
-              />
-              <CopyButton text={bookingEmbedSnippet(session.slug)} />
-            </div>
-            <p className="hint" style={{ marginTop: 6 }}>
-              Works on WordPress, Squarespace, Wix and plain HTML. Requests land
-              in Requests exactly as they do from the booking link.
-            </p>
-          </>
-        )}
-
         {isAdmin && (
           <div className="form-actions">
             <button type="submit" className="primary" disabled={busy}>
@@ -11416,6 +11367,64 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           </div>
         )}
       </form>
+        </>
+      )}
+
+      {subView === 'links' && (
+        <>
+          {error && <div className="error">{error}</div>}
+          <div className="form-card">
+            <div className="section-heading" style={{ marginTop: 0 }}>Links you can share</div>
+            <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+              {features.requests
+                ? "The profile is your at-a-glance business card; the booking link drops customers straight into the request form."
+                : "Your public profile URL. The booking link is hidden because the Requests section is off."}
+            </p>
+            <label>Profile</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <input
+                readOnly
+                value={`${window.location.origin}/o/${session.slug}`}
+                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+              />
+              <CopyButton text={`${window.location.origin}/o/${session.slug}`} />
+            </div>
+            {features.requests && (
+              <>
+                <label>Booking</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                  <input
+                    readOnly
+                    value={`${window.location.origin}/book/${session.slug}`}
+                    style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}
+                  />
+                  <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
+                </div>
+
+                {/* For a customer who already has a website and doesn't want a
+                    hosted landing page: the same form, dropped into their own
+                    site. One tag, sizes itself, no styling to fight. */}
+                <label style={{ marginTop: 14 }}>
+                  Put the booking form on your own website
+                  <span className="hint"> (paste this where you want it to appear)</span>
+                </label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <textarea
+                    readOnly
+                    rows={2}
+                    value={bookingEmbedSnippet(session.slug)}
+                    onFocus={(e) => e.target.select()}
+                    style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5, resize: 'vertical' }}
+                  />
+                  <CopyButton text={bookingEmbedSnippet(session.slug)} />
+                </div>
+                <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>
+                  Works on WordPress, Squarespace, Wix and plain HTML. Requests land
+                  in Requests exactly as they do from the booking link.
+                </p>
+              </>
+            )}
+          </div>
         </>
       )}
 
@@ -11477,6 +11486,7 @@ const SYSTEM_ROUTES = {
 
 const SETTINGS_ROUTES = {
   company: '/settings',
+  links: '/settings/links',
   payments: '/settings/payments',
   'auto-invoice': '/settings/auto-invoice',
   'booking-form': '/settings/booking-form',
@@ -11498,6 +11508,7 @@ const APP_ROUTES = {
   '/team': 'team',
   '/billing': 'billing',
   '/settings': 'settings',
+  '/settings/links': 'settings',
   '/settings/modules': 'settings',
   '/settings/terminology': 'settings',
   '/settings/quick-text': 'settings',
