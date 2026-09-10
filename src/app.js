@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
+const bookingPage = require('./bookingPage');
 const cors = require('cors');
 const morgan = require('morgan');
 
@@ -402,6 +403,34 @@ app.use(express.static(PUBLIC_DIR, {
   },
 }));
 
+// Injects the booking form into a client's own site and keeps the iframe as
+// tall as its contents, so the form never sits in a scrollbox. Height arrives
+// by postMessage from the booking page; we accept it only from our own origin.
+const EMBED_JS = `(function () {
+  var s = document.currentScript;
+  if (!s) return;
+  var slug = s.getAttribute('data-org');
+  if (!slug) return;
+  var origin = new URL(s.src, location.href).origin;
+
+  var f = document.createElement('iframe');
+  f.src = origin + '/book/' + encodeURIComponent(slug) + '?embed=1';
+  f.title = 'Booking request form';
+  f.loading = 'lazy';
+  f.style.cssText = 'width:100%;border:0;display:block;min-height:520px;';
+  f.setAttribute('scrolling', 'no');
+  s.parentNode.insertBefore(f, s);
+
+  window.addEventListener('message', function (e) {
+    if (e.origin !== origin) return;
+    var d = e.data;
+    if (!d || d.type !== 'fieldmgr:height') return;
+    if (e.source !== f.contentWindow) return;
+    var h = parseInt(d.height, 10);
+    if (h > 0 && h < 5000) f.style.height = h + 'px';
+  });
+})();`;
+
 // Prebuilt content pages (scripts/build-pages.js): real static HTML for
 // /learn/* and niche landing pages, served ahead of the SPA catch-all so
 // crawlers index proper documents instead of a client-rendered shell.
@@ -440,6 +469,45 @@ async function servePrebuilt(req, res, file) {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);
 }
+
+// /book/<slug> — the public request form, served as its own lightweight
+// document ahead of the SPA catch-all. It used to fall through and load the
+// whole application to draw a contact form, which is slow for a conversion
+// page and far too heavy to embed in someone else's site.
+//
+// This is the ONLY route that may be framed cross-origin. Helmet sets
+// X-Frame-Options: SAMEORIGIN globally, which is what must stay true for the
+// authenticated app — a framable app is a clickjacking target. A public
+// lead-capture form with no session and no destructive action is not, so the
+// header is cleared here and only here.
+app.get('/book/:slug', async (req, res, next) => {
+  const slug = (req.params.slug || '').toLowerCase();
+  if (!bookingPage.SLUG_RE.test(slug)) return next();
+  try {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Content-Security-Policy', 'frame-ancestors *');
+    // Helmet also sets Cross-Origin-Resource-Policy: same-origin globally,
+    // which blocks another site from loading this at all. Both headers have
+    // to be relaxed together or the frame stays empty.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    const org = await bookingPage.loadOrg(slug);
+    if (!org) return res.status(404).type('html').send(bookingPage.notFoundPage());
+    res.type('html').send(bookingPage.renderPage({
+      slug, org, appUrl: process.env.APP_URL || 'https://fieldmgr.com',
+    }));
+  } catch (err) { next(err); }
+});
+
+// One-line embed: <script src="/embed.js" data-org="slug"></script>. Kept as a
+// route rather than a static file so it can be served with a long cache and
+// without a build step.
+app.get('/embed.js', (req, res) => {
+  res.type('application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  // The whole point of this file is to be loaded by someone else's site.
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.send(EMBED_JS);
+});
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();

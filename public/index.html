@@ -11341,6 +11341,28 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               />
               <CopyButton text={`${window.location.origin}/book/${session.slug}`} />
             </div>
+
+            {/* For a customer who already has a website and doesn't want a
+                hosted landing page: the same form, dropped into their own
+                site. One tag, sizes itself, no styling to fight. */}
+            <label style={{ marginTop: 14 }}>
+              Put the booking form on your own website
+              <span className="hint"> (paste this where you want it to appear)</span>
+            </label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <textarea
+                readOnly
+                rows={2}
+                value={`<script src="${window.location.origin}/embed.js" data-org="${session.slug}"><\/script>`}
+                onFocus={(e) => e.target.select()}
+                style={{ flex: 1, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5, resize: 'vertical' }}
+              />
+              <CopyButton text={`<script src="${window.location.origin}/embed.js" data-org="${session.slug}"><\/script>`} />
+            </div>
+            <p className="hint" style={{ marginTop: 6 }}>
+              Works on WordPress, Squarespace, Wix and plain HTML. Requests land
+              in Requests exactly as they do from the booking link.
+            </p>
           </>
         )}
 
