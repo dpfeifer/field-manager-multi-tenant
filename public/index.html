@@ -1365,6 +1365,19 @@
       margin-bottom: 24px; box-shadow: var(--shadow-sm);
     }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; max-width: 880px; }
+    /* A panel that wraps a form is as wide as the form inside it. Making the
+       screens wide stretched these cards but not their fields, so "New job"
+       became a 1156px card around 880px of inputs — 276px of empty box. The
+       measure is declared once above; this stops the box outgrowing it.
+       Scoped to cards that actually hold a form, because most of the other 50
+       .form-card uses are info panels that should still fill the column. */
+    .form-card:has(> .form-grid),
+    .form-card:has(> form > .form-grid) { max-width: 936px; }
+    /* Except on the form areas, where the page is already held to a form's
+       measure. There the cap only makes the panels that happen to hold a grid
+       12px narrower than the ones that don't, and a settings page with two
+       different right edges is worse than one that is 12px wide. */
+    .content-narrow .form-card { max-width: none; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-actions { margin-top: 24px; display: flex; gap: 10px; }
 
