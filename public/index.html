@@ -855,14 +855,24 @@
     }
     .rail-note { flex: none; font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
     .rail-note.over { color: var(--danger); }
-    /* Leaving an area is the first thing in the rail that area took over. */
+    /* The area header: what you are in, and the way out of it. Both sit above
+       a divider so the sections below read as belonging to the area rather
+       than to the app. */
+    /* The rule separates the way out from the sections, so the button reads as
+       belonging to the rail rather than as the first item in it. */
+    .rail-area { padding: 2px 0 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border-strong); }
     .rail-back {
-      display: flex; align-items: center; gap: 7px; width: 100%;
-      background: none; border: 0; cursor: pointer; font-family: inherit;
-      font-size: 12.5px; font-weight: 600; color: var(--text-muted);
-      padding: 7px 14px; margin-bottom: 4px; border-radius: 8px;
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: var(--card); border: 1px solid var(--border); cursor: pointer;
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      color: var(--text); padding: 8px 12px; border-radius: 9px;
+      box-shadow: var(--shadow-sm);
     }
-    .rail-back:hover { background: var(--tinted); color: var(--text); }
+    .rail-back:hover { border-color: var(--border-strong); background: var(--bg); }
+    .rail-back:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    /* Points back the way you came. */
+    .rail-back .icon { transform: rotate(180deg); opacity: 0.6; flex: none; }
+    .rail-back:hover .icon { opacity: 1; }
 
     .area-back {
       display: inline-flex; align-items: center; gap: 7px;
@@ -1536,6 +1546,13 @@
     }
     .two-pane-narrow nav > *:first-child.drill-group { margin-top: 0; }
     .two-pane-narrow .drill-list + .drill-group { margin-top: 18px; }
+    /* Icons follow the sections into the narrower layouts, so they do not
+       appear and disappear as the window crosses a breakpoint. */
+    .two-pane-label { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+    .two-pane-label .icon { flex: none; font-size: 15px; opacity: 0.7; }
+    .two-pane-btn.active .two-pane-label .icon { opacity: 1; color: var(--primary); }
+    .drill-name .icon { flex: none; font-size: 15px; opacity: 0.65; margin-right: 9px; }
+
     .two-pane-count {
       font-size: 11.5px; color: var(--text-muted);
       font-variant-numeric: tabular-nums; opacity: 0.75;
@@ -5022,6 +5039,18 @@ const ICONS = {
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-15v5l3 3',
   zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
   lock: 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4',
+  // Settings and system sections. Same 24x24 stroke grid as the rest.
+  storefront: 'M3 21h18M5 21V10M19 21V10M3 10h18l-1.5-5a2 2 0 0 0-2-1.5h-11a2 2 0 0 0-2 1.5zM10 21v-6h4v6',
+  repeat: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3',
+  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  clipboard: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z',
+  layout: 'M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM2 9h20M9 21V9',
+  sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  type: 'M4 7V4h16v3M9 20h6M12 4v16',
+  message: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+  funnel: 'M22 3H2l8 9.46V19l4 2v-8.54z',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6',
 };
 
 function EmptyState({ icon, title, body, action }) {
@@ -11640,17 +11669,17 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         active={subView}
         onSelect={(key) => navigate(SETTINGS_ROUTES[key])}
         sections={[
-          { key: 'company', label: 'Business', group: 'Your business' },
-          { key: 'payments', label: 'Payments', group: 'Getting paid' },
-          isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', group: 'Getting paid' },
-          { key: 'links', label: 'Share links', group: 'What customers see' },
+          { key: 'company', label: 'Business', icon: 'storefront', group: 'Your business' },
+          { key: 'payments', label: 'Payments', icon: 'billing', group: 'Getting paid' },
+          isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', icon: 'repeat', group: 'Getting paid' },
+          { key: 'links', label: 'Share links', icon: 'link', group: 'What customers see' },
           isAdmin && features.requests
-            && { key: 'booking-form', label: 'Booking form', group: 'What customers see' },
+            && { key: 'booking-form', label: 'Booking form', icon: 'clipboard', group: 'What customers see' },
           isAdmin && settings && settings.landing_enabled
-            && { key: 'landing', label: 'Landing page', group: 'What customers see' },
-          isAdmin && { key: 'modules', label: 'Sections', group: 'How the app works' },
-          { key: 'terminology', label: 'Wording', group: 'How the app works' },
-          { key: 'quick-text', label: 'Quick text', group: 'How the app works' },
+            && { key: 'landing', label: 'Landing page', icon: 'layout', group: 'What customers see' },
+          isAdmin && { key: 'modules', label: 'Sections', icon: 'sliders', group: 'How the app works' },
+          { key: 'terminology', label: 'Wording', icon: 'type', group: 'How the app works' },
+          { key: 'quick-text', label: 'Quick text', icon: 'message', group: 'How the app works' },
         ].filter(Boolean)}
       >
 
@@ -12830,7 +12859,10 @@ function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children })
                   className={`two-pane-btn${active === s.key ? ' active' : ''}`}
                   onClick={() => onSelect(s.key)}
                 >
-                  <span>{s.label}</span>
+                  <span className="two-pane-label">
+                    {s.icon && <Icon name={s.icon} />}
+                    <span>{s.label}</span>
+                  </span>
                   {s.count != null && s.count !== '' && (
                     <span className="two-pane-count">{s.count}</span>
                   )}
@@ -12859,7 +12891,10 @@ function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children })
                     className="drill-row"
                     onClick={() => { onSelect(s.key); setDrilled(true); }}
                   >
-                    <span className="drill-name">{s.label}</span>
+                    <span className="drill-name">
+                      {s.icon && <Icon name={s.icon} />}
+                      <span>{s.label}</span>
+                    </span>
                     {s.count != null && s.count !== '' && (
                       <span className="drill-count">{s.count}</span>
                     )}
@@ -13127,9 +13162,15 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             <div className="rail-inner">
             {areaRail ? (
               <>
-                <button type="button" className="rail-back" onClick={() => navigate('/dashboard')}>
-                  <span aria-hidden="true">&lsaquo;</span> Back to app
-                </button>
+                {/* The rail looking different is the signal that you left the
+                    app for an area, so say which one and make the way out a
+                    button rather than a line of small print. */}
+                <div className="rail-area">
+                  <button type="button" className="rail-back" onClick={() => navigate('/dashboard')}>
+                    <Icon name="arrow" />
+                    <span>Back to app</span>
+                  </button>
+                </div>
                 {areaRail.sections.map((sec, i) => (
                   <React.Fragment key={sec.key}>
                     {sec.group && sec.group !== (areaRail.sections[i - 1] || {}).group && (
@@ -13141,6 +13182,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
                       aria-current={areaRail.active === sec.key ? 'page' : undefined}
                       onClick={() => areaRail.onSelect(sec.key)}
                     >
+                      {sec.icon && <Icon name={sec.icon} />}
                       <span>{sec.label}</span>
                     </button>
                   </React.Fragment>
@@ -15252,12 +15294,12 @@ function SystemView({ session }) {
         active={subView}
         onSelect={(key) => navigate(SYSTEM_ROUTES[key])}
         sections={[
-          { key: 'overview', label: 'Overview', group: 'Watch' },
-          { key: 'funnel', label: 'Funnel', group: 'Watch' },
-          { key: 'organizations', label: 'Organizations', group: 'Manage' },
-          { key: 'staff', label: 'Staff accounts', group: 'Manage' },
-          { key: 'templates', label: 'Email templates', group: 'Configure' },
-          { key: 'settings', label: 'Site settings', group: 'Configure' },
+          { key: 'overview', label: 'Overview', icon: 'activity', group: 'Watch' },
+          { key: 'funnel', label: 'Funnel', icon: 'funnel', group: 'Watch' },
+          { key: 'organizations', label: 'Organizations', icon: 'storefront', group: 'Manage' },
+          { key: 'staff', label: 'Staff accounts', icon: 'team', group: 'Manage' },
+          { key: 'templates', label: 'Email templates', icon: 'mail', group: 'Configure' },
+          { key: 'settings', label: 'Site settings', icon: 'sliders', group: 'Configure' },
         ]}
       >
         {subView === 'overview' && <PlatformOverviewSection token={session.token} />}
