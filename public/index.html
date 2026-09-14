@@ -892,7 +892,10 @@
     }
     .reccard-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
     .reccard-actions { margin-left: auto; display: flex; gap: 8px; }
-    .reccard-contact { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .reccard-contact {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 6px; margin-top: 13px;
+    }
     .reccard-chip {
       display: inline-flex; align-items: baseline; gap: 8px;
       background: var(--tinted); border: 1px solid transparent;
@@ -901,11 +904,15 @@
       transition: background 0.12s, border-color 0.12s;
     }
     a.reccard-chip:hover { background: var(--card); border-color: var(--border-strong); }
+    /* Fixed label width so the values line up down the stack instead of
+       starting at three different places. */
     .reccard-chip .k {
-      flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em;
-      text-transform: uppercase; color: var(--text-muted);
+      flex: none; min-width: 52px; font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted);
     }
-    .reccard-chip .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Each detail owns its line, so a long address wraps rather than being cut
+       off — the whole point of showing an address is being able to read it. */
+    .reccard-chip .v { white-space: normal; overflow-wrap: anywhere; }
     /* Notes are free text about the place, not a way to reach someone, so they
        sit apart from the contact chips rather than pretending to be one. */
     .reccard-note {
@@ -7037,13 +7044,13 @@ function CustomerCard({ customer, creditBalance = 0, onEdit }) {
     : null;
   const owed = parseFloat(customer.outstanding_balance) || 0;
   const chips = [
-    customer.phone && { k: 'Phone', v: customer.phone, href: `tel:${customer.phone.replace(/[^\d+]/g, '')}` },
-    customer.email && { k: 'Email', v: customer.email, href: `mailto:${customer.email}` },
     customer.address && {
       k: 'Address', v: customer.address,
       href: `https://maps.google.com/?q=${encodeURIComponent(customer.address)}`,
       external: true,
     },
+    customer.phone && { k: 'Phone', v: customer.phone, href: `tel:${customer.phone.replace(/[^\d+]/g, '')}` },
+    customer.email && { k: 'Email', v: customer.email, href: `mailto:${customer.email}` },
   ].filter(Boolean);
 
   return (
