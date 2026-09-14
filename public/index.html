@@ -2408,6 +2408,23 @@
       font-weight: 600; border-bottom: none; border-top: 2px solid var(--border);
       padding-top: 12px;
     }
+    /* The two 90px inputs plus a description, an amount and a remove button
+       put a floor of ~434px under this table. On a 375px phone that does not
+       overflow the table — it widens the page, which drags the fixed tab bar
+       sideways with it. They shrink here instead. */
+    @media (max-width: 680px) {
+      .line-items-table th, .line-items-table td { padding: 6px 3px; }
+      .line-items-table th { font-size: 10px; letter-spacing: 0.02em; }
+      .line-items-table input { padding: 7px 8px; font-size: 12.5px; }
+      .line-items-table .col-desc { width: auto; min-width: 0; }
+      .line-items-table .col-qty, .line-items-table .col-rate { width: 56px; }
+      .line-items-table .col-qty input,
+      .line-items-table .col-rate input { width: 100%; min-width: 0; }
+      .line-items-table .col-amount { padding-right: 2px; font-size: 12.5px; }
+      .line-items-table .col-remove { width: 24px; }
+      .line-items-table .col-remove button { padding: 4px 2px; font-size: 16px; }
+    }
+
     .line-items-empty {
       padding: 18px; text-align: center; color: var(--text-muted);
       font-size: 13px; border: 1px dashed var(--border-strong);
