@@ -1400,16 +1400,23 @@
       border-radius: 7px; padding: 4px 9px; cursor: pointer;
     }
     .rowmenu-trigger:hover { background: var(--card); border-color: var(--border); color: var(--text); }
+    /* On a phone there is no hover to reveal that this is a control, and a
+       thumb needs more than three dots to aim at. */
+    @media (max-width: 680px) {
+      .rowmenu-trigger {
+        border-color: var(--border); background: var(--card);
+        color: var(--text); width: 34px; height: 34px; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+    }
     .rowmenu-trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    /* Fixed, and placed by RowMenu — see the comment there. */
     .rowmenu-pop {
-      position: absolute; right: 0; top: calc(100% + 4px); z-index: 30;
+      position: fixed; z-index: 70;
       min-width: 176px; max-width: calc(100vw - 16px); background: var(--card);
       border: 1px solid var(--border); border-radius: 10px;
       box-shadow: var(--shadow-md); padding: 5px; display: grid; gap: 1px;
     }
-    /* Set by RowMenu when the default placement would leave the screen. */
-    .rowmenu-pop.to-left { right: auto; left: 0; }
-    .rowmenu-pop.to-top { top: auto; bottom: calc(100% + 4px); }
     .rowmenu-section {
       margin: 6px 0 2px; padding: 0 11px;
       font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
@@ -3095,7 +3102,15 @@
          Three groups with air between them, not five items evenly crammed:
          the menu at one edge, who you are at the other, identity in between.
          Everything sat 8-12px apart before, which read as one jammed row. */
-      .topbar { padding: 10px 16px; flex-wrap: nowrap; gap: 14px; }
+      .topbar {
+        padding: 10px 16px; flex-wrap: nowrap; gap: 14px;
+        /* The shorthand above resets what the base rule set for the notch, and
+           installed to the home screen that puts the brand under the clock.
+           Restated here rather than left to the cascade. */
+        padding-top: max(10px, env(safe-area-inset-top));
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
       .topbar .right { flex: none; gap: 10px; }
       .topbar .brand-button { min-width: 0; flex: 0 1 auto; margin-right: auto; }
       /* A plan badge is worth a corner of a laptop, not a fifth of a phone's
@@ -3139,14 +3154,17 @@
         grid-column: 2; grid-row: 1;
         align-self: start; justify-self: end;
       }
-      /* One menu button now, so it sits with the role badge rather than taking
-         a row and a sideways scroll of its own. */
-      .row.team-row .actions {
-        grid-column: 2; grid-row: 1;
-        margin-top: 0; width: auto;
-        justify-content: flex-end; align-self: start;
+      /* Role and menu share the row as two real columns, centred against each
+         other — stacking them in one cell and nudging with a margin left them
+         a few pixels out of line. */
+      .row.team-row { grid-template-columns: 1fr auto auto; align-items: center; }
+      .row.team-row .team-role {
+        grid-column: 2; grid-row: 1; justify-self: end; align-self: center;
       }
-      .row.team-row .team-role { grid-column: 2; grid-row: 1; margin-right: 34px; }
+      .row.team-row .actions {
+        grid-column: 3; grid-row: 1;
+        margin-top: 0; width: auto; align-self: center;
+      }
       .row.team-row .actions::-webkit-scrollbar { display: none; }
       .row.team-row .actions button {
         padding: 8px 12px; font-size: 13px;
@@ -11560,35 +11578,50 @@ function sortMenuItems(current, setSort, options) {
 
 function RowMenu({ items, label = 'More actions' }) {
   const [open, setOpen] = useState(false);
-  // Right-aligned suits a kebab at the end of a table row, which is most of
-  // them. In a toolbar the same button can wrap to the left edge, and then a
-  // 176px panel hanging off its right edge goes off the side of the screen.
-  const [placement, setPlacement] = useState('');
+  // Positioned against the window rather than against the row. Absolute
+  // placement made the panel a child of whatever it sat in, and rows live in
+  // cards and grids that clip their overflow — on the last team member the
+  // menu was cut off by the bottom of the card it opened in.
+  const [pos, setPos] = useState(null);
   const wrap = useRef(null);
   const pop = useRef(null);
 
   React.useLayoutEffect(() => {
-    if (!open) { setPlacement(''); return; }
+    if (!open) { setPos(null); return; }
+    const trigger = wrap.current && wrap.current.querySelector('.rowmenu-trigger');
     const el = pop.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    let next = '';
-    // Flip only when the default actually overflows: left-aligning a menu
-    // that already fits would push a right-edge one off the other side.
-    if (r.left < 8) next += ' to-left';
-    if (r.bottom > window.innerHeight - 8 && r.top > r.height + 8) next += ' to-top';
-    setPlacement(next);
+    if (!trigger || !el) return;
+    const t = trigger.getBoundingClientRect();
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const M = 8;
+    // Hangs off the trigger's right edge, which suits a kebab at the end of a
+    // row; pulled back only when that would leave the screen.
+    let left = t.right - w;
+    if (left + w > window.innerWidth - M) left = window.innerWidth - w - M;
+    if (left < M) left = M;
+    // Below unless there is no room below and there is room above.
+    let top = t.bottom + 4;
+    if (top + h > window.innerHeight - M && t.top - h - 4 >= M) top = t.top - h - 4;
+    setPos({ top, left });
   }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    // Fixed to the window, so it would otherwise sit still while the row it
+    // belongs to scrolls away underneath it.
+    const onScroll = () => setOpen(false);
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
     };
   }, [open]);
 
@@ -11607,7 +11640,16 @@ function RowMenu({ items, label = 'More actions' }) {
         onClick={() => setOpen((v) => !v)}
       >&#8943;</button>
       {open && (
-        <div className={`rowmenu-pop${placement}`} role="menu" ref={pop}>
+        <div
+          className="rowmenu-pop"
+          role="menu"
+          ref={pop}
+          style={pos
+            ? { top: pos.top, left: pos.left }
+            /* Rendered so it can be measured, hidden until it has somewhere
+               to be. useLayoutEffect places it before the browser paints. */
+            : { top: 0, left: 0, visibility: 'hidden' }}
+        >
           {visible.map((it, i) => (
             it.section ? (
               <p key={i} className="rowmenu-section">{it.section}</p>
