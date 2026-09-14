@@ -6716,9 +6716,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                     </div>
                   </div>
                   <div className="actions">
-                    {j.type === 'recurring' && (
-                      <button className="secondary" onClick={() => navigate(`/jobs?open=${j.id}&view=schedule`)}>Manage schedule</button>
-                    )}
+                    <button className="secondary" onClick={() => navigate(`/jobs?open=${j.id}&view=schedule`)}>Manage schedule</button>
                     {canMutate && (
                       <button className="secondary" onClick={() => navigate(`/jobs?open=${j.id}`)}>Edit {terms.jobLower}</button>
                     )}
@@ -8510,7 +8508,7 @@ function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDa
   );
 }
 
-function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule, canMutate = true }) {
+function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onReschedule, onCancelReschedule, canMutate = true, allowShift = true }) {
   const [editing, setEditing] = useState(false);
   const [newDate, setNewDate] = useState(occurrence.date);
 
@@ -8549,7 +8547,7 @@ function ScheduleOccurrenceRow({ occurrence, busy, onMarkComplete, onSkip, onRes
         <button className="primary" disabled={busy} onClick={() => onMarkComplete(occurrence.date)}>
           Mark complete
         </button>
-        {canMutate && (
+        {canMutate && allowShift && (
           <>
             <button className="secondary" disabled={busy} onClick={() => onSkip(occurrence.date)}>Skip</button>
             {occurrence.rescheduledFrom ? (
@@ -8580,7 +8578,11 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
 
-  const allUpcoming = computeOccurrences(job, todayStart(), 730).filter((o) => !o.completed);
+  const isRecurring = job.type === 'recurring';
+  const allUpcoming = (isRecurring
+    ? computeOccurrences(job, todayStart(), 730)
+    : (job.date ? [{ date: job.date, completed: job.status === 'completed', rescheduledFrom: null }] : [])
+  ).filter((o) => !o.completed);
   const totalPages = Math.max(1, Math.ceil(allUpcoming.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
   const upcoming = allUpcoming.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
@@ -8723,7 +8725,11 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
       <div className="section-heading">Upcoming</div>
       <div className="list">
         {upcoming.length === 0 ? (
-          <div className="list-empty">No upcoming occurrences. The series may be fully completed or past its end date.</div>
+          <div className="list-empty">
+            {isRecurring
+              ? 'No upcoming occurrences. The series may be fully completed or past its end date.'
+              : `This ${terms.jobLower} is done — see the history below.`}
+          </div>
         ) : (
           upcoming.map((o) => (
             <ScheduleOccurrenceRow
@@ -8735,6 +8741,7 @@ function JobScheduleView({ session, job, onBack, onMarkComplete, onChange, onEdi
               onSkip={skip}
               onReschedule={reschedule}
               onCancelReschedule={cancelReschedule}
+              allowShift={isRecurring}
             />
           ))
         )}
@@ -8989,9 +8996,9 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     if (!target) return;
     setEditing(target);
     // Clicking a job always lands on Edit; an explicit ?view=schedule (from a
-    // "Manage schedule" button) opens the schedule instead, recurring only.
+    // "Manage schedule" button) opens the schedule instead.
     const view = params.get('view');
-    setMode(view === 'schedule' && target.type === 'recurring' ? 'schedule' : 'edit');
+    setMode(view === 'schedule' ? 'schedule' : 'edit');
     // Strip the query params so reload / back nav doesn't keep reopening.
     const url = new URL(window.location.href);
     url.searchParams.delete('open');
@@ -9180,9 +9187,11 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
         <div className="page-header">
           <h2>Edit {terms.jobLower}</h2>
           <div style={{ display: 'flex', gap: 8 }}>
-            {editing.type === 'recurring' && (
-              <button className="secondary" onClick={() => { setError(null); setMode('schedule'); }}>Manage schedule →</button>
-            )}
+            {/* Every job has a schedule screen, one-time included: that is
+                where its visits, completion history and the invoice generator
+                live. Gating it to recurring made the same job look like two
+                different screens depending on which one you opened. */}
+            <button className="secondary" onClick={() => { setError(null); setMode('schedule'); }}>Manage schedule →</button>
             {canMutate && (
               <button
                 className="danger"
@@ -9274,8 +9283,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     if (!canMutate) return [];
     return [
       { label: `Edit ${terms.jobLower}`, onClick: () => { setEditing(j); setMode('edit'); } },
-      j.type === 'recurring'
-        && { label: 'Manage schedule', onClick: () => { setError(null); setEditing(j); setMode('schedule'); } },
+      { label: 'Manage schedule', onClick: () => { setError(null); setEditing(j); setMode('schedule'); } },
       { label: 'Delete', danger: true, onClick: () => deleteJob(j.id) },
     ];
   }
