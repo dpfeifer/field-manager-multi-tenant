@@ -2280,7 +2280,6 @@
       display: flex; align-items: center; gap: 16px;
       margin-bottom: 16px; flex-wrap: wrap;
     }
-    .cal-mode-toggle { flex-shrink: 0; }
     .cal-day-nav {
       display: flex; align-items: center; gap: 6px;
       margin-left: auto;
@@ -8482,12 +8481,10 @@ function CalendarView({ jobs, onChipClick, jobMenuItems, onMarkComplete, onUncom
 
   return (
     <div>
+      {/* Day / Week / Month moved up into the one view control in the toolbar,
+          beside List. What stays here is moving through time, which is a
+          different job from choosing how to look. */}
       <div className="cal-mode-row">
-        <div className="toggle-group cal-mode-toggle">
-          <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>Day</button>
-          <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>Week</button>
-          <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Month</button>
-        </div>
         {view === 'day' && (
           <div className="cal-day-nav">
             <button className="secondary" onClick={() => shiftDay(-1)} aria-label="Previous day">←</button>
@@ -9777,23 +9774,36 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
       <div className="toolbar">
         <span className="tb-title">
           <h2>{terms.jobs}</h2>
-          <span className="tb-count">{jobs.length} total</span>
+          {/* On the schedule the day's own header already says "4 jobs ·
+              $570.00", which is the count you came for; a total of everything
+              ever is just another line to read past. */}
+          {layout === 'list' && <span className="tb-count">{jobs.length} total</span>}
         </span>
-        {/* Schedule vs List is a way of looking at the same jobs, so it reads
-            as a control here rather than as a second row of tabs. */}
-        <div className="segmented" role="group" aria-label={`${terms.jobs} layout`}>
-          <button
-            type="button"
-            className={layout === 'calendar' ? 'on' : ''}
-            aria-pressed={layout === 'calendar'}
-            onClick={() => setLayout('calendar')}
-          >Schedule</button>
-          <button
-            type="button"
-            className={layout === 'list' ? 'on' : ''}
-            aria-pressed={layout === 'list'}
-            onClick={() => setLayout('list')}
-          >List</button>
+        {/* Four ways of looking at the same jobs, in one control. "Schedule"
+            was never a peer of "List" — it was a container holding Day, Week
+            and Month, and stating it that way put two near-identical pill
+            controls one above the other on a phone. */}
+        <div className="segmented" role="group" aria-label={`${terms.jobs} view`}>
+          {[
+            { key: 'day', label: 'Day' },
+            { key: 'week', label: 'Week' },
+            { key: 'month', label: 'Month' },
+            { key: 'list', label: 'List' },
+          ].map((v) => {
+            const on = v.key === 'list' ? layout === 'list' : layout === 'calendar' && calView === v.key;
+            return (
+              <button
+                key={v.key}
+                type="button"
+                className={on ? 'on' : ''}
+                aria-pressed={on}
+                onClick={() => {
+                  if (v.key === 'list') { setLayout('list'); return; }
+                  setLayout('calendar'); setCalView(v.key);
+                }}
+              >{v.label}</button>
+            );
+          })}
         </div>
         <span className="tb-gap"></span>
         {layout === 'list' && (
