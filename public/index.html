@@ -1184,7 +1184,9 @@
       .toolbar > * { order: 5; }
       .toolbar h2 { order: 1; }
       .toolbar .tb-actions { order: 2; margin-left: auto; }
-      .toolbar .tb-count { order: 3; flex-basis: 100%; }
+      /* Pulled up under the heading: at 8px of toolbar gap "33 total" reads as
+         a row of its own rather than as a subtitle of the thing above it. */
+      .toolbar .tb-count { order: 3; flex-basis: 100%; margin-top: -5px; }
       .toolbar .tb-search { order: 4; flex: 1 0 100%; }
       /* A desktop device: on a phone it wrapped to a line of its own and
          pushed the actions to yet another. */
@@ -1201,10 +1203,14 @@
       /* Statuses swipe rather than collapse into a select. A select showed
          "Unpaid (8)" and hid that four are drafts and four are sent; the strip
          carries every count on its face. */
+      /* Width of its own contents, not of the screen. The item above it is
+         already full-width, so it starts a new line without being told to —
+         and told to, a two-item control like Schedule/List stretched into a
+         band of empty tint beside the calendar's own Day/Week/Month, which
+         sizes to its content. It scrolls only when it actually overflows. */
       .toolbar .segmented {
-        order: 6; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto;
+        order: 6; max-width: 100%; flex-wrap: nowrap; overflow-x: auto;
         scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        justify-content: flex-start;
       }
       .toolbar .segmented::-webkit-scrollbar { display: none; }
       .toolbar .segmented button { flex: none; }
