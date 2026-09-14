@@ -1149,7 +1149,6 @@
     .toolbar .tb-count { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
     .toolbar .tb-count b { color: var(--text); font-weight: 600; }
     .toolbar .tb-gap { flex: 1 1 auto; }
-    .toolbar .tb-actions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
 
     /* On a phone the toolbar stacks on purpose rather than breaking wherever
        the widths happen to run out — which varied by account, since the org
@@ -1169,27 +1168,46 @@
        something to put on a line of its own, and as a real box it was an
        unbreakable ~280px item that pushed the invoice toolbar onto two rows
        on a laptop. */
+    /* The wrapper exists only so the heading and its count can be ordered
+       together; display:contents keeps them direct flex items either way. */
     .toolbar .tb-title { display: contents; }
+    .toolbar .tb-actions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+
     @media (max-width: 680px) {
-      /* The heading takes the line, the controls take the next. Relying on the
-         widths to break in the right place made the same screen stack
-         differently per account, since the org picks its own words for jobs
-         and customers — and it was what pushed the actions onto a line of
-         their own at the left edge, where a right-anchored menu opens off the
-         side of the screen. */
-      .toolbar .tb-title {
-        display: inline-flex; align-items: baseline; gap: 10px;
-        min-width: 0; flex-basis: 100%;
-      }
-      /* Search owns a line rather than sharing one: it cannot shrink here, so
-         it does not compress to a stub to let a sort menu sit beside it. */
-      .toolbar .tb-search { flex: 1 0 100%; }
-      /* The spacer is a desktop device. On a phone it wrapped to a line of its
-         own and pushed the actions down to yet another, back at the left edge.
-         Aligning the actions directly does the same job in no space. */
+      /* Four rows of chrome before the first invoice, and the create button
+         alone on one of them. Three now, and the heaviest control rides up
+         beside the heading instead of blocking the list.
+
+         Order, not source order: the actions live at the end of the toolbar
+         for the laptop layout, and putting them on the heading's line here
+         would otherwise mean repeating the markup. */
+      .toolbar > * { order: 5; }
+      .toolbar h2 { order: 1; }
+      .toolbar .tb-actions { order: 2; margin-left: auto; }
+      .toolbar .tb-count { order: 3; flex-basis: 100%; }
+      .toolbar .tb-search { order: 4; flex: 1 0 100%; }
+      /* A desktop device: on a phone it wrapped to a line of its own and
+         pushed the actions to yet another. */
       .toolbar .tb-gap { display: none; }
-      .toolbar .tb-actions { margin-left: auto; }
       .toolbar h2 { font-size: 19px; }
+
+      /* "+ New invoice" under a heading that says Invoices is saying it twice.
+         The label goes and the button becomes its verb. */
+      .toolbar .tb-actions .primary { padding: 0; width: 34px; height: 34px;
+        display: inline-grid; place-items: center; font-size: 18px; line-height: 1; }
+      .toolbar .tb-actions .primary .btn-label { display: none; }
+      .toolbar .rowmenu-trigger { border-color: var(--border); background: var(--card); }
+
+      /* Statuses swipe rather than collapse into a select. A select showed
+         "Unpaid (8)" and hid that four are drafts and four are sent; the strip
+         carries every count on its face. */
+      .toolbar .segmented {
+        order: 6; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+      }
+      .toolbar .segmented::-webkit-scrollbar { display: none; }
+      .toolbar .segmented button { flex: none; }
     }
 
     /* Filters read as a control, not as navigation - that ambiguity is why a
@@ -1381,10 +1399,19 @@
     /* Set by RowMenu when the default placement would leave the screen. */
     .rowmenu-pop.to-left { right: auto; left: 0; }
     .rowmenu-pop.to-top { top: auto; bottom: calc(100% + 4px); }
+    .rowmenu-section {
+      margin: 6px 0 2px; padding: 0 11px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .rowmenu-item.checked { font-weight: 600; }
+    .rowmenu-tick { margin-left: auto; color: var(--primary); font-size: 12px; }
+
     .rowmenu-item {
       font-family: inherit; font-size: 13px; text-align: left;
       color: var(--text); background: none; border: 0;
       padding: 8px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 14px;
     }
     .rowmenu-item:hover { background: var(--row-hover); }
     .rowmenu-item.danger { color: var(--danger); }
@@ -7539,6 +7566,9 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
 
 function CustomersView({ session, planContext }) {
   const terms = useTerms();
+  // Declared with the other hooks: this view returns early for its form modes,
+  // and a hook below one of those changes the hook order between renders.
+  const wideToolbar = useMediaQuery('(min-width: 681px)');
   const atCap = planContext && planContext.atCap;
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -7686,17 +7716,21 @@ function CustomersView({ session, planContext }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search name, phone, email...`}
         />
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={`Sort ${terms.customersLower}`}>
-          <option value="name">Name</option>
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-        </select>
+        {wideToolbar && (
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={`Sort ${terms.customersLower}`}>
+            <option value="name">Name</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        )}
         {/* The button and its overflow menu wrap as one item. Left loose they
             broke apart, stranding the menu alone on the next line at the far
             left — where a right-anchored panel opens off the side. */}
         <span className="tb-actions">
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.customerLower}</span></button>
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>
+              +<span className="btn-label"> New<span className="hide-on-mobile"> {terms.customerLower}</span></span>
+            </button>
           )}
           {/* Import and export are things you do to the list once in a while,
               not every visit — they don't need to sit in front of it. */}
@@ -7705,6 +7739,11 @@ function CustomersView({ session, planContext }) {
             items={[
               ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
               ...(customers.length > 0 ? [{ label: 'Export all as CSV', onClick: exportCustomers }] : []),
+              ...(wideToolbar ? [] : sortMenuItems(sort, setSort, [
+                { value: 'name', label: 'Name' },
+                { value: 'newest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+              ])),
             ]}
           />
         </span>
@@ -9355,6 +9394,7 @@ function JobsImportView({ session, onDone, onCancel }) {
 function JobsView({ session, features = { invoices: true }, planContext, smsTemplates = [], defaultAddToDraft = false }) {
   const [firstJobToast, setFirstJobToast] = useState(false);
   const terms = useTerms();
+  const wideToolbar = useMediaQuery('(min-width: 681px)');
   const atCap = planContext && planContext.atCap;
   const [jobs, setJobs] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -9759,23 +9799,33 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
               onChange={(e) => setSearch(e.target.value)}
               placeholder={`Search title, ${terms.customerLower}, description...`}
             />
-            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={`Sort ${terms.jobsLower}`}>
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="title">Title</option>
-              <option value="price">Price (high)</option>
-            </select>
+            {wideToolbar && (
+              <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={`Sort ${terms.jobsLower}`}>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="title">Title</option>
+                <option value="price">Price (high)</option>
+              </select>
+            )}
           </>
         )}
         <span className="tb-actions">
           {canMutate && (
-            <button className="primary" onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
+            <button className="primary" onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }} disabled={atCap}>
+              +<span className="btn-label"> New<span className="hide-on-mobile"> {terms.jobLower}</span></span>
+            </button>
           )}
           <RowMenu
             label={`More ${terms.jobLower} actions`}
             items={[
               ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
               ...(jobs.length > 0 ? [{ label: 'Export all as CSV', onClick: exportJobs }] : []),
+              ...(wideToolbar || layout !== 'list' ? [] : sortMenuItems(sort, setSort, [
+                { value: 'newest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+                { value: 'title', label: 'Title' },
+                { value: 'price', label: 'Price (high)' },
+              ])),
             ]}
           />
         </span>
@@ -10488,41 +10538,46 @@ function InvoicesView({ session }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search invoice #, ${terms.customerLower}...`}
         />
-        {wideToolbar ? (
-          <div className="segmented" role="group" aria-label="Filter invoices">
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={statusFilter === f ? 'on' : ''}
-                aria-pressed={statusFilter === f}
-                onClick={() => setStatusFilter(f)}
-              >{STATUS_LABELS[f]} <span className="n">{statusCount(f)}</span></button>
-            ))}
-          </div>
-        ) : (
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Filter invoices"
-          >
-            {STATUS_FILTERS.map((f) => (
-              <option key={f} value={f}>{STATUS_LABELS[f]} ({statusCount(f)})</option>
-            ))}
+        {/* One control at every width — it scrolls sideways on a phone rather
+            than collapsing into a select, so the counts stay on screen. */}
+        <div className="segmented" role="group" aria-label="Filter invoices">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={statusFilter === f ? 'on' : ''}
+              aria-pressed={statusFilter === f}
+              onClick={() => setStatusFilter(f)}
+            >{STATUS_LABELS[f]} <span className="n">{statusCount(f)}</span></button>
+          ))}
+        </div>
+        {wideToolbar && (
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort invoices">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="number">Invoice # (high)</option>
+            <option value="total">Total (high)</option>
+            <option value="status">Status</option>
           </select>
         )}
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort invoices">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="number">Invoice # (high)</option>
-          <option value="total">Total (high)</option>
-          <option value="status">Status</option>
-        </select>
         <span className="tb-actions">
-          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+          {canMutate && (
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>
+              +<span className="btn-label"> New invoice</span>
+            </button>
+          )}
           <RowMenu
             label="More invoice actions"
-            items={[{ label: 'Export all as CSV', onClick: exportInvoices }]}
+            items={[
+              { label: 'Export all as CSV', onClick: exportInvoices },
+              ...(wideToolbar ? [] : sortMenuItems(sort, setSort, [
+                { value: 'newest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+                { value: 'number', label: 'Invoice # (high)' },
+                { value: 'total', label: 'Total (high)' },
+                { value: 'status', label: 'Status' },
+              ])),
+            ]}
           />
         </span>
       </div>
@@ -10822,6 +10877,7 @@ function quoteRecipientName(q) {
 
 function QuotesView({ session, features = { invoices: true } }) {
   const terms = useTerms();
+  const wideToolbar = useMediaQuery('(min-width: 681px)');
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -11107,18 +11163,30 @@ function QuotesView({ session, features = { invoices: true } }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customer, prospect, description..."
         />
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort quotes">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="total">Total (high)</option>
-          <option value="status">Status</option>
-        </select>
+        {wideToolbar && (
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort quotes">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="total">Total (high)</option>
+            <option value="status">Status</option>
+          </select>
+        )}
         <span className="tb-actions">
-          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
+          {canMutate && (
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }}>
+              +<span className="btn-label"> New quote</span>
+            </button>
+          )}
           <RowMenu
             label="More quote actions"
             items={[
               ...(quotes.length > 0 ? [{ label: 'Export all as CSV', onClick: exportQuotes }] : []),
+              ...(wideToolbar ? [] : sortMenuItems(sort, setSort, [
+                { value: 'newest', label: 'Newest' },
+                { value: 'oldest', label: 'Oldest' },
+                { value: 'total', label: 'Total (high)' },
+                { value: 'status', label: 'Status' },
+              ])),
             ]}
           />
         </span>
@@ -11451,6 +11519,19 @@ function bookingEmbedSnippet(slug) {
 // copy link, email, view, edit, delete — and when every row shouts, nothing
 // leads. The row keeps at most one inline action, the one you are most likely
 // to want next, and everything else lives here.
+// On a phone the sort control moves into the overflow menu. Building it here
+// keeps the four lists from each inventing their own version of the same list.
+function sortMenuItems(current, setSort, options) {
+  return [
+    { section: 'Sort by' },
+    ...options.map((o) => ({
+      label: o.label,
+      checked: current === o.value,
+      onClick: () => setSort(o.value),
+    })),
+  ];
+}
+
 function RowMenu({ items, label = 'More actions' }) {
   const [open, setOpen] = useState(false);
   // Right-aligned suits a kebab at the end of a table row, which is most of
@@ -11486,7 +11567,8 @@ function RowMenu({ items, label = 'More actions' }) {
   }, [open]);
 
   const visible = items.filter(Boolean);
-  if (visible.length === 0) return null;
+  // A menu of nothing but headings is still an empty menu.
+  if (!visible.some((it) => !it.section)) return null;
 
   return (
     <div className="rowmenu" ref={wrap}>
@@ -11501,13 +11583,21 @@ function RowMenu({ items, label = 'More actions' }) {
       {open && (
         <div className={`rowmenu-pop${placement}`} role="menu" ref={pop}>
           {visible.map((it, i) => (
-            <button
-              key={i}
-              type="button"
-              role="menuitem"
-              className={`rowmenu-item${it.danger ? ' danger' : ''}`}
-              onClick={() => { setOpen(false); it.onClick(); }}
-            >{it.label}</button>
+            it.section ? (
+              <p key={i} className="rowmenu-section">{it.section}</p>
+            ) : (
+              <button
+                key={i}
+                type="button"
+                role={it.checked === undefined ? 'menuitem' : 'menuitemradio'}
+                aria-checked={it.checked === undefined ? undefined : !!it.checked}
+                className={`rowmenu-item${it.danger ? ' danger' : ''}${it.checked ? ' checked' : ''}`}
+                onClick={() => { setOpen(false); it.onClick(); }}
+              >
+                <span>{it.label}</span>
+                {it.checked && <span className="rowmenu-tick" aria-hidden="true">✓</span>}
+              </button>
+            )
           ))}
         </div>
       )}
