@@ -2941,10 +2941,25 @@
       /* One row, always. Wrapping let a long name push the plan pill and the
          avatar onto a second line, and adding the brand mark made that the
          normal case rather than the rare one. The name truncates instead —
-         it is the only part here that can afford to. */
-      .topbar { padding: 12px 16px; flex-wrap: nowrap; gap: 8px; }
-      .topbar .right { flex: none; }
-      .topbar .brand-button { min-width: 0; flex: 0 1 auto; }
+         it is the only part here that can afford to.
+
+         Three groups with air between them, not five items evenly crammed:
+         the menu at one edge, who you are at the other, identity in between.
+         Everything sat 8-12px apart before, which read as one jammed row. */
+      .topbar { padding: 10px 16px; flex-wrap: nowrap; gap: 14px; }
+      .topbar .right { flex: none; gap: 10px; }
+      .topbar .brand-button { min-width: 0; flex: 0 1 auto; margin-right: auto; }
+      /* 33px was under the 44px everyone agrees a thumb needs. The negative
+         margin puts the tap target's edge near the screen edge while the icon
+         itself still lines up with the content below. */
+      .railtoggle {
+        width: 42px; height: 42px; padding: 0; margin: 0 0 0 -10px;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      /* A plan badge is worth a corner of a laptop, not a fifth of a phone's
+         header. It stays only while it is an action — "Free · Upgrade" is a
+         way to do something, "Pro" is a sticker. */
+      .topbar .plan-pill.plan-pro { display: none; }
       .topbar .brand { font-size: 14px; }
       .topbar .brand-button { gap: 9px; }
       .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
