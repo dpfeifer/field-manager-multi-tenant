@@ -5073,6 +5073,7 @@ const ICONS = {
   activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
   funnel: 'M22 3H2l8 9.46V19l4 2v-8.54z',
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6',
+  receipt: 'M5 2v20l2.5-1.5L10 22l2-1.5 2 1.5 2.5-1.5L19 22V2l-2.5 1.5L14 2l-2 1.5L10 2 7.5 3.5zM9 8h6M9 12h4',
 };
 
 function EmptyState({ icon, title, body, action }) {
@@ -11692,7 +11693,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         onSelect={(key) => navigate(SETTINGS_ROUTES[key])}
         sections={[
           { key: 'company', label: 'Business', icon: 'storefront', group: 'Your business' },
-          { key: 'payments', label: 'Payments', icon: 'billing', group: 'Getting paid' },
+          { key: 'payments', label: 'Payments', icon: 'receipt', group: 'Getting paid' },
           isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', icon: 'repeat', group: 'Getting paid' },
           { key: 'links', label: 'Share links', icon: 'link', group: 'What customers see' },
           isAdmin && features.requests
@@ -12762,17 +12763,6 @@ function UserMenu({ session, onLogout, onSwitch, onViewAs }) {
               <div className="user-menu-divider" />
             </>
           )}
-          {session.user.role === 'admin' && (
-            <>
-              <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/settings'); }}>
-                Settings
-              </button>
-              <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/billing'); }}>
-                Billing
-              </button>
-            </>
-          )}
-          <div className="user-menu-divider" />
           <button className="user-menu-item" onClick={() => { setOpen(false); navigate('/support'); }}>
             Help &amp; support
           </button>
@@ -13086,6 +13076,8 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
           key: 'team', label: 'Team', icon: 'team', to: '/team', locked: isFree,
         },
         isAdmin && { key: 'settings', label: 'Settings', icon: 'settings', to: '/settings' },
+        // No plan gate: this is where a free account goes to stop being one.
+        isAdmin && { key: 'billing', label: 'Billing', icon: 'billing', to: '/billing' },
       ],
     },
   ]
