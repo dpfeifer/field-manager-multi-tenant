@@ -830,7 +830,7 @@
     }
     .rail-group:first-child { margin-top: 4px; }
     /* That reset is for a rail that opens with a group. An area's first group
-       opens below the back button's rule instead, so it keeps the same 15px
+       opens below the back button instead, so it keeps the same 15px
        separation every other group gets — matching by accident today, because
        :first-child stops applying once .rail-area is there. Stated so it
        cannot drift. */
@@ -864,20 +864,23 @@
     /* The area header: what you are in, and the way out of it. Both sit above
        a divider so the sections below read as belonging to the area rather
        than to the app. */
-    /* The rule separates the way out from the sections, so the button reads as
-       belonging to the rail rather than as the first item in it. */
-    .rail-area { padding: 2px 0 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border-strong); }
+    /* No rule under it — the colour already separates the way out from the
+       sections, and a line as well was one divider too many. */
+    .rail-area { padding: 2px 0 12px; margin-bottom: 6px; }
     .rail-back {
       display: flex; align-items: center; gap: 8px; width: 100%;
-      background: var(--card); border: 1px solid var(--border); cursor: pointer;
+      background: var(--primary); border: 1px solid var(--primary); cursor: pointer;
       font-family: inherit; font-size: 12.5px; font-weight: 600;
-      color: var(--text); padding: 8px 12px; border-radius: 9px;
+      color: #fff; padding: 9px 12px; border-radius: 9px;
       box-shadow: var(--shadow-sm);
+      transition: background 0.12s, border-color 0.12s;
     }
-    .rail-back:hover { border-color: var(--border-strong); background: var(--bg); }
-    .rail-back:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    .rail-back:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    /* A primary ring around a primary fill is invisible, so the focus ring
+       borrows the text colour instead. */
+    .rail-back:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
     /* Points back the way you came. */
-    .rail-back .icon { transform: rotate(180deg); opacity: 0.6; flex: none; }
+    .rail-back .icon { transform: rotate(180deg); opacity: 0.8; flex: none; }
     .rail-back:hover .icon { opacity: 1; }
 
     .area-back {
