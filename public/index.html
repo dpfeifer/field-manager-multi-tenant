@@ -817,7 +817,117 @@
     .upgrade-prompt-text strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 2px; }
     .upgrade-prompt-text span { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
     .upgrade-prompt button.primary { white-space: nowrap; flex-shrink: 0; }
+    /* 960px is a reading measure, and most of this app is tables: a day of
+       jobs, a list of invoices, a customer's history. Those want the window.
+       Forms do not — a text field 1200px wide is worse than one at 600 — so
+       the field grid keeps its own measure while lists take the full width. */
     .content { max-width: 960px; margin: 32px auto; padding: 0 28px; }
+    .content-wide { max-width: 1320px; }
+    /* One toolbar per screen, replacing the stack of page-header, filter row
+       and search row that put three bands of chrome above every list. */
+    .toolbar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .toolbar h2 { margin: 0; font-size: 22px; }
+    .toolbar .tb-count { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+    .toolbar .tb-count b { color: var(--text); font-weight: 600; }
+    .toolbar .tb-gap { flex: 1 1 auto; }
+    .toolbar .tb-search { flex: 1 1 200px; min-width: 150px; }
+    .toolbar input[type="search"], .toolbar select { font-size: 13px; padding: 7px 11px; }
+    .toolbar select { width: auto; }
+
+    /* Filters read as a control, not as navigation - that ambiguity is why a
+       chip row next to a tab row felt arbitrary. */
+    .segmented {
+      display: inline-flex; background: var(--tinted); border-radius: 8px;
+      padding: 2px; gap: 2px; flex-wrap: wrap;
+    }
+    .segmented button {
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      color: var(--text-muted); background: none; border: 0;
+      padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+    }
+    .segmented button:hover { color: var(--text); }
+    .segmented button.on {
+      background: var(--card); color: var(--text); font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .segmented button .n { opacity: 0.6; font-weight: 500; }
+
+    /* Rows that use the width: columns, instead of a title at one edge and a
+       number at the other with a thousand pixels of nothing between them. */
+    .dtable { background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .dtable-row {
+      display: grid; align-items: center; gap: 16px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .dtable-row:last-child { border-bottom: 0; }
+    .dtable-row:not(.dtable-head):hover { background: var(--row-hover); }
+    .dtable-row.is-clickable { cursor: pointer; }
+    .dtable-row.is-clickable:focus-visible {
+      outline: 2px solid var(--primary); outline-offset: -2px;
+    }
+    .dtable-head {
+      background: var(--bg-elevated); font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .dtable .c-num { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .dtable .c-main { min-width: 0; }
+    .dtable .c-main .t { font-size: 14px; font-weight: 500; color: var(--text); }
+    .dtable .c-main .s {
+      font-size: 12px; color: var(--text-muted); margin-top: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dtable .c-when { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+    .dtable .c-amt {
+      text-align: right; font-size: 14px; font-weight: 600;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .dtable .c-amt .due { display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .dtable .c-act { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+    .dtable .c-act .secondary { font-size: 12px; padding: 5px 11px; white-space: nowrap; }
+
+    /* Invoice columns: number, who, date, status, amount, actions. */
+    .inv-row { grid-template-columns: 74px minmax(0, 1fr) 104px 104px 124px 136px; }
+    @media (max-width: 1000px) {
+      .inv-row { grid-template-columns: 62px minmax(0, 1fr) 96px 112px 132px; }
+      .inv-row .c-when { display: none; }
+    }
+    @media (max-width: 680px) {
+      /* Two lines on a phone: identity above, money and actions below. */
+      .inv-row { grid-template-columns: 60px minmax(0, 1fr) auto; gap: 6px 12px; }
+      .inv-row .c-when { display: none; }
+      .inv-row > span:nth-child(4) { grid-column: 2; justify-self: start; }
+      .inv-row .c-amt { grid-column: 3; grid-row: 1; }
+      .inv-row .c-act { grid-column: 3; grid-row: 2; }
+      .dtable-head.inv-row { display: none; }
+    }
+
+    .rowmenu { position: relative; flex: none; }
+    .rowmenu-trigger {
+      font-family: inherit; font-size: 16px; line-height: 1;
+      color: var(--text-muted); background: none; border: 1px solid transparent;
+      border-radius: 7px; padding: 4px 9px; cursor: pointer;
+    }
+    .rowmenu-trigger:hover { background: var(--card); border-color: var(--border); color: var(--text); }
+    .rowmenu-trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    .rowmenu-pop {
+      position: absolute; right: 0; top: calc(100% + 4px); z-index: 30;
+      min-width: 176px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: var(--shadow-md); padding: 5px; display: grid; gap: 1px;
+    }
+    .rowmenu-item {
+      font-family: inherit; font-size: 13px; text-align: left;
+      color: var(--text); background: none; border: 0;
+      padding: 8px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+    }
+    .rowmenu-item:hover { background: var(--row-hover); }
+    .rowmenu-item.danger { color: var(--danger); }
+    .rowmenu-item.danger:hover { background: var(--danger-bg); }
+
     .page-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 24px;
@@ -925,7 +1035,7 @@
       border: 1px solid var(--border); padding: 28px;
       margin-bottom: 24px; box-shadow: var(--shadow-sm);
     }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; max-width: 880px; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-actions { margin-top: 24px; display: flex; gap: 10px; }
 
@@ -9538,7 +9648,13 @@ function InvoiceForm({ initial, customers, onSubmit, onCancel, busy }) {
   );
 }
 
+const STATUS_FILTERS = ['all', 'unpaid', 'draft', 'sent', 'paid', 'late'];
+const STATUS_LABELS = { all: 'All', unpaid: 'Unpaid', draft: 'Draft', sent: 'Sent', paid: 'Paid', late: 'Late' };
+
 function InvoicesView({ session }) {
+  // Must sit above the early returns below: a hook skipped on some renders
+  // changes the hook order and React unmounts the tree.
+  const wideToolbar = useMediaQuery('(min-width: 681px)');
   const terms = useTerms();
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -9764,52 +9880,78 @@ function InvoicesView({ session }) {
     : 'created_at';
   const sortedInvoices = sortBy(filteredInvoices, invSortKey, sort === 'oldest' ? 'asc' : sort === 'status' ? 'asc' : 'desc');
 
+  const statusCount = (f) => invoices.filter((inv) => {
+    if (f === 'all') return true;
+    if (f === 'late') return isInvoiceLate(inv);
+    if (f === 'unpaid') return inv.status === 'draft' || inv.status === 'sent';
+    return inv.status === f;
+  }).length;
+
+  // What is still owed across every unpaid invoice — the number you actually
+  // open this screen to find out, so the toolbar says it rather than making
+  // you add up a column.
+  function openInvoice(inv) {
+    if (canMutate) { setEditing(inv); setMode('edit'); }
+    else navigate(`/i/${inv.id}?from=app`);
+  }
+
+  const outstandingTotal = invoices
+    .filter((inv) => inv.status !== 'paid')
+    .reduce((sum, inv) => sum + invoiceMath(inv).balanceDue, 0);
+
   return (
     <div>
-      <div className="page-header">
+      {/* Title, counts, search, filter and sort on one line. These used to be
+          three stacked bands above every list, which is most of what made the
+          screen feel crowded before a single invoice appeared. */}
+      <div className="toolbar">
         <h2>Invoices</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="secondary" onClick={exportInvoices} disabled={invoices.length === 0}>Export</button>
-          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
-        </div>
-      </div>
-      <div className="filter-bar">
-        <div className="chip-group">
-          {['all', 'unpaid', 'draft', 'sent', 'paid', 'late'].map((f) => {
-            const count = invoices.filter((inv) => {
-              if (f === 'all') return true;
-              if (f === 'late') return isInvoiceLate(inv);
-              if (f === 'unpaid') return inv.status === 'draft' || inv.status === 'sent';
-              return inv.status === f;
-            }).length;
-            const labels = { all: 'All', unpaid: 'Unpaid', draft: 'Draft', sent: 'Sent', paid: 'Paid', late: 'Late' };
-            return (
-              <button
-                key={f}
-                className={`chip ${statusFilter === f ? 'active' : ''}`}
-                onClick={() => setStatusFilter(f)}
-              >
-                {labels[f]} <span style={{ opacity: 0.7 }}>({count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="search-bar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <span className="tb-count">
+          {invoices.length} total{outstandingTotal > 0 && <> &middot; <b>{formatPrice(outstandingTotal)}</b> outstanding</>}
+        </span>
+        <span className="tb-gap"></span>
         <input
           type="search"
+          className="tb-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search by invoice #, ${terms.customerLower}, or description...`}
-          style={{ flex: 1 }}
+          placeholder={`Search invoice #, ${terms.customerLower}...`}
         />
-        <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
-          <option value="newest">Sort: Newest</option>
-          <option value="oldest">Sort: Oldest</option>
-          <option value="number">Sort: Invoice # (high)</option>
-          <option value="total">Sort: Total (high)</option>
-          <option value="status">Sort: Status</option>
+        {wideToolbar ? (
+          <div className="segmented" role="group" aria-label="Filter invoices">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={statusFilter === f ? 'on' : ''}
+                aria-pressed={statusFilter === f}
+                onClick={() => setStatusFilter(f)}
+              >{STATUS_LABELS[f]} <span className="n">{statusCount(f)}</span></button>
+            ))}
+          </div>
+        ) : (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filter invoices"
+          >
+            {STATUS_FILTERS.map((f) => (
+              <option key={f} value={f}>{STATUS_LABELS[f]} ({statusCount(f)})</option>
+            ))}
+          </select>
+        )}
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort invoices">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="number">Invoice # (high)</option>
+          <option value="total">Total (high)</option>
+          <option value="status">Status</option>
         </select>
+        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+        <RowMenu
+          label="More invoice actions"
+          items={[{ label: 'Export all as CSV', onClick: exportInvoices }]}
+        />
       </div>
       {error && <div className="error">{error}</div>}
       {notice && (
@@ -9818,7 +9960,13 @@ function InvoicesView({ session }) {
           <button className="link-button" style={{ marginLeft: 10 }} onClick={() => setNotice(null)}>Dismiss</button>
         </div>
       )}
-      <div className="list">
+      <div className="dtable">
+        {!loading && sortedInvoices.length > 0 && (
+          <div className="dtable-row dtable-head inv-row" aria-hidden="true">
+            <span>Invoice</span><span>{terms.customer}</span><span>Date</span>
+            <span>Status</span><span style={{ textAlign: 'right' }}>Amount</span><span></span>
+          </div>
+        )}
         {loading ? (
           <div className="list-empty">Loading...</div>
         ) : sortedInvoices.length === 0 ? (
@@ -9842,67 +9990,71 @@ function InvoicesView({ session }) {
             const math = invoiceMath(inv);
             const late = isInvoiceLate(inv);
             const days = late ? daysOutstanding(inv) : 0;
+            const who = customerDisplayName({
+              first_name: inv.customer_first_name,
+              last_name: inv.customer_last_name,
+              business_name: inv.customer_business_name,
+            });
+            // At most one action stays on the row — whichever is the likely
+            // next step for this status. Everything else is in the menu, so a
+            // list of money is not also a wall of buttons.
+            const inline = !canMutate ? null
+              : inv.status === 'draft' ? { label: 'Mark sent', run: () => transition(inv.id, 'send') }
+              : inv.status === 'sent' ? { label: 'Mark paid', run: () => transition(inv.id, 'mark-paid') }
+              : null;
             return (
-              <div key={inv.id} className="row">
-                <div className="info">
-                  <div className="name">
-                    Invoice #{inv.invoice_number}
-                    <span className="price">{formatPrice(math.total)}</span>
-                  </div>
-                  <div className="meta">
-                    {customerDisplayName({
-                      first_name: inv.customer_first_name,
-                      last_name: inv.customer_last_name,
-                      business_name: inv.customer_business_name,
-                    })} • {formatDateString(inv.date)} • <span className={`badge ${inv.status}`}>{inv.status}</span>
-                    {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late · {days}d</span></>}
-                    {math.creditApplied > 0 && (
-                      <> · <span style={{ color: 'var(--success)' }}>{formatPrice(math.creditApplied)} credit applied</span>
-                      {math.balanceDue > 0 && <> · {formatPrice(math.balanceDue)} due</>}
-                      </>
-                    )}
-                  </div>
-                  {inv.description && <div className="secondary-meta">{inv.description}</div>}
+              <div
+                key={inv.id}
+                className="dtable-row inv-row is-clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => openInvoice(inv)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInvoice(inv); }
+                }}
+              >
+                <span className="c-num">#{inv.invoice_number}</span>
+                <div className="c-main">
+                  <div className="t">{who}</div>
+                  {inv.description && <div className="s">{inv.description}</div>}
                 </div>
-                {canMutate && (
-                  <div className="actions">
-                    {/* Primary actions first so they land on the first row when
-                        the cluster wraps on mobile. */}
-                    {inv.status !== 'paid' && math.balanceDue > 0 && creditFor(inv.customer_id) > 0 && (
-                      <button className="secondary" disabled={busy} onClick={() => applyCredit(inv)}>
-                        Apply credit
-                      </button>
-                    )}
-                    {inv.status === 'draft' && (
-                      <button className="primary" onClick={() => transition(inv.id, 'send')}>Mark as sent</button>
-                    )}
-                    {inv.status === 'sent' && (
-                      <button className="primary" onClick={() => transition(inv.id, 'mark-paid')}>Mark paid</button>
-                    )}
-                    {inv.status === 'paid' && (
-                      <button className="secondary" onClick={() => transition(inv.id, 'mark-unpaid')}>Mark unpaid</button>
-                    )}
-                    {(inv.status === 'sent' || inv.status === 'paid') && (
-                      <button className="secondary" onClick={() => copyPublicLink(inv.id)}>
-                        {copiedId === inv.id ? 'Copied!' : 'Copy link'}
-                      </button>
-                    )}
-                    {/* Secondary actions follow. They wrap to a new row on narrow viewports. */}
-                    {(inv.status === 'draft' || inv.status === 'sent') && (
-                      <button className="secondary" onClick={() => emailInvoice(inv)}>
-                        Email<span className="hide-on-mobile"> to {terms.customerLower}</span>
-                      </button>
-                    )}
-                    <div className="inv-util-break" aria-hidden="true" />
-                    <div className="inv-util-group">
-                      {(inv.status === 'sent' || inv.status === 'paid') && (
-                        <button className="inv-util" onClick={() => navigate(`/i/${inv.id}?from=app`)}>View</button>
-                      )}
-                      <button className="inv-util" onClick={() => { setEditing(inv); setMode('edit'); }}>Edit</button>
-                      <button className="inv-util inv-util-danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
-                    </div>
-                  </div>
-                )}
+                <span className="c-when">{formatDateString(inv.date)}</span>
+                <span>
+                  <span className={`badge ${inv.status}`}>{inv.status}</span>
+                  {late && (
+                    <span className="badge" style={{ marginLeft: 6, background: 'var(--danger-bg)', color: 'var(--danger)' }}>
+                      {days}d
+                    </span>
+                  )}
+                </span>
+                <span className="c-amt">
+                  {formatPrice(math.total)}
+                  {math.creditApplied > 0 && (
+                    <span className="due">{formatPrice(math.creditApplied)} credit &middot; {formatPrice(math.balanceDue)} due</span>
+                  )}
+                </span>
+                <span className="c-act" onClick={(e) => e.stopPropagation()}>
+                  {inline && (
+                    <button className="secondary" onClick={inline.run}>{inline.label}</button>
+                  )}
+                  <RowMenu
+                    label={`Actions for invoice #${inv.invoice_number}`}
+                    items={[
+                      (inv.status === 'sent' || inv.status === 'paid')
+                        && { label: 'View public page', onClick: () => navigate(`/i/${inv.id}?from=app`) },
+                      (inv.status === 'sent' || inv.status === 'paid')
+                        && { label: copiedId === inv.id ? 'Copied!' : 'Copy public link', onClick: () => copyPublicLink(inv.id) },
+                      canMutate && (inv.status === 'draft' || inv.status === 'sent')
+                        && { label: `Email to ${terms.customerLower}`, onClick: () => emailInvoice(inv) },
+                      canMutate && inv.status !== 'paid' && math.balanceDue > 0 && creditFor(inv.customer_id) > 0
+                        && { label: 'Apply credit', onClick: () => applyCredit(inv) },
+                      canMutate && inv.status === 'paid'
+                        && { label: 'Mark unpaid', onClick: () => transition(inv.id, 'mark-unpaid') },
+                      canMutate && { label: 'Edit', onClick: () => { setEditing(inv); setMode('edit'); } },
+                      canMutate && { label: 'Delete', danger: true, onClick: () => deleteInvoice(inv.id) },
+                    ]}
+                  />
+                </span>
               </div>
             );
           })
@@ -10689,6 +10841,58 @@ function TimezoneSelect({ value, onChange, disabled }) {
 // invisible at runtime; the string still ends in a normal closing tag.
 function bookingEmbedSnippet(slug) {
   return `<script src="${window.location.origin}/embed.js" data-org="${slug}"><\/script>`;
+}
+
+// A row's actions, folded into one menu.
+//
+// List rows had grown to seven buttons each — send, mark paid, apply credit,
+// copy link, email, view, edit, delete — and when every row shouts, nothing
+// leads. The row keeps at most one inline action, the one you are most likely
+// to want next, and everything else lives here.
+function RowMenu({ items, label = 'More actions' }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const visible = items.filter(Boolean);
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="rowmenu" ref={wrap}>
+      <button
+        type="button"
+        className="rowmenu-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((v) => !v)}
+      >&#8943;</button>
+      {open && (
+        <div className="rowmenu-pop" role="menu">
+          {visible.map((it, i) => (
+            <button
+              key={i}
+              type="button"
+              role="menuitem"
+              className={`rowmenu-item${it.danger ? ' danger' : ''}`}
+              onClick={() => { setOpen(false); it.onClick(); }}
+            >{it.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function CopyButton({ text, label = 'Copy' }) {
@@ -11495,6 +11699,10 @@ const SETTINGS_ROUTES = {
   terminology: '/settings/terminology',
   'quick-text': '/settings/quick-text',
 };
+
+// Screens whose rows have been rebuilt to use columns. Add to this as each
+// list is converted; anything not listed keeps the old reading width.
+const WIDE_VIEWS = new Set(['invoices']);
 
 const APP_ROUTES = {
   '/': 'dashboard',
@@ -12524,7 +12732,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
           </button>
         )}
       </div>
-      <div className="content">
+      <div className={`content${WIDE_VIEWS.has(view) ? ' content-wide' : ''}`}>
         {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} draftQuotesCount={draftQuotesCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} defaultAddToDraft={!!(me && me.auto_append_to_draft)} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}

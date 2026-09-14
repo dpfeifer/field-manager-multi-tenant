@@ -31,6 +31,15 @@ const OUT_HTML = path.join(PUBLIC_DIR, 'index.built.html');
 const JSX_BLOCK = /<script type="text\/babel"[^>]*>([\s\S]*?)<\/script>/;
 // The @babel/standalone tag, which the compiled page no longer needs.
 const BABEL_TAG = /^[ \t]*<script[^>]*@babel\/standalone[^>]*><\/script>[ \t]*\r?\n?/m;
+// The inline script that configures Babel's classic runtime. It only makes
+// sense alongside the standalone build, and stripping the tag without this
+// left it calling into a global that is no longer there — an uncaught
+// ReferenceError on every page load of the built site.
+// Tempered so it cannot cross a </script>: without that, the match started at
+// an earlier <script> and swallowed React, ReactDOM and occurrences.js along
+// with it, which blanked the built page.
+const BABEL_CONFIG =
+  /[ \t]*<script>(?:(?!<\/script>)[\s\S])*?Babel\.registerPreset(?:(?!<\/script>)[\s\S])*?<\/script>[ \t]*\r?\n?/;
 
 function fail(msg) {
   console.error(`[build-client] ${msg}`);
@@ -89,10 +98,17 @@ fs.writeFileSync(path.join(PUBLIC_DIR, bundleName), code);
 
 const builtHtml = html
   .replace(BABEL_TAG, '')
+  .replace(BABEL_CONFIG, '')
   .replace(JSX_BLOCK, `<script src="/${bundleName}" defer></script>`);
 
 if (builtHtml.includes('text/babel')) fail('JSX block was not replaced');
 if (builtHtml.includes('@babel/standalone')) fail('Babel standalone tag was not stripped');
+if (builtHtml.includes('Babel.registerPreset')) fail('Babel preset config was not stripped');
+// A too-greedy strip takes neighbouring tags with it and the page silently
+// loads nothing, so check that what the app cannot start without survived.
+for (const required of ['react.production.min.js', 'react-dom.production.min.js', '/shared/occurrences.js']) {
+  if (!builtHtml.includes(required)) fail(`built page is missing ${required} — a strip removed too much`);
+}
 if (!builtHtml.includes('%TRACKING_SCRIPTS%')) {
   fail('%TRACKING_SCRIPTS% placeholder missing — the server substitutes this at request time');
 }
