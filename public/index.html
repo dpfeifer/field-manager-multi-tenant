@@ -1172,6 +1172,17 @@
        together; display:contents keeps them direct flex items either way. */
     .toolbar .tb-title { display: contents; }
     .toolbar .tb-actions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+    /* The view / filter strip gets a line to itself rather than sitting against
+       the heading — ordered last so it sits under the controls, and it is the
+       wrapper that fills the line while the control inside keeps its own
+       width. Telling the control itself to fill the line stretched a two-item
+       one into a band of empty tint. */
+    .toolbar .tb-row { order: 1; flex-basis: 100%; display: flex; min-width: 0; }
+    .toolbar .tb-row .segmented {
+      max-width: 100%; flex-wrap: nowrap; overflow-x: auto;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .toolbar .tb-row .segmented::-webkit-scrollbar { display: none; }
 
     @media (max-width: 680px) {
       /* Four rows of chrome before the first invoice, and the create button
@@ -1203,16 +1214,7 @@
       /* Statuses swipe rather than collapse into a select. A select showed
          "Unpaid (8)" and hid that four are drafts and four are sent; the strip
          carries every count on its face. */
-      /* Width of its own contents, not of the screen. The item above it is
-         already full-width, so it starts a new line without being told to —
-         and told to, a two-item control like Schedule/List stretched into a
-         band of empty tint beside the calendar's own Day/Week/Month, which
-         sizes to its content. It scrolls only when it actually overflows. */
-      .toolbar .segmented {
-        order: 6; max-width: 100%; flex-wrap: nowrap; overflow-x: auto;
-        scrollbar-width: none; -webkit-overflow-scrolling: touch;
-      }
-      .toolbar .segmented::-webkit-scrollbar { display: none; }
+      .toolbar .tb-row { order: 6; }
       .toolbar .segmented button { flex: none; }
     }
 
@@ -8055,6 +8057,7 @@ function RequestsView({ session }) {
         <span className="tb-gap"></span>
         {/* Same status filter the other lists use, so it reads as narrowing a
             list rather than as another row of tabs. */}
+        <div className="tb-row">
         <div className="segmented" role="group" aria-label="Filter requests">
           {['pending', 'accepted', 'declined', 'all'].map((f) => (
             <button
@@ -8065,6 +8068,7 @@ function RequestsView({ session }) {
               onClick={() => setFilter(f)}
             >{f.charAt(0).toUpperCase() + f.slice(1)}</button>
           ))}
+        </div>
         </div>
       </div>
       <p className="subtitle" style={{ marginTop: 0, marginBottom: 16 }}>
@@ -9783,6 +9787,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             was never a peer of "List" — it was a container holding Day, Week
             and Month, and stating it that way put two near-identical pill
             controls one above the other on a phone. */}
+        <div className="tb-row">
         <div className="segmented" role="group" aria-label={`${terms.jobs} view`}>
           {[
             { key: 'day', label: 'Day' },
@@ -9804,6 +9809,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
               >{v.label}</button>
             );
           })}
+        </div>
         </div>
         <span className="tb-gap"></span>
         {layout === 'list' && (
@@ -10556,6 +10562,7 @@ function InvoicesView({ session }) {
         />
         {/* One control at every width — it scrolls sideways on a phone rather
             than collapsing into a select, so the counts stay on screen. */}
+        <div className="tb-row">
         <div className="segmented" role="group" aria-label="Filter invoices">
           {STATUS_FILTERS.map((f) => (
             <button
@@ -10566,6 +10573,7 @@ function InvoicesView({ session }) {
               onClick={() => setStatusFilter(f)}
             >{STATUS_LABELS[f]} <span className="n">{statusCount(f)}</span></button>
           ))}
+        </div>
         </div>
         {wideToolbar && (
           <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort invoices">
