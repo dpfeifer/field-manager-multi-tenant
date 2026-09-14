@@ -25,7 +25,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
               o.id AS organization_id, o.slug AS organization_slug, o.name AS organization_name,
               o.features, o.onboarding_completed_at,
               o.subscription_status, o.trial_ends_at, o.is_demo,
-              s.company_name AS settings_company_name,
+              s.company_name AS settings_company_name, s.logo_url,
               s.customer_label, s.customer_label_plural,
               s.job_label, s.job_label_plural,
               s.sms_templates, s.dashboard_widgets, s.auto_append_to_draft,

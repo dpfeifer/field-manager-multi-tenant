@@ -474,6 +474,27 @@
       padding-right: max(var(--rail-inset), env(safe-area-inset-right));
     }
     .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .topbar .brand-button { display: inline-flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark {
+      flex: none; width: 30px; height: 30px; border-radius: 9px;
+      display: grid; place-items: center; overflow: hidden;
+    }
+    .brand-mark.is-monogram {
+      color: #fff; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.03em; line-height: 1;
+    }
+    /* A logo keeps its own shape. Squeezing one into the monogram's tile turns
+       a wordmark into an illegible 28px smudge, and a bordered tile makes a
+       brand look like an avatar. Height is the constraint; width follows. */
+    .brand-mark.is-logo {
+      width: auto; height: 28px; max-width: 148px;
+      border-radius: 4px; overflow: visible;
+    }
+    .brand-mark.is-logo img {
+      display: block; height: 100%; width: auto;
+      max-width: 148px; object-fit: contain;
+    }
     /* Brand text acts as a refresh affordance (tap to reload), so style it
        as a button without any visible button chrome. */
     .topbar .brand-button {
@@ -2917,8 +2938,19 @@
     .link-button:hover { color: var(--text); text-decoration: underline; }
 
     @media (max-width: 720px) {
-      .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+      /* One row, always. Wrapping let a long name push the plan pill and the
+         avatar onto a second line, and adding the brand mark made that the
+         normal case rather than the rare one. The name truncates instead —
+         it is the only part here that can afford to. */
+      .topbar { padding: 12px 16px; flex-wrap: nowrap; gap: 8px; }
+      .topbar .right { flex: none; }
+      .topbar .brand-button { min-width: 0; flex: 0 1 auto; }
       .topbar .brand { font-size: 14px; }
+      .topbar .brand-button { gap: 9px; }
+      .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
+      .brand-mark.is-monogram { font-size: 10.5px; }
+      .brand-mark.is-logo { width: auto; height: 24px; max-width: 108px; }
+      .brand-mark.is-logo img { max-width: 108px; }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
@@ -13122,13 +13154,33 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
-        <button
-          type="button"
-          className="brand brand-button"
-          onClick={() => window.location.reload()}
-          title="Refresh"
-          aria-label="Refresh app"
-        >{(me && me.display_name) || session.organization.name}</button>
+        {(() => {
+          const orgName = (me && me.display_name) || session.organization.name;
+          const logo = me && me.logo_url;
+          return (
+            <button
+              type="button"
+              className="brand brand-button"
+              onClick={() => window.location.reload()}
+              title="Refresh"
+              aria-label="Refresh app"
+            >
+              {/* An account with no logo yet still gets a mark of its own,
+                  coloured off its id like every other avatar in the app, so
+                  the header reads as somebody's rather than as a blank. */}
+              {logo ? (
+                <span className="brand-mark is-logo"><img src={logo} alt="" /></span>
+              ) : (
+                <span
+                  className="brand-mark is-monogram"
+                  style={{ background: avatarColor(session.organization.id) }}
+                  aria-hidden="true"
+                >{nameInitials(orgName)}</span>
+              )}
+              <span className="brand-name">{orgName}</span>
+            </button>
+          );
+        })()}
         <div className="right">
           {me && (
             <span className={`plan-pill plan-${plan}`} onClick={isFree && isAdmin ? () => startUpgrade(session) : undefined}>
