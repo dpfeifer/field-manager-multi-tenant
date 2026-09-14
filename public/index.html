@@ -3154,17 +3154,17 @@
         grid-column: 2; grid-row: 1;
         align-self: start; justify-self: end;
       }
-      /* Role and menu share the row as two real columns, centred against each
-         other — stacking them in one cell and nudging with a margin left them
-         a few pixels out of line. */
-      .row.team-row { grid-template-columns: 1fr auto auto; align-items: center; }
-      .row.team-row .team-role {
-        grid-column: 2; grid-row: 1; justify-self: end; align-self: center;
-      }
+      /* Who they are on the left, the menu on the right. The role moved into
+         the name block above, so the pill's column is gone — except while the
+         role is being changed, when this holds the select and needs the room. */
+      .row.team-row { grid-template-columns: 1fr auto; align-items: center; }
+      .row.team-row .team-role:has(.badge) { display: none; }
+      .row.team-row .team-role { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
       .row.team-row .actions {
-        grid-column: 3; grid-row: 1;
+        grid-column: 2; grid-row: 1;
         margin-top: 0; width: auto; align-self: center;
       }
+      .team-role-text { text-transform: capitalize; }
       .row.team-row .actions::-webkit-scrollbar { display: none; }
       .row.team-row .actions button {
         padding: 8px 12px; font-size: 13px;
@@ -15573,6 +15573,12 @@ function TeamView({ session }) {
                     )}
                   </div>
                   <div className="meta">{u.email}</div>
+                  {/* On a phone the role reads as a third line of who this
+                      person is, under their address. A pill out at the edge
+                      was a label floating away from what it labels. */}
+                  {!wideActions && editingRoleId !== u.id && (
+                    <div className="meta team-role-text">{u.role}</div>
+                  )}
                   {isResetting && (
                     <div className="secondary-meta" style={{ marginTop: 8 }}>
                       <input
