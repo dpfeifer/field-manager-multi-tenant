@@ -9,7 +9,8 @@
     "migrate": "node db/migrate.js",
     "trial-reminders": "node scripts/send-trial-reminders.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/build-client.js && node scripts/build-pages.js"
+    "build": "node scripts/build-client.js && node scripts/build-pages.js",
+    "seed": "node scripts/seed-dev.js"
   },
   "repository": {
     "type": "git",
