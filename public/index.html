@@ -793,8 +793,11 @@
        the field grid keeps its own measure while lists take the full width. */
     .content { max-width: var(--shell-max); margin: 32px auto; padding: 0 var(--shell-pad); }
     /* Settings, billing and profile are stacked form fields, and a field is
-       not more readable for being 1300px wide. */
-    .content-narrow { max-width: 1000px; }
+       not more readable for being 1300px wide. It starts where every other
+       screen's content starts, though — centering the narrower column left a
+       104px gutter after the rail while every other screen had 26, which read
+       as the page having come loose from its navigation. */
+    .content-narrow { max-width: 1000px; margin-left: 0; margin-right: auto; }
     /* The rail answers one question: where am I in the app. A record's own
        sections (a customer's jobs, invoices, notes) are part of the record and
        live inside the content. An area you enter deliberately, like Settings,
@@ -840,6 +843,9 @@
       box-shadow: var(--shadow-sm);
     }
     .rail-item .icon { font-size: 15px; opacity: 0.7; flex: none; }
+    /* Area sections have no icons, so their labels would start 25px left of
+       where the app's destinations do. Pad them out to the same line. */
+    .rail-item:not(:has(.icon)) { padding-left: 39px; }
     .rail-item.active .icon { opacity: 1; color: var(--primary); }
     .rail-item .rail-fill { flex: 1 1 auto; }
     .rail-badge {
@@ -12776,9 +12782,33 @@ function groupSections(sections) {
 // changes shape rather than shrinking: the sections become a full-width list,
 // and choosing one opens it with a link back out. `backLabel` names what you
 // return to, so the way back reads as a place and not just "Back".
+// The shell hands this down so an area can put its own sections in the rail
+// instead of drawing a second one beside it.
+const AreaRailContext = React.createContext(null);
+
 function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children }) {
   const wide = useMediaQuery('(min-width: 721px)');
+  // Only take the rail over when there is a rail to take: between 721 and
+  // 1000 the shell is already down to a drawer, so this pane keeps its own
+  // column rather than leaving the area with no navigation at all.
+  const canTakeOver = useMediaQuery('(min-width: 1001px)');
+  const setAreaRail = React.useContext(AreaRailContext);
+  const takeover = canTakeOver && !!setAreaRail;
   const [drilled, setDrilled] = useState(false);
+
+  // Keyed on what actually changes. sections and onSelect get a new identity
+  // every render, so depending on them directly would re-register in a loop.
+  const sectionKeys = sections.map((x) => x.key).join('|');
+  useEffect(() => {
+    if (!setAreaRail) return undefined;
+    if (!takeover) { setAreaRail(null); return undefined; }
+    setAreaRail({ sections, active, onSelect, ariaLabel });
+    return () => setAreaRail(null);
+  }, [takeover, sectionKeys, active, ariaLabel]);
+
+  // The rail is showing these sections, so drawing them here too would be the
+  // two columns this whole arrangement exists to avoid.
+  if (takeover) return <>{children}</>;
 
   if (wide) {
     return (
@@ -12938,6 +12968,8 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
   const jobsAtCap = isFree && counts.jobs >= limits.jobs;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Set by an area (Settings, System) that wants the rail for its own sections.
+  const [areaRail, setAreaRail] = useState(null);
   const canBill = ['admin', 'lead'].includes(session.user.role);
 
   // Escape closes the drawer, and the page behind it stops scrolling while it
@@ -13003,12 +13035,6 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
     .map((g) => ({ ...g, items: g.items.filter(Boolean) }))
     .filter((g) => g.items.length > 0);
 
-  // Settings and the system panel are areas you enter deliberately and stay a
-  // while, and each already has a rail of its own. Two vertical columns of
-  // navigation is the thing the rail is supposed to prevent, so entering an
-  // area gives it the column.
-  const inArea = view === 'settings' || view === 'system';
-
   const needsOnboarding = me && !me.onboarding_completed_at && isAdmin;
 
   if (needsOnboarding) {
@@ -13033,6 +13059,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
   return (
     <SmsTemplatesContext.Provider value={(me && me.sms_templates) || []}>
     <TermsContext.Provider value={terms}>
+    <AreaRailContext.Provider value={setAreaRail}>
     <div className="app-frame">
       <div className="topbar">
         <button
@@ -13096,10 +13123,30 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
       )}
       <TeamNotesBanner session={session} />
       <div className="shell">
-        {!inArea && (
-          <nav className="rail" aria-label="Main">
+          <nav className="rail" aria-label={areaRail ? areaRail.ariaLabel : 'Main'}>
             <div className="rail-inner">
-            {railGroups.map((g) => (
+            {areaRail ? (
+              <>
+                <button type="button" className="rail-back" onClick={() => navigate('/dashboard')}>
+                  <span aria-hidden="true">&lsaquo;</span> Back to app
+                </button>
+                {areaRail.sections.map((sec, i) => (
+                  <React.Fragment key={sec.key}>
+                    {sec.group && sec.group !== (areaRail.sections[i - 1] || {}).group && (
+                      <p className="rail-group">{sec.group}</p>
+                    )}
+                    <button
+                      type="button"
+                      className={`rail-item${areaRail.active === sec.key ? ' active' : ''}`}
+                      aria-current={areaRail.active === sec.key ? 'page' : undefined}
+                      onClick={() => areaRail.onSelect(sec.key)}
+                    >
+                      <span>{sec.label}</span>
+                    </button>
+                  </React.Fragment>
+                ))}
+              </>
+            ) : railGroups.map((g) => (
               <React.Fragment key={g.name}>
                 <p className="rail-group">{g.name}</p>
                 {g.items.map((it) => (
@@ -13122,15 +13169,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             ))}
             </div>
           </nav>
-        )}
         <div className={`content${NARROW_VIEWS.has(view) ? ' content-narrow' : ''}`}>
-        {/* An area took the rail's place, so the way out has to be on screen.
-            Settings and System each keep their own rail below this. */}
-        {inArea && (
-          <button type="button" className="area-back" onClick={() => navigate('/dashboard')}>
-            <span aria-hidden="true">&lsaquo;</span> Back to app
-          </button>
-        )}
         {view === 'dashboard' && <DashboardView session={session} features={features} me={me} pendingRequestsCount={pendingRequestsCount} draftQuotesCount={draftQuotesCount} />}
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} defaultAddToDraft={!!(me && me.auto_append_to_draft)} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
@@ -13195,6 +13234,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         </>
       )}
     </div>
+    </AreaRailContext.Provider>
     </TermsContext.Provider>
     </SmsTemplatesContext.Provider>
   );
