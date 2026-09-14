@@ -1192,13 +1192,16 @@
          Order, not source order: the actions live at the end of the toolbar
          for the laptop layout, and putting them on the heading's line here
          would otherwise mean repeating the markup. */
-      .toolbar > * { order: 5; }
+      .toolbar > * { order: 6; }
       .toolbar h2 { order: 1; }
       .toolbar .tb-actions { order: 2; margin-left: auto; }
       /* Pulled up under the heading: at 8px of toolbar gap "33 total" reads as
          a row of its own rather than as a subtitle of the thing above it. */
       .toolbar .tb-count { order: 3; flex-basis: 100%; margin-top: -5px; }
-      .toolbar .tb-search { order: 4; flex: 1 0 100%; }
+      /* Pills before the field. Which status you are looking at is part of what
+         this list currently is, so it belongs up with the heading that names
+         it — not under a search box you may never type in. */
+      .toolbar .tb-search { order: 5; flex: 1 0 100%; }
       /* A desktop device: on a phone it wrapped to a line of its own and
          pushed the actions to yet another. */
       .toolbar .tb-gap { display: none; }
@@ -1214,7 +1217,7 @@
       /* Statuses swipe rather than collapse into a select. A select showed
          "Unpaid (8)" and hid that four are drafts and four are sent; the strip
          carries every count on its face. */
-      .toolbar .tb-row { order: 6; }
+      .toolbar .tb-row { order: 4; }
       .toolbar .segmented button { flex: none; }
     }
 
