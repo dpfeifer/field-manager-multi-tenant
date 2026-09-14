@@ -867,6 +867,113 @@
     .area-back:hover { background: var(--tinted); color: var(--text); }
     .area-back span { font-size: 17px; line-height: 1; }
 
+    /* A record's own sections are part of the record, not part of the app, so
+       they go horizontal inside the content. Beside the rail they read as a
+       second column of navigation, and then neither column means anything.
+
+       The reason contact lived in that column was so a phone number stays on
+       screen while you read an invoice. Sticky keeps that, with one rail. */
+    .rechead { background: var(--bg); padding-bottom: 4px; }
+    .reccard {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; box-shadow: var(--shadow-sm);
+      padding: 15px 17px; margin-bottom: 16px;
+    }
+    .reccard-top { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+    .reccard-avatar {
+      flex: none; width: 42px; height: 42px; border-radius: 12px;
+      display: grid; place-items: center; color: #fff;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+    }
+    .reccard-id { min-width: 0; margin-right: 2px; }
+    .reccard-name {
+      margin: 0; font-size: 20px; letter-spacing: -0.01em; line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .reccard-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+    .reccard-actions { margin-left: auto; display: flex; gap: 8px; }
+    .reccard-contact { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .reccard-chip {
+      display: inline-flex; align-items: baseline; gap: 8px;
+      background: var(--tinted); border: 1px solid transparent;
+      border-radius: 9px; padding: 6px 11px; min-width: 0; max-width: 100%;
+      font-size: 12.5px; color: var(--text); text-decoration: none;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    a.reccard-chip:hover { background: var(--card); border-color: var(--border-strong); }
+    .reccard-chip .k {
+      flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .reccard-chip .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Notes are free text about the place, not a way to reach someone, so they
+       sit apart from the contact chips rather than pretending to be one. */
+    .reccard-note {
+      display: flex; gap: 10px; margin-top: 13px; padding-top: 12px;
+      border-top: 1px solid var(--border); font-size: 13px; color: var(--text);
+    }
+    .reccard-note .k {
+      flex: none; padding-top: 2px; font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted);
+    }
+    /* Sticky above the phone breakpoint only. The card is the right size for a
+       laptop to keep on screen and too much of a phone to give up. */
+    @media (min-width: 681px) {
+      .rechead { position: sticky; top: 0; z-index: 20; padding-top: 10px; }
+    }
+    @media (max-width: 680px) {
+      .reccard { padding: 13px 14px; }
+      .reccard-name { font-size: 17px; }
+      .reccard-avatar { width: 36px; height: 36px; border-radius: 10px; font-size: 12.5px; }
+      /* Keep Edit on the name's line and let the money pill take the next one,
+         rather than stranding the button on a row of its own. */
+      .reccard-id { flex: 1 1 auto; }
+      .reccard-actions { order: 3; }
+      .reccard-top .money-pill { order: 4; }
+      .reccard-contact { gap: 6px; margin-top: 11px; order: 5; }
+      .reccard-chip { padding: 5px 9px; font-size: 12px; }
+    }
+
+    .rectabs {
+      display: flex; gap: 2px; margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap;
+    }
+    .rectabs::-webkit-scrollbar { display: none; }
+    .rectab {
+      background: none; border: 0; cursor: pointer; font-family: inherit;
+      font-size: 13.5px; font-weight: 500; color: var(--text-muted);
+      padding: 10px 14px; margin-bottom: -1px; white-space: nowrap;
+      border-bottom: 2px solid transparent; flex: none;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .rectab:hover { color: var(--text); }
+    .rectab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--primary); }
+    .rectab b {
+      font-weight: 600; font-size: 11px; color: var(--text-muted);
+      background: var(--tinted); padding: 2px 7px; border-radius: 999px;
+    }
+    .rectab.active b { color: var(--text); }
+
+    @media (max-width: 680px) {
+      /* A phone cannot give 100px to a header. Labels go, values stay on one
+         line — the number is still there to tap while you read. */
+      .rechead { padding: 10px 0 9px; }
+      .rechead-row h2 { font-size: 18px; }
+      /* Wrap to a second line rather than shrink: five items sharing 375px
+         shrink to "555-6… · mgr@pine… · 8…", which is worse than no header. */
+      .rechead-meta { gap: 2px 18px; flex-wrap: wrap; margin-top: 6px; }
+      .rechead-meta > div {
+        display: flex; align-items: baseline;
+        flex: 0 0 auto; max-width: 100%; min-width: 0;
+      }
+      .rechead-meta dt { display: none; }
+      .rechead-meta dd { font-size: 12.5px; color: var(--text-muted); }
+      /* No separators here: once items wrap, a leading "·" lands at the start
+         of the second line and reads as a bullet on some rows but not others.
+         Spacing does the same job and survives the wrap. */
+    }
+
     /* Below the rail breakpoint the same list becomes a drawer, which is why
        the phone no longer needs a horizontal scroller for eight destinations. */
     .railtoggle {
@@ -1384,11 +1491,6 @@
       padding: 12px 10px;
       min-width: 0;
     }
-    .two-pane-aside {
-      padding: 0 8px 12px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 8px;
-    }
     .two-pane-btn {
       display: flex; align-items: center; justify-content: space-between;
       gap: 8px; width: 100%; text-align: left;
@@ -1418,15 +1520,6 @@
     .two-pane-count {
       font-size: 11.5px; color: var(--text-muted);
       font-variant-numeric: tabular-nums; opacity: 0.75;
-    }
-    .aside-info { margin: 0; display: grid; gap: 8px; }
-    .aside-info dt {
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.11em;
-      text-transform: uppercase; color: var(--text-muted); margin-bottom: 1px;
-    }
-    .aside-info dd {
-      margin: 0; font-size: 12.5px; color: var(--text);
-      line-height: 1.4; overflow-wrap: anywhere;
     }
     .money-pill {
       font-size: 11.5px; font-weight: 600;
@@ -1461,11 +1554,6 @@
     .two-pane-body .list-empty { padding: 34px 8px; }
 
     /* Narrow: the rail becomes a full-width list you drill into. */
-    .two-pane-narrow .two-pane-aside {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; box-shadow: var(--shadow-sm);
-      padding: 14px 16px; margin-bottom: 16px;
-    }
     /* The section's content gets the same white card the pane is on desktop.
        The back link and section title stay outside it, so the card holds the
        content and nothing else. .two-pane-body .list already drops its own
@@ -6667,43 +6755,40 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
   return (
     <div>
       <BackLink onClick={onBack}>All {terms.customersLower}</BackLink>
-      <div className="page-header with-pills">
-        <h2>{customerDisplayName(customer)}</h2>
-        {/* What they owe and what they have on credit lead the screen now.
-            They were two rows in the card below, which is where you look
-            last, not first. Grouped so that when the header runs out of room
-            the pair drops to its own line together, rather than one pill
-            stranding itself beside the name. */}
-        {(parseFloat(customer.outstanding_balance) > 0 || credit.balance > 0) && (
-          <div className="header-pills">
-            {parseFloat(customer.outstanding_balance) > 0 && (
-              <span className="money-pill owes">Owes {formatPrice(customer.outstanding_balance)}</span>
-            )}
-            {credit.balance > 0 && (
-              <span className="money-pill credit">{formatPrice(credit.balance)} credit</span>
-            )}
-          </div>
-        )}
-        <div className="actions header-actions">
-          {canMutate && <button className="secondary" onClick={() => onEdit(customer)}>Edit</button>}
-        </div>
+      {/* Sticky, so the phone number is still there while you read an invoice
+          four screens down — that was the only reason contact sat in a column
+          of its own, and it survives here without a second rail. */}
+      <div className="rechead">
+        <CustomerCard
+          customer={customer}
+          creditBalance={credit.balance}
+          onEdit={canMutate ? () => onEdit(customer) : null}
+        />
       </div>
 
       {error && <div className="error">{error}</div>}
 
-      <TwoPane
-        ariaLabel={`${customerDisplayName(customer)} sections`}
-        active={tab}
-        onSelect={setTab}
-        sections={[
+      <div className="rectabs" role="tablist" aria-label={`${customerDisplayName(customer)} sections`}>
+        {[
           { key: 'jobs', label: terms.jobs, count: loading ? '' : jobs.length },
           { key: 'invoices', label: 'Invoices', count: loading ? '' : invoices.length },
           { key: 'quotes', label: 'Quotes', count: loading ? '' : quotes.length },
           { key: 'credit', label: 'Credit', count: loading ? '' : formatPrice(credit.balance) },
           { key: 'notes', label: 'Notes', count: loading ? '' : notes.length },
-        ]}
-        aside={<CustomerContactAside customer={customer} />}
-      >
+        ].map((sec) => (
+          <button
+            key={sec.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === sec.key}
+            className={`rectab${tab === sec.key ? ' active' : ''}`}
+            onClick={() => setTab(sec.key)}
+          >
+            <span>{sec.label}</span>
+            {sec.count !== '' && sec.count != null && <b>{sec.count}</b>}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="list-empty">Loading related items...</div>
@@ -6936,34 +7021,73 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
           )}
         </>
       )}
-      </TwoPane>
     </div>
   );
 }
 
-// Contact details live beside the sections rather than in a card above them,
-// so a phone number is still on screen while you are looking at an invoice.
-function CustomerContactAside({ customer }) {
-  const contact = customer.business_name && (customer.first_name || customer.last_name)
+// The record's identity card. Above a phone it rides in a sticky header, so a
+// number or a gate code is still on screen while you read an invoice further
+// down — that was the only reason contact used to sit in a column of its own.
+function CustomerCard({ customer, creditBalance = 0, onEdit }) {
+  const name = customerDisplayName(customer);
+  // When a business has a person on file, that person is the subtitle rather
+  // than another chip — it is who you ask for, not a way to reach them.
+  const person = customer.business_name && (customer.first_name || customer.last_name)
     ? [customer.first_name, customer.last_name].filter(Boolean).join(' ')
     : null;
-  const rows = [
-    ['Phone', customer.phone],
-    ['Email', customer.email],
-    ['Contact', contact],
-    ['Address', customer.address],
-    ['Notes', customer.notes],
-  ].filter(([, v]) => v);
-  if (rows.length === 0) return null;
+  const owed = parseFloat(customer.outstanding_balance) || 0;
+  const chips = [
+    customer.phone && { k: 'Phone', v: customer.phone, href: `tel:${customer.phone.replace(/[^\d+]/g, '')}` },
+    customer.email && { k: 'Email', v: customer.email, href: `mailto:${customer.email}` },
+    customer.address && {
+      k: 'Address', v: customer.address,
+      href: `https://maps.google.com/?q=${encodeURIComponent(customer.address)}`,
+      external: true,
+    },
+  ].filter(Boolean);
+
   return (
-    <dl className="aside-info">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
+    <div className="reccard">
+      <div className="reccard-top">
+        <span className="reccard-avatar" style={{ background: avatarColor(customer.id) }} aria-hidden="true">
+          {nameInitials(name)}
+        </span>
+        <div className="reccard-id">
+          <h2 className="reccard-name">{name}</h2>
+          {person && <div className="reccard-sub">{person}</div>}
         </div>
-      ))}
-    </dl>
+        {/* What they owe and what they have on credit lead the screen. They
+            used to be two rows in a card below, which is where you look last. */}
+        {owed > 0 && <span className="money-pill owes">Owes {formatPrice(owed)}</span>}
+        {creditBalance > 0 && <span className="money-pill credit">{formatPrice(creditBalance)} credit</span>}
+        {onEdit && (
+          <div className="reccard-actions">
+            <button className="secondary" onClick={onEdit}>Edit</button>
+          </div>
+        )}
+      </div>
+      {chips.length > 0 && (
+        <div className="reccard-contact">
+          {chips.map((c) => (
+            <a
+              key={c.k}
+              className="reccard-chip"
+              href={c.href}
+              {...(c.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            >
+              <span className="k">{c.k}</span>
+              <span className="v">{c.v}</span>
+            </a>
+          ))}
+        </div>
+      )}
+      {customer.notes && (
+        <div className="reccard-note">
+          <span className="k">Notes</span>
+          <span>{customer.notes}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -12584,7 +12708,7 @@ function groupSections(sections) {
 // changes shape rather than shrinking: the sections become a full-width list,
 // and choosing one opens it with a link back out. `backLabel` names what you
 // return to, so the way back reads as a place and not just "Back".
-function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, children }) {
+function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children }) {
   const wide = useMediaQuery('(min-width: 721px)');
   const [drilled, setDrilled] = useState(false);
 
@@ -12592,7 +12716,6 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
     return (
       <div className="two-pane">
         <div className="two-pane-rail">
-          {aside && <div className="two-pane-aside">{aside}</div>}
           <div role="tablist" aria-label={ariaLabel} aria-orientation="vertical">
             {sections.map((s, i) => (
               <React.Fragment key={s.key}>
@@ -12626,7 +12749,6 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
   if (!drilled) {
     return (
       <div className="two-pane-narrow">
-        {aside && <div className="two-pane-aside">{aside}</div>}
         <nav aria-label={ariaLabel}>
           {groupSections(sections).map((g, gi) => (
             <React.Fragment key={g.name || gi}>
@@ -12657,11 +12779,6 @@ function TwoPane({ sections, active, onSelect, aside, ariaLabel, backLabel, chil
   const current = sections.find((s) => s.key === active);
   return (
     <div className="two-pane-narrow">
-      {/* The aside stays put inside a section, so a phone number is still on
-          screen here exactly as it is on the wide layout. It also puts space
-          between this back link and whatever back link the page itself
-          carries, which otherwise sit on top of each other. */}
-      {aside && <div className="two-pane-aside">{aside}</div>}
       {/* Title left, way out right — the same shape as the page header above
           it, so the two rows read as one pattern rather than two. */}
       <div className="drill-head">
