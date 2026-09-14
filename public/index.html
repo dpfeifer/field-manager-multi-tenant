@@ -1149,6 +1149,7 @@
     .toolbar .tb-count { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
     .toolbar .tb-count b { color: var(--text); font-weight: 600; }
     .toolbar .tb-gap { flex: 1 1 auto; }
+    .toolbar .tb-actions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
     .toolbar .tb-search { flex: 1 1 200px; min-width: 150px; }
     .toolbar input[type="search"], .toolbar select { font-size: 13px; padding: 7px 11px; }
     .toolbar select { width: auto; }
@@ -1335,10 +1336,13 @@
     .rowmenu-trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
     .rowmenu-pop {
       position: absolute; right: 0; top: calc(100% + 4px); z-index: 30;
-      min-width: 176px; background: var(--card);
+      min-width: 176px; max-width: calc(100vw - 16px); background: var(--card);
       border: 1px solid var(--border); border-radius: 10px;
       box-shadow: var(--shadow-md); padding: 5px; display: grid; gap: 1px;
     }
+    /* Set by RowMenu when the default placement would leave the screen. */
+    .rowmenu-pop.to-left { right: auto; left: 0; }
+    .rowmenu-pop.to-top { top: auto; bottom: calc(100% + 4px); }
     .rowmenu-item {
       font-family: inherit; font-size: 13px; text-align: left;
       color: var(--text); background: none; border: 0;
@@ -7647,18 +7651,23 @@ function CustomersView({ session, planContext }) {
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
         </select>
-        {canMutate && (
-          <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.customerLower}</span></button>
-        )}
-        {/* Import and export are things you do to the list once in a while,
-            not every visit — they don't need to sit in front of it. */}
-        <RowMenu
-          label={`More ${terms.customerLower} actions`}
-          items={[
-            ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
-            ...(customers.length > 0 ? [{ label: 'Export all as CSV', onClick: exportCustomers }] : []),
-          ]}
-        />
+        {/* The button and its overflow menu wrap as one item. Left loose they
+            broke apart, stranding the menu alone on the next line at the far
+            left — where a right-anchored panel opens off the side. */}
+        <span className="tb-actions">
+          {canMutate && (
+            <button className="primary" onClick={() => { setError(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.customerLower}</span></button>
+          )}
+          {/* Import and export are things you do to the list once in a while,
+              not every visit — they don't need to sit in front of it. */}
+          <RowMenu
+            label={`More ${terms.customerLower} actions`}
+            items={[
+              ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
+              ...(customers.length > 0 ? [{ label: 'Export all as CSV', onClick: exportCustomers }] : []),
+            ]}
+          />
+        </span>
       </div>
       {planContext && planContext.isFree && planContext.atCap && (
         <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.customersLower} />
@@ -9714,16 +9723,18 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             </select>
           </>
         )}
-        {canMutate && (
-          <button className="primary" onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
-        )}
-        <RowMenu
-          label={`More ${terms.jobLower} actions`}
-          items={[
-            ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
-            ...(jobs.length > 0 ? [{ label: 'Export all as CSV', onClick: exportJobs }] : []),
-          ]}
-        />
+        <span className="tb-actions">
+          {canMutate && (
+            <button className="primary" onClick={() => { setError(null); setCreateInitial(null); setMode('create'); }} disabled={atCap}>+ New<span className="hide-on-mobile"> {terms.jobLower}</span></button>
+          )}
+          <RowMenu
+            label={`More ${terms.jobLower} actions`}
+            items={[
+              ...(canMutate && !atCap ? [{ label: 'Import from CSV', onClick: () => { setError(null); setMode('import'); } }] : []),
+              ...(jobs.length > 0 ? [{ label: 'Export all as CSV', onClick: exportJobs }] : []),
+            ]}
+          />
+        </span>
       </div>
       {planContext && planContext.isFree && planContext.atCap && (
         <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.jobsLower} />
@@ -10461,11 +10472,13 @@ function InvoicesView({ session }) {
           <option value="total">Total (high)</option>
           <option value="status">Status</option>
         </select>
-        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
-        <RowMenu
-          label="More invoice actions"
-          items={[{ label: 'Export all as CSV', onClick: exportInvoices }]}
-        />
+        <span className="tb-actions">
+          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New invoice</button>}
+          <RowMenu
+            label="More invoice actions"
+            items={[{ label: 'Export all as CSV', onClick: exportInvoices }]}
+          />
+        </span>
       </div>
       {error && <div className="error">{error}</div>}
       {notice && (
@@ -11052,13 +11065,15 @@ function QuotesView({ session, features = { invoices: true } }) {
           <option value="total">Total (high)</option>
           <option value="status">Status</option>
         </select>
-        {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
-        <RowMenu
-          label="More quote actions"
-          items={[
-            ...(quotes.length > 0 ? [{ label: 'Export all as CSV', onClick: exportQuotes }] : []),
-          ]}
-        />
+        <span className="tb-actions">
+          {canMutate && <button className="primary" onClick={() => { setError(null); setMode('create'); }}>+ New quote</button>}
+          <RowMenu
+            label="More quote actions"
+            items={[
+              ...(quotes.length > 0 ? [{ label: 'Export all as CSV', onClick: exportQuotes }] : []),
+            ]}
+          />
+        </span>
       </div>
       {error && <div className="error">{error}</div>}
       <div className="dtable">
@@ -11390,7 +11405,25 @@ function bookingEmbedSnippet(slug) {
 // to want next, and everything else lives here.
 function RowMenu({ items, label = 'More actions' }) {
   const [open, setOpen] = useState(false);
+  // Right-aligned suits a kebab at the end of a table row, which is most of
+  // them. In a toolbar the same button can wrap to the left edge, and then a
+  // 176px panel hanging off its right edge goes off the side of the screen.
+  const [placement, setPlacement] = useState('');
   const wrap = useRef(null);
+  const pop = useRef(null);
+
+  React.useLayoutEffect(() => {
+    if (!open) { setPlacement(''); return; }
+    const el = pop.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    let next = '';
+    // Flip only when the default actually overflows: left-aligning a menu
+    // that already fits would push a right-edge one off the other side.
+    if (r.left < 8) next += ' to-left';
+    if (r.bottom > window.innerHeight - 8 && r.top > r.height + 8) next += ' to-top';
+    setPlacement(next);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -11418,7 +11451,7 @@ function RowMenu({ items, label = 'More actions' }) {
         onClick={() => setOpen((v) => !v)}
       >&#8943;</button>
       {open && (
-        <div className="rowmenu-pop" role="menu">
+        <div className={`rowmenu-pop${placement}`} role="menu" ref={pop}>
           {visible.map((it, i) => (
             <button
               key={i}
