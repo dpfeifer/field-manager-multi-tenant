@@ -3139,15 +3139,14 @@
         grid-column: 2; grid-row: 1;
         align-self: start; justify-self: end;
       }
+      /* One menu button now, so it sits with the role badge rather than taking
+         a row and a sideways scroll of its own. */
       .row.team-row .actions {
-        grid-column: 1 / -1; grid-row: 2;
-        margin-top: 0;
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+        grid-column: 2; grid-row: 1;
+        margin-top: 0; width: auto;
+        justify-content: flex-end; align-self: start;
       }
+      .row.team-row .team-role { grid-column: 2; grid-row: 1; margin-right: 34px; }
       .row.team-row .actions::-webkit-scrollbar { display: none; }
       .row.team-row .actions button {
         padding: 8px 12px; font-size: 13px;
@@ -11997,6 +11996,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           destinations, now grouped by what you came here to do. */}
       <TwoPane
         ariaLabel="Settings sections"
+        deepLinked={path !== '/settings'}
         active={subView}
         onSelect={(key) => navigate(SETTINGS_ROUTES[key])}
         sections={[
@@ -13135,7 +13135,7 @@ function groupSections(sections) {
 // instead of drawing a second one beside it.
 const AreaRailContext = React.createContext(null);
 
-function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children }) {
+function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, deepLinked = false, children }) {
   const wide = useMediaQuery('(min-width: 721px)');
   // Only take the rail over when there is a rail to take: between 721 and
   // 1000 the shell is already down to a drawer, so this pane keeps its own
@@ -13143,7 +13143,11 @@ function TwoPane({ sections, active, onSelect, ariaLabel, backLabel, children })
   const canTakeOver = useMediaQuery('(min-width: 1001px)');
   const setAreaRail = React.useContext(AreaRailContext);
   const takeover = canTakeOver && !!setAreaRail;
-  const [drilled, setDrilled] = useState(false);
+  // A URL that already names a section should open that section, not the menu
+  // of sections. The getting-started checklist links straight to
+  // /settings/payments, and on a phone that landed on the index instead.
+  const [drilled, setDrilled] = useState(deepLinked);
+  useEffect(() => { if (deepLinked) setDrilled(true); }, [deepLinked]);
 
   // Keyed on what actually changes. sections and onSelect get a new identity
   // every render, so depending on them directly would re-register in a loop.
@@ -15387,6 +15391,7 @@ function InviteForm({ onSubmit, onCancel, busy }) {
 }
 
 function TeamView({ session }) {
+  const wideActions = useMediaQuery('(min-width: 681px)');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15557,18 +15562,38 @@ function TeamView({ session }) {
                 </div>
                 {!isMe && editingRoleId !== u.id && !isResetting && (
                   <div className="actions">
-                    {u.invite_pending && (
-                      <button
-                        className="secondary"
-                        disabled={resendingId === u.id}
-                        onClick={() => resendInvite(u.id, displayName)}
-                      >
-                        {resendingId === u.id ? 'Sending...' : 'Resend invite'}
-                      </button>
+                    {wideActions ? (
+                      <>
+                        {u.invite_pending && (
+                          <button
+                            className="secondary"
+                            disabled={resendingId === u.id}
+                            onClick={() => resendInvite(u.id, displayName)}
+                          >
+                            {resendingId === u.id ? 'Sending...' : 'Resend invite'}
+                          </button>
+                        )}
+                        <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
+                        <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
+                        <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
+                      </>
+                    ) : (
+                      /* Four buttons never fit a phone, and the sideways
+                         scroller that held them asked for a swipe to reach
+                         Remove. Same menu the lists use. */
+                      <RowMenu
+                        label={`Actions for ${displayName}`}
+                        items={[
+                          u.invite_pending && {
+                            label: resendingId === u.id ? 'Sending...' : 'Resend invite',
+                            onClick: () => resendInvite(u.id, displayName),
+                          },
+                          { label: 'Reset password', onClick: () => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); } },
+                          { label: 'Change role', onClick: () => setEditingRoleId(u.id) },
+                          { label: 'Remove', danger: true, onClick: () => deleteUser(u.id, displayName) },
+                        ]}
+                      />
                     )}
-                    <button className="secondary" onClick={() => { setResettingId(u.id); setResetPassword(''); setResetSuccess(null); }}>Reset password</button>
-                    <button className="secondary" onClick={() => setEditingRoleId(u.id)}>Change role</button>
-                    <button className="danger" onClick={() => deleteUser(u.id, displayName)}>Remove</button>
                   </div>
                 )}
               </div>
@@ -15715,6 +15740,7 @@ function SystemView({ session }) {
           template. A single chip row could not say so; a rail can. */}
       <TwoPane
         ariaLabel="System sections"
+        deepLinked={path !== '/system'}
         active={subView}
         onSelect={(key) => navigate(SYSTEM_ROUTES[key])}
         sections={[
