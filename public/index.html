@@ -1079,13 +1079,35 @@
     .drawer-scrim {
       position: fixed; inset: 0; background: rgba(15, 13, 8, 0.38);
       z-index: 60; border: 0; padding: 0;
+      animation: scrim-in 0.24s ease both;
     }
+    .drawer-scrim.is-closing { animation: scrim-out 0.2s ease both; }
+    @keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scrim-out { from { opacity: 1; } to { opacity: 0; } }
     .drawer {
       position: fixed; top: 0; left: 0; bottom: 0; z-index: 61;
       width: 278px; max-width: 84vw; background: var(--bg-elevated);
       border-right: 1px solid var(--border); box-shadow: var(--shadow-md);
       padding: 10px 10px 24px; overflow-y: auto; overscroll-behavior: contain;
       padding-top: max(10px, env(safe-area-inset-top));
+      /* Decelerating curve: the panel arrives quickly and settles, which is
+         what a sheet being pulled out feels like. Leaving is quicker and
+         linear-ish — an exit that eases out reads as hesitant. */
+      will-change: transform;
+      animation: drawer-in 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    .drawer.is-closing { animation: drawer-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
+    .drawer.is-resumed, .drawer.is-resumed .rail-group, .drawer.is-resumed .rail-item { animation: none; }
+    @keyframes drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+    @keyframes drawer-out { from { transform: none; } to { transform: translateX(-100%); } }
+    /* The destinations trail the panel by a hair, so it reads as one movement
+       arriving rather than a block sliding on. */
+    .drawer .rail-group, .drawer .rail-item { animation: drawer-items 0.24s ease 0.07s both; }
+    .drawer.is-closing .rail-group, .drawer.is-closing .rail-item { animation: none; }
+    @keyframes drawer-items { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .drawer, .drawer.is-closing, .drawer-scrim, .drawer-scrim.is-closing,
+      .drawer .rail-group, .drawer .rail-item { animation-duration: 0.01ms; }
     }
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
@@ -13102,7 +13124,36 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
   const customersAtCap = isFree && counts.customers >= limits.customers;
   const jobsAtCap = isFree && counts.jobs >= limits.jobs;
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Two flags, because a panel cannot animate its own exit once React has
+  // unmounted it: `mounted` keeps it in the tree, `closing` picks the exit.
+  // The entry is a CSS animation rather than a transition into a flipped
+  // class — a class flip needs a frame to land between the closed and open
+  // states, and requestAnimationFrame does not fire in a hidden tab, so the
+  // panel would mount closed and never open. An animation just runs.
+  const [drawerMounted, setDrawerMounted] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
+  // Reopening a panel that is still on screen leaving. A keyframe entry always
+  // restarts from off-canvas, so it would snap backwards before sliding in;
+  // dropping the animation lets it stay where it is instead.
+  const [drawerResumed, setDrawerResumed] = useState(false);
+  const drawerOpen = drawerMounted && !drawerClosing;
+
+  function openDrawer() {
+    setDrawerResumed(drawerMounted);
+    setDrawerClosing(false);
+    setDrawerMounted(true);
+  }
+  function closeDrawer() { if (drawerMounted) setDrawerClosing(true); }
+
+  useEffect(() => {
+    if (!drawerClosing) return undefined;
+    const t = setTimeout(() => {
+      setDrawerMounted(false);
+      setDrawerClosing(false);
+      setDrawerResumed(false);
+    }, 230);
+    return () => clearTimeout(t);
+  }, [drawerClosing]);
   // Set by an area (Settings, System) that wants the rail for its own sections.
   const [areaRail, setAreaRail] = useState(null);
   const canBill = ['admin', 'lead'].includes(session.user.role);
@@ -13111,7 +13162,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
   // is open — otherwise a flick aimed at the menu scrolls the list underneath.
   useEffect(() => {
     if (!drawerOpen) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') closeDrawer(); };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -13221,7 +13272,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         <button
           type="button"
           className="railtoggle"
-          onClick={() => setDrawerOpen(true)}
+          onClick={openDrawer}
           aria-label="Open menu"
           aria-expanded={drawerOpen}
         >
@@ -13394,7 +13445,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             type="button"
             className={tabKeys.has(view) ? '' : 'active'}
             aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen(true)}
+            onClick={openDrawer}
           >
             <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 7h16M4 12h16M4 17h16" />
@@ -13405,21 +13456,24 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
           )}
         </div>
       </nav>
-      {drawerOpen && (
+      {drawerMounted && (
         <>
           <button
             type="button"
-            className="drawer-scrim"
+            className={`drawer-scrim${drawerClosing ? ' is-closing' : ''}`}
             aria-label="Close menu"
-            onClick={() => setDrawerOpen(false)}
+            onClick={closeDrawer}
           />
-          <nav className="drawer" aria-label="Main">
+          <nav
+            className={`drawer${drawerClosing ? ' is-closing' : ''}${drawerResumed && !drawerClosing ? ' is-resumed' : ''}`}
+            aria-label="Main"
+          >
             <div className="drawer-head">
               <span className="drawer-org">{(me && me.display_name) || session.organization.name}</span>
               <button
                 type="button"
                 className="drawer-close"
-                onClick={() => setDrawerOpen(false)}
+                onClick={closeDrawer}
                 aria-label="Close menu"
               >&times;</button>
             </div>
@@ -13432,7 +13486,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
                     type="button"
                     className={`rail-item${view === it.key ? ' active' : ''}`}
                     aria-current={view === it.key ? 'page' : undefined}
-                    onClick={() => { setDrawerOpen(false); navigate(it.to); }}
+                    onClick={() => { closeDrawer(); navigate(it.to); }}
                   >
                     <Icon name={it.icon} />
                     <span>{it.label}</span>
