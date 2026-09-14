@@ -7916,7 +7916,7 @@ function findJobTimeConflict(jobs, candidate, excludeId) {
   return null;
 }
 
-function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [], view, setView, selectedDate, setSelectedDate, monthOffset, setMonthOffset }) {
+function CalendarView({ jobs, onChipClick, jobMenuItems, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [], view, setView, selectedDate, setSelectedDate, monthOffset, setMonthOffset }) {
   const terms = useTerms();
   const today = todayStart();
   const todayStr = formatYMD(today);
@@ -8072,6 +8072,8 @@ function CalendarView({ jobs, onChipClick, onMarkComplete, onUncomplete, onCreat
             occurrences={dayOccurrences}
             isToday={selectedDate === todayStr}
             onOpen={onChipClick}
+          jobMenuItems={jobMenuItems}
+            jobMenuItems={jobMenuItems}
             onMarkComplete={onMarkComplete}
             onUncomplete={onUncomplete}
             onCreateAt={onCreateAt ? (time) => onCreateAt(selectedDate, time) : undefined}
@@ -8142,7 +8144,7 @@ function sendSmsTemplate(phone, template, customer) {
   document.body.removeChild(a);
 }
 
-function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [] }) {
+function DayTimeGrid({ occurrences, isToday, onOpen, jobMenuItems, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [] }) {
   const terms = useTerms();
   const jobsLowerLabel = terms.jobsLower;
   const untimed = occurrences.filter((o) => !o.job.start_time);
@@ -8258,6 +8260,11 @@ function DayTimeGrid({ occurrences, isToday, onOpen, onMarkComplete, onUncomplet
                           className="day-untimed-complete"
                           onClick={(e) => { e.stopPropagation(); onMarkComplete(o.job, o.date); }}
                         >Mark complete</button>
+                      )}
+                      {jobMenuItems && jobMenuItems(o.job).filter(Boolean).length > 0 && (
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <RowMenu label={`Actions for ${o.job.title}`} items={jobMenuItems(o.job)} />
+                        </span>
                       )}
                       {o.completed && (
                         <>
@@ -9261,6 +9268,18 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
     setMode('edit');
   }
 
+  // Defined once and handed to both the list rows and the calendar, so the
+  // actions you get are the same wherever you click a job from.
+  function jobMenuItems(j) {
+    if (!canMutate) return [];
+    return [
+      { label: `Edit ${terms.jobLower}`, onClick: () => { setEditing(j); setMode('edit'); } },
+      j.type === 'recurring'
+        && { label: 'Manage schedule', onClick: () => { setError(null); setEditing(j); setMode('schedule'); } },
+      { label: 'Delete', danger: true, onClick: () => deleteJob(j.id) },
+    ];
+  }
+
   function jobMatchesSearch(j) {
     return searchMatches(search, j.title, j.description, jobCustomerName(j));
   }
@@ -9341,6 +9360,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
           <CalendarView
             jobs={searchedJobs}
             onChipClick={openEdit}
+            jobMenuItems={jobMenuItems}
             onMarkComplete={openMarkComplete}
             onUncomplete={uncompleteOccurrence}
             onCreateAt={canMutate ? openCreateAt : undefined}
@@ -9437,15 +9457,7 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
                 <span className="c-amt">{j.default_price != null ? formatPrice(j.default_price) : ''}</span>
                 <span className="c-act" onClick={(e) => e.stopPropagation()}>
                   {canMutate && (
-                    <RowMenu
-                      label={`Actions for ${j.title}`}
-                      items={[
-                        { label: `Edit ${terms.jobLower}`, onClick: () => { setEditing(j); setMode('edit'); } },
-                        j.type === 'recurring'
-                          && { label: 'Manage schedule', onClick: () => { setEditing(j); setMode('schedule'); } },
-                        { label: 'Delete', danger: true, onClick: () => deleteJob(j.id) },
-                      ]}
-                    />
+                    <RowMenu label={`Actions for ${j.title}`} items={jobMenuItems(j)} />
                   )}
                 </span>
               </div>
