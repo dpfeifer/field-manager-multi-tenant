@@ -865,7 +865,8 @@
     }
     .dtable-row:last-child { border-bottom: 0; }
     .dtable-row:not(.dtable-head):hover { background: var(--row-hover); }
-    .row.is-clickable { cursor: pointer; }
+    .row.is-clickable, .job-card.is-clickable { cursor: pointer; }
+    .job-card.is-clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .row.is-clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .dtable-row.is-clickable { cursor: pointer; }
     .dtable-row.is-clickable:focus-visible {
@@ -9293,7 +9294,19 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
             const shownAvatars = assignees.slice(0, 4);
             const extraAvatars = assignees.length - shownAvatars.length;
             return (
-              <div key={j.id} className="job-card">
+              <div
+                key={j.id}
+                className={`job-card${canMutate ? ' is-clickable' : ''}`}
+                role={canMutate ? 'button' : undefined}
+                tabIndex={canMutate ? 0 : undefined}
+                onClick={canMutate ? () => { setEditing(j); setMode('edit'); } : undefined}
+                onKeyDown={canMutate ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setEditing(j); setMode('edit');
+                  }
+                } : undefined}
+              >
                 <div className="info">
                   <div className="job-top">
                     <span className="job-title">{j.title}</span>
@@ -9329,17 +9342,20 @@ function JobsView({ session, features = { invoices: true }, planContext, smsTemp
                     </div>
                   )}
                 </div>
-                <div className="actions">
+                <div className="actions" onClick={(e) => e.stopPropagation()}>
                   {j.type === 'recurring' && (
                     <button className="secondary" onClick={() => { setEditing(j); setMode('schedule'); }}>
                       Manage schedule
                     </button>
                   )}
                   {canMutate && (
-                    <>
-                      <button className="secondary" onClick={() => { setEditing(j); setMode('edit'); }}>Edit {terms.jobLower}</button>
-                      <button className="danger" onClick={() => deleteJob(j.id)}>Delete</button>
-                    </>
+                    <RowMenu
+                      label={`Actions for ${j.title}`}
+                      items={[
+                        { label: `Edit ${terms.jobLower}`, onClick: () => { setEditing(j); setMode('edit'); } },
+                        { label: 'Delete', danger: true, onClick: () => deleteJob(j.id) },
+                      ]}
+                    />
                   )}
                 </div>
               </div>
@@ -10580,7 +10596,19 @@ function QuotesView({ session, features = { invoices: true } }) {
           sortedQuotes.map((q) => {
             const total = lineItemsTotal(q.line_items);
             return (
-              <div key={q.id} className="row">
+              <div
+                key={q.id}
+                className={`row${canMutate ? ' is-clickable' : ''}`}
+                role={canMutate ? 'button' : undefined}
+                tabIndex={canMutate ? 0 : undefined}
+                onClick={canMutate ? () => { setEditing(q); setMode('edit'); } : undefined}
+                onKeyDown={canMutate ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setEditing(q); setMode('edit');
+                  }
+                } : undefined}
+              >
                 <div className="info">
                   <div className="name">
                     {quoteRecipientName(q)}
@@ -10593,28 +10621,24 @@ function QuotesView({ session, features = { invoices: true } }) {
                   {q.description && <div className="secondary-meta">{q.description}</div>}
                 </div>
                 {canMutate && (
-                  <div className="actions">
-                    <button className="primary" onClick={() => emailQuote(q)}>Email</button>
-                    <button className="secondary" onClick={() => copyQuoteLink(q)}>
-                      {copiedQuoteId === q.id ? 'Copied!' : 'Copy link'}
-                    </button>
-                    {!q.customer_id && (
-                      <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('promote'); }}>Promote to {terms.customerLower}</button>
-                    )}
-                    {q.customer_id && (
-                      <>
-                        {features.invoices && (
-                          <button className="secondary" onClick={() => createInvoiceFromQuote(q.id)}>Create invoice</button>
-                        )}
-                        <button className="secondary" onClick={() => { setError(null); setEditing(q); setMode('createJob'); }}>Create {terms.jobLower}</button>
-                      </>
-                    )}
-                    <div className="inv-util-break" aria-hidden="true" />
-                    <div className="inv-util-group">
-                      <button className="inv-util" onClick={() => viewQuoteLink(q)}>View</button>
-                      <button className="inv-util" onClick={() => { setEditing(q); setMode('edit'); }}>Edit</button>
-                      <button className="inv-util inv-util-danger" onClick={() => deleteQuote(q.id)}>Delete</button>
-                    </div>
+                  <div className="actions" onClick={(e) => e.stopPropagation()}>
+                    {/* Sending it is what a quote is for, so that stays on the
+                        row. Everything else is a menu item. */}
+                    <button className="secondary" onClick={() => emailQuote(q)}>Email</button>
+                    <RowMenu
+                      label={`Actions for ${quoteRecipientName(q)}`}
+                      items={[
+                        { label: 'View public page', onClick: () => viewQuoteLink(q) },
+                        { label: copiedQuoteId === q.id ? 'Copied!' : 'Copy public link', onClick: () => copyQuoteLink(q) },
+                        !q.customer_id
+                          && { label: `Promote to ${terms.customerLower}`, onClick: () => { setError(null); setEditing(q); setMode('promote'); } },
+                        q.customer_id && features.invoices
+                          && { label: 'Create invoice', onClick: () => createInvoiceFromQuote(q.id) },
+                        q.customer_id
+                          && { label: `Create ${terms.jobLower}`, onClick: () => { setError(null); setEditing(q); setMode('createJob'); } },
+                        { label: 'Delete', danger: true, onClick: () => deleteQuote(q.id) },
+                      ]}
+                    />
                   </div>
                 )}
               </div>
