@@ -865,6 +865,8 @@
     }
     .dtable-row:last-child { border-bottom: 0; }
     .dtable-row:not(.dtable-head):hover { background: var(--row-hover); }
+    .row.is-clickable { cursor: pointer; }
+    .row.is-clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .dtable-row.is-clickable { cursor: pointer; }
     .dtable-row.is-clickable:focus-visible {
       outline: 2px solid var(--primary); outline-offset: -2px;
@@ -7255,7 +7257,19 @@ function CustomersView({ session, planContext }) {
           sorted.map((c) => {
             const balance = parseFloat(c.outstanding_balance) || 0;
             return (
-              <div key={c.id} className="row">
+              <div
+                key={c.id}
+                className="row is-clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setViewing(c); setMode('detail'); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setViewing(c); setMode('detail');
+                  }
+                }}
+              >
                 <div className="info">
                   <div className="name">
                     {customerDisplayName(c)}
@@ -7265,15 +7279,20 @@ function CustomersView({ session, planContext }) {
                     {[c.phone, c.email].filter(Boolean).join(' • ') || 'No contact info'}
                   </div>
                 </div>
-                <div className="actions">
-                  <button className="secondary" onClick={() => { setViewing(c); setMode('detail'); }}>View</button>
-                  {canMutate && (
-                    <>
-                      <button className="secondary" onClick={() => { setEditing(c); setMode('edit'); }}>Edit</button>
-                      <button className="danger" onClick={() => deleteCustomer(c.id)}>Delete</button>
-                    </>
-                  )}
-                </div>
+                {/* The row opens the customer, so View is gone — it would be a
+                    button that does what clicking anywhere already does. The
+                    rest are things the row click is not. */}
+                {canMutate && (
+                  <div className="actions" onClick={(e) => e.stopPropagation()}>
+                    <RowMenu
+                      label={`Actions for ${customerDisplayName(c)}`}
+                      items={[
+                        { label: 'Edit details', onClick: () => { setEditing(c); setMode('edit'); } },
+                        { label: 'Delete', danger: true, onClick: () => deleteCustomer(c.id) },
+                      ]}
+                    />
+                  </div>
+                )}
               </div>
             );
           })
