@@ -829,6 +829,12 @@
       text-transform: uppercase; color: var(--text-muted);
     }
     .rail-group:first-child { margin-top: 4px; }
+    /* That reset is for a rail that opens with a group. An area's first group
+       opens below the back button's rule instead, so it keeps the same 15px
+       separation every other group gets — matching by accident today, because
+       :first-child stops applying once .rail-area is there. Stated so it
+       cannot drift. */
+    .rail-area + .rail-group { margin-top: 15px; }
     .rail-item {
       display: flex; align-items: center; gap: 10px; width: 100%;
       background: none; border: 0; cursor: pointer; font-family: inherit;
