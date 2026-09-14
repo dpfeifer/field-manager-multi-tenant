@@ -913,6 +913,9 @@
     /* Each detail owns its line, so a long address wraps rather than being cut
        off — the whole point of showing an address is being able to read it. */
     .reccard-chip .v { white-space: normal; overflow-wrap: anywhere; }
+    /* Street on one line, city/state/zip on the next, the way an address is
+       written on an envelope. */
+    .reccard-chip .v .l { display: block; }
     /* Notes are free text about the place, not a way to reach someone, so they
        sit apart from the contact chips rather than pretending to be one. */
     .reccard-note {
@@ -1084,7 +1087,10 @@
       font-size: 12px; color: var(--text-muted); margin-top: 1px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .dtable .c-when { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+    .dtable .c-when {
+      font-size: 12.5px; color: var(--text-muted); white-space: nowrap;
+      min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    }
     .dtable .c-amt {
       text-align: right; font-size: 14px; font-weight: 600;
       font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -5157,6 +5163,10 @@ async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   const isJson = (res.headers.get('content-type') || '').includes('application/json');
   const data = isJson ? await res.json() : await res.text();
   if (!res.ok) {
+    // A session the server no longer accepts cannot be recovered by retrying,
+    // and leaving it in place means every screen renders "Invalid or expired
+    // token" over a shell you are still apparently signed in to. Sign out.
+    if (data && data.code === 'session_invalid') expireSession();
     const err = new Error((data && data.error) || `Request failed (${res.status})`);
     err.status = res.status;
     err.data = data;
@@ -5165,11 +5175,50 @@ async function apiRequest(path, { method = 'GET', body, slug, token } = {}) {
   return data;
 }
 
+// Screens fire several requests at once, so the first dead one wins and the
+// rest are ignored — otherwise a page load triggers six redirects.
+const AUTH_PATHS = ['/signin', '/signup', '/forgot', '/reset', '/accept-invite', '/demo'];
+let sessionExpiring = false;
+function expireSession() {
+  if (sessionExpiring) return;
+  // Nothing to end, so nothing to do. This is the guard that matters: the
+  // organization middleware answers a wrong slug with the same code, and on
+  // the sign-in form that is a typo to report, not a session to throw away.
+  if (!localStorage.getItem(STORAGE.token)) return;
+  // Signed in but sitting on an auth screen — switching accounts, say — a bad
+  // slug there should surface as an error, not sign you out of what you have.
+  if (AUTH_PATHS.some((p) => window.location.pathname.startsWith(p))) return;
+  sessionExpiring = true;
+  clearSession();
+  // A full load rather than a re-render: every view still holding data fetched
+  // under the old session goes away with the document.
+  window.location.replace('/signin?expired=1');
+}
+
 function customerDisplayName(c) {
   if (!c) return '';
   if (c.business_name) return c.business_name;
   const parts = [c.first_name, c.last_name].filter(Boolean).join(' ').trim();
   return parts || '(unnamed)';
+}
+
+// Splits "1 Industrial Parkway, Building C, North Las Vegas, NV 89030" into the
+// street line and the city line. Only the "<City>, <ST> <ZIP>" shape is split —
+// anything else (a PO box, a rural route, an address from outside the US) is
+// left exactly as typed rather than guessed at and broken in the wrong place.
+function addressLines(address) {
+  const raw = String(address || '').trim();
+  if (!raw) return [];
+  if (/[\n\r]/.test(raw)) {
+    return raw.split(/[\n\r]+/).map((l) => l.trim()).filter(Boolean);
+  }
+  const parts = raw.split(',').map((x) => x.trim()).filter(Boolean);
+  if (parts.length >= 2 && /^[A-Za-z]{2}\.?\s+\d{5}(-\d{4})?$/.test(parts[parts.length - 1])) {
+    const cityLine = parts.slice(-2).join(', ');
+    const streetLine = parts.slice(0, -2).join(', ');
+    return streetLine ? [streetLine, cityLine] : [cityLine];
+  }
+  return [raw];
 }
 
 function jobCustomerName(j) {
@@ -6567,11 +6616,17 @@ function PrivacyPage() {
 function AuthShell({ onSession }) {
   const path = useLocation();
   const mode = path === '/signup' ? 'signup' : 'login';
+  const expired = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('expired') === '1';
   return (
     <div className="auth-shell">
       <div className="card">
         <h1>Field Manager</h1>
-        <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
+        {expired ? (
+          <p className="subtitle">Your session ended. Sign in to pick up where you left off.</p>
+        ) : (
+          <p className="subtitle">Run your service business — customers, jobs, invoices.</p>
+        )}
         <div className="tabs">
           <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => navigate('/signin')}>Sign in</button>
           <button className={`tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => navigate('/signup')}>Create account</button>
@@ -7045,7 +7100,7 @@ function CustomerCard({ customer, creditBalance = 0, onEdit }) {
   const owed = parseFloat(customer.outstanding_balance) || 0;
   const chips = [
     customer.address && {
-      k: 'Address', v: customer.address,
+      k: 'Address', v: customer.address, lines: addressLines(customer.address),
       href: `https://maps.google.com/?q=${encodeURIComponent(customer.address)}`,
       external: true,
     },
@@ -7083,7 +7138,11 @@ function CustomerCard({ customer, creditBalance = 0, onEdit }) {
               {...(c.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             >
               <span className="k">{c.k}</span>
-              <span className="v">{c.v}</span>
+              <span className="v">
+                {c.lines
+                  ? c.lines.map((line, i) => <span key={i} className="l">{line}</span>)
+                  : c.v}
+              </span>
             </a>
           ))}
         </div>
@@ -7486,7 +7545,9 @@ function CustomersView({ session, planContext }) {
                 <span className="c-main">
                   <div className="t">{customerDisplayName(c)}</div>
                 </span>
-                <span className="c-when c-where">{c.address || '—'}</span>
+                <span className="c-when c-where" title={c.address || undefined}>
+                  {c.address ? addressLines(c.address)[0] : '—'}
+                </span>
                 <span className="c-when c-phone">{c.phone || '—'}</span>
                 <span className="c-when c-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email || '—'}</span>
                 <span className={`c-amt${balance > 0 ? ' c-owes' : ''}`}>

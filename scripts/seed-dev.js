@@ -32,17 +32,20 @@ const day = (offset) => {
   return d.toISOString().slice(0, 10);
 };
 
+// Full addresses, not just a street line — the customer card and the list's
+// address column both have to survive a real one, and a seed made of "17 Cedar
+// Ct" quietly hides every wrapping and truncation problem.
 const CUSTOMERS = [
-  { first: 'Patricia', last: 'Crowley',  phone: '555-217-8841', email: 'pat@example.com',    address: '412 Juniper Way',  notes: 'Gate code 4417. Dog is friendly.' },
-  { first: 'Bob',      last: 'Henderson', phone: '555-302-1108', email: 'bob@example.com',    address: '88 Larkspur Ln' },
-  { first: 'Marisol',  last: 'Vega',     phone: '555-889-2210', email: 'mvega@example.com',  address: '17 Cedar Ct',      notes: 'Prefers mornings, before 10.' },
-  { first: 'Jerry',    last: 'McLemore', phone: '555-558-9912', email: 'jerry@example.com',  address: '2200 Sage Dr' },
-  { first: 'Tiffany',  last: 'Ernest',   phone: '555-771-0044', email: 'tiff@example.com',   address: '64 Bluebell Rd' },
-  { first: 'Henry',    last: 'Wells',    phone: '555-440-7781', email: 'henry@example.com',  address: '901 Aspen Pl' },
-  { first: 'Dalida',   last: 'Islas',    phone: '555-099-4421', email: 'dalida@example.com', address: '330 Poppy St' },
-  { business: 'Pine Street Apartments', phone: '555-660-2299', email: 'mgr@pinestreet.example', address: '88 Pine St', notes: 'Common-area lawn only. Annual contract.' },
-  { business: "St. Mary's Church",      phone: '555-441-8800', email: 'office@stmarys.example', address: '5 Chapel Rd' },
-  { business: 'Acme Office Park',       phone: '555-118-4044', email: 'facilities@acme.example', address: '1 Industrial Pkwy' },
+  { first: 'Patricia', last: 'Crowley',  phone: '555-217-8841', email: 'pat@example.com',    address: '412 Juniper Way, Henderson, NV 89014',  notes: 'Gate code 4417. Dog is friendly.' },
+  { first: 'Bob',      last: 'Henderson', phone: '555-302-1108', email: 'bob@example.com',    address: '88 Larkspur Ln, Las Vegas, NV 89123' },
+  { first: 'Marisol',  last: 'Vega',     phone: '555-889-2210', email: 'mvega@example.com',  address: '17 Cedar Ct, Las Vegas, NV 89107',      notes: 'Prefers mornings, before 10.' },
+  { first: 'Jerry',    last: 'McLemore', phone: '555-558-9912', email: 'jerry@example.com',  address: '2200 Sage Dr, Apt 14B, Las Vegas, NV 89102' },
+  { first: 'Tiffany',  last: 'Ernest',   phone: '555-771-0044', email: 'tiff@example.com',   address: '64 Bluebell Rd, Boulder City, NV 89005' },
+  { first: 'Henry',    last: 'Wells',    phone: '555-440-7781', email: 'henry@example.com',  address: '901 Aspen Pl, Las Vegas, NV 89145' },
+  { first: 'Dalida',   last: 'Islas',    phone: '555-099-4421', email: 'dalida@example.com', address: '330 Poppy St, North Las Vegas, NV 89030' },
+  { business: 'Pine Street Apartments', phone: '555-660-2299', email: 'mgr@pinestreet.example', address: '88 Pine Street, Suite 200, Las Vegas, NV 89104', notes: 'Common-area lawn only. Annual contract.' },
+  { business: "St. Mary's Church",      phone: '555-441-8800', email: 'office@stmarys.example', address: '5 Chapel Rd, Henderson, NV 89011' },
+  { business: 'Acme Office Park',       phone: '555-118-4044', email: 'facilities@acme.example', address: '1 Industrial Parkway, Building C, North Las Vegas, NV 89030' },
 ];
 
 async function main() {

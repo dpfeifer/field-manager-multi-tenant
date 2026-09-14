@@ -30,7 +30,9 @@ async function resolveOrganization(req, res, next) {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: `Unknown organization: ${slug}` });
+      // The session points at an organization that no longer exists, which is
+      // as dead as an expired token — the client cannot recover by retrying.
+      return res.status(404).json({ error: `Unknown organization: ${slug}`, code: 'session_invalid' });
     }
 
     req.organization = rows[0];
