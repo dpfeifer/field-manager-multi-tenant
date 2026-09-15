@@ -1074,23 +1074,22 @@
         left: 12px; right: 12px;
         /* Clear of the home indicator on a modern iPhone, and of the edge. */
         bottom: calc(10px + env(safe-area-inset-bottom));
-        /* The page's own warm off-white rather than pure white — against a
-           cream app a white bar reads as a different material. */
-        background: rgba(252, 250, 243, 0.88);
+        /* White, not the page's cream. Matching the ground made the bar a
+           tone off its own background, which is why it disappeared on a quiet
+           screen — white on cream is the separation every card in the app
+           already relies on. Still glass: the blur stays, the tint does not. */
+        background: rgba(255, 255, 255, 0.92);
         -webkit-backdrop-filter: blur(28px) saturate(165%);
         backdrop-filter: blur(28px) saturate(165%);
-        /* A hairline in ink at low alpha, not the border token: the token is
-           sized for opaque cards and draws too hard over glass. */
-        border: 1px solid rgba(25, 23, 15, 0.07);
+        border: 1px solid var(--border);
         border-radius: 26px;
-        /* Four layers. Three place the bar above the page — a hairline to
-           seat the edge, a mid one to hold it off, a wide one to shade what
-           is under it. The inset is the light catching the top edge, which is
-           what makes it read as a pane rather than a painted shape. */
+        /* Three layers to place it above the page, and an inset along the top
+           edge — that one is the light catching the rim, and it is most of
+           what reads as a pane rather than a painted shape. */
         box-shadow: 0 1px 2px rgba(25, 23, 15, 0.05),
-                    0 10px 24px -8px rgba(25, 23, 15, 0.17),
-                    0 28px 60px -20px rgba(25, 23, 15, 0.3),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+                    0 12px 26px -8px rgba(25, 23, 15, 0.2),
+                    0 30px 64px -20px rgba(25, 23, 15, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
         /* Gets out of the way when the drawer arrives — see the drawer's own
            timing; this leaves on the same curve so the two read as one move. */
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1109,12 +1108,19 @@
       }
       .tabbar-inner { padding: 5px 5px 4px; }
       .tabbar button { padding: 8px 2px 7px; border-radius: 17px; gap: 5px; }
-      /* The marker is the navy at low alpha rather than the warm tint: the
-         tint is a beige on a cream ground and goes muddy behind the glass,
-         where the ink picks up the colour the active label already uses. */
+      /* The blue goes on the tab you are on, not on the furniture. Solid, so
+         the bar carries a mark you find without looking for it — and only
+         here, so the primary buttons on the screen above still mean
+         "do this" rather than matching the navigation. */
+      .tabbar button.active { color: #fff; }
+      /* Held to the marker's width, not the cell's. An org that calls its
+         customers something longer would otherwise run white text past the
+         navy and onto the white bar. Inside, it ellipsises. */
+      .tabbar button.active .tab-label { max-width: calc(100% - 6px); }
       .tabbar button.active::before {
-        content: ''; position: absolute; inset: 2px 6px;
-        background: rgba(44, 62, 87, 0.075); border-radius: 16px; z-index: -1;
+        content: ''; position: absolute; inset: 2px 5px;
+        background: var(--primary); border-radius: 16px; z-index: -1;
+        box-shadow: 0 4px 10px -3px rgba(44, 62, 87, 0.5);
       }
       /* Navigation moved to the thumb, so the corner it used to sit in is
          free — which is most of why the header stopped feeling jammed. The
