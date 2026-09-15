@@ -1162,11 +1162,12 @@
         transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
       }
       /* The element above is the full cell, which keeps the slide's maths a
-         whole number of cells. The bubble itself is two thirds of that,
-         centred — a lens over the icon with air either side, as in the
-         reference, rather than a selected cell filled edge to edge. */
+         whole number of cells. The bubble itself is four fifths of that,
+         centred — a lens over the icon with air either side rather than a
+         cell filled edge to edge, but still wider than it is tall, so it
+         stays the bar's own stadium and not a circle. */
       .tab-pill::before {
-        content: ''; position: absolute; inset: 0 16%; border-radius: 22px;
+        content: ''; position: absolute; inset: 0 10%; border-radius: 22px;
         background: rgba(138, 138, 144, 0.34);
         -webkit-backdrop-filter: blur(6px) saturate(110%);
         backdrop-filter: blur(6px) saturate(110%);
