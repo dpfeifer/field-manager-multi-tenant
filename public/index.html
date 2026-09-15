@@ -1244,6 +1244,11 @@
         animation: sheet-in 0.44s cubic-bezier(0.32, 0.72, 0, 1) both;
       }
       .drawer.is-closing { animation: sheet-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) both; }
+      /* The shorthand above resets the duration the app-wide reduced-motion
+         rule set earlier in the file, so it has to be said again here, after. */
+      @media (prefers-reduced-motion: reduce) {
+        .drawer, .drawer.is-closing { animation-duration: 0.01ms; }
+      }
       /* Its own height plus the offset, so it starts entirely above the edge. */
       @keyframes sheet-in { from { transform: translateY(calc(-100% - 60px)); } to { transform: none; } }
       @keyframes sheet-out { from { transform: none; } to { transform: translateY(calc(-100% - 60px)); } }
