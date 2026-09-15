@@ -1221,8 +1221,7 @@
     }
     .drawer-tab:hover { color: var(--text); background: var(--card); }
     .drawer-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-    /* Their plus, on its side. */
-    .drawer-tab span { display: block; transform: rotate(45deg); }
+    .drawer-tab svg { display: block; width: 18px; height: 18px; }
 
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
@@ -1271,8 +1270,9 @@
         left: auto; right: 10px; top: 10px;
         width: 36px; height: 36px; border: 0; border-radius: 999px;
         background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.85);
-        font-size: 22px; box-shadow: none;
+        box-shadow: none;
       }
+      .drawer-tab svg { width: 16px; height: 16px; }
       .drawer-tab:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
       .drawer-tab:focus-visible { outline-color: #fff; }
       .drawer .rail-group { color: rgba(255, 255, 255, 0.42); }
@@ -13969,7 +13969,14 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
               className="drawer-tab"
               onClick={closeDrawer}
               aria-label="Close menu"
-            ><span>+</span></button>
+            >
+              {/* Drawn, not typed: a rotated "+" glyph sits where the font
+                  puts a plus — above the centre of its box — so it never
+                  centred in the circle. Two strokes through the middle do. */}
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
             <div className="drawer-scroll">
             <div className="drawer-head">
               <span className="drawer-org">{(me && me.display_name) || session.organization.name}</span>
