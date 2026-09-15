@@ -487,25 +487,14 @@
     .topbar .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
     .topbar .brand-button { display: inline-flex; align-items: center; gap: 11px; min-width: 0; }
     .brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .brand-mark {
-      flex: none; width: 30px; height: 30px; border-radius: 9px;
-      display: grid; place-items: center; overflow: hidden;
-    }
-    .brand-mark.is-monogram {
-      color: #fff; font-size: 12px; font-weight: 700;
-      letter-spacing: 0.03em; line-height: 1;
-    }
-    /* A logo keeps its own shape. Squeezing one into the monogram's tile turns
-       a wordmark into an illegible 28px smudge, and a bordered tile makes a
+    /* A logo keeps its own shape. Squeezing one into a fixed tile turns a
+       wordmark into an illegible 28px smudge, and a bordered tile makes a
        brand look like an avatar.
        Both limits are maxima and both sit on the image, so the box ends up the
        size of what is actually drawn: a tall crest is bounded by the height, a
        wide banner by the width, and neither is letterboxed inside a box of the
        wrong proportions. It may shrink if the header runs out of room. */
-    .brand-mark.is-logo {
-      width: auto; height: auto; border-radius: 0; overflow: visible;
-      display: block; flex: none;
-    }
+    .brand-mark.is-logo { display: block; flex: none; }
     /* The height is a definite length, not a max, and that is load-bearing: an
        SVG with a viewBox and no width/height carries a ratio but no intrinsic
        size, and `height: auto` on one inside a shrink-to-fit flex item resolves
@@ -3300,11 +3289,11 @@
          the menu at one edge, who you are at the other, identity in between.
          Everything sat 8-12px apart before, which read as one jammed row. */
       .topbar {
-        padding: 10px 16px; flex-wrap: nowrap; gap: 14px;
+        padding: 14px 16px; flex-wrap: nowrap; gap: 14px;
         /* The shorthand above resets what the base rule set for the notch, and
            installed to the home screen that puts the brand under the clock.
            Restated here rather than left to the cascade. */
-        padding-top: max(10px, env(safe-area-inset-top));
+        padding-top: max(14px, env(safe-area-inset-top));
         padding-left: max(16px, env(safe-area-inset-left));
         padding-right: max(16px, env(safe-area-inset-right));
       }
@@ -3314,15 +3303,18 @@
          header. It stays only while it is an action — "Free · Upgrade" is a
          way to do something, "Pro" is a sticker. */
       .topbar .plan-pill.plan-pro { display: none; }
-      .topbar .brand { font-size: 14px; }
+      /* The name carries the header by itself now, so it is set to be read
+         rather than to leave room for a tile beside it. */
+      .topbar .brand { font-size: 16px; }
       .topbar .brand-button { gap: 9px; }
-      .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
-      .brand-mark.is-monogram { font-size: 10.5px; }
       /* Half the screen at most, in vw so the bound scales with the phone
          rather than being a number that happens to fit one of them. With the
          name no longer printed beside it, a wordmark has room to be read
          rather than squeezed into the 108px left over after the text. */
-      .brand-mark.is-logo img { height: 26px; max-width: 52vw; }
+      .brand-mark.is-logo img { height: 28px; max-width: 52vw; }
+      /* The same ink as the bar and the sheet, so the three dark objects on a
+         phone are one material rather than a navy button beside two ink ones. */
+      .user-menu-avatar { background: #151a22; }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
@@ -5534,12 +5526,12 @@ function Icon({ name }) {
 // why 'pending' exists — rendering the name first and retracting it once the
 // logo loads would flash the duplicate we are trying to avoid.
 //
-// A logo that fails to load falls back to the monogram rather than to an empty
-// box: the old markup rendered a zero-width mark and a gap where the brand
-// should be, which is a worse header than the one it was trying to improve.
+// With no logo, or one that fails to load, the name stands alone. There used
+// to be a coloured initials tile in that case; it read as a placeholder for a
+// logo the account did not have, which is not a thing a header should say.
 const WORDMARK_RATIO = 2.5;
 
-function Brand({ orgName, orgId, logo, onClick }) {
+function Brand({ orgName, logo, onClick }) {
   const [shape, setShape] = useState('pending');
   useEffect(() => { setShape('pending'); }, [logo]);
 
@@ -5559,16 +5551,10 @@ function Brand({ orgName, orgId, logo, onClick }) {
       title="Refresh"
       aria-label="Refresh app"
     >
-      {useLogo ? (
+      {useLogo && (
         <span className="brand-mark is-logo">
           <img src={logo} alt={orgName} onLoad={measure} onError={() => setShape('failed')} />
         </span>
-      ) : (
-        <span
-          className="brand-mark is-monogram"
-          style={{ background: avatarColor(orgId) }}
-          aria-hidden="true"
-        >{nameInitials(orgName)}</span>
       )}
       {showName && <span className="brand-name">{orgName}</span>}
     </button>
@@ -13790,7 +13776,6 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         </button>
         <Brand
           orgName={(me && me.display_name) || session.organization.name}
-          orgId={session.organization.id}
           logo={me && me.logo_url}
           onClick={() => window.location.reload()}
         />
