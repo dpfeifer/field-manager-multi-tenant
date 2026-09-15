@@ -1064,6 +1064,10 @@
       font-weight: 700; line-height: 1; padding: 2px 4.5px; border-radius: 999px;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
+    /* Light ring on a light bar, dark ring on the tinted one. */
+    @media (max-width: 720px) {
+      .tabbar .tab-badge { box-shadow: 0 0 0 2px rgba(26, 38, 56, 0.45); }
+    }
     @media (max-width: 720px) {
       /* A capsule that floats over the page rather than a bar welded to the
          bottom of it. The list keeps running underneath, softened through the
@@ -1074,22 +1078,32 @@
         left: 12px; right: 12px;
         /* Clear of the home indicator on a modern iPhone, and of the edge. */
         bottom: calc(10px + env(safe-area-inset-bottom));
-        /* White, not the page's cream. Matching the ground made the bar a
-           tone off its own background, which is why it disappeared on a quiet
-           screen — white on cream is the separation every card in the app
-           already relies on. Still glass: the blur stays, the tint does not. */
-        background: rgba(255, 255, 255, 0.92);
-        -webkit-backdrop-filter: blur(28px) saturate(165%);
-        backdrop-filter: blur(28px) saturate(165%);
-        border: 1px solid var(--border);
+        /* Tinted glass. A navy lighter than the app's primary and thin
+           enough to read the list through, so it stays a material the page
+           passes under rather than becoming a filled button the width of the
+           screen — which is what would put it in competition with every
+           Create button above it. The gradient is the sheen: light gathers
+           along the top of a curved pane and falls off fast. */
+        background-color: rgba(55, 76, 106, 0.8);
+        background-image: linear-gradient(to bottom,
+                            rgba(255, 255, 255, 0.17),
+                            rgba(255, 255, 255, 0.03) 46%,
+                            rgba(255, 255, 255, 0) 72%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        backdrop-filter: blur(30px) saturate(180%);
+        /* On a dark translucent surface the edge is where light collects, so
+           the rim is a highlight rather than the app's ink border. */
+        border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 26px;
-        /* Three layers to place it above the page, and an inset along the top
-           edge — that one is the light catching the rim, and it is most of
-           what reads as a pane rather than a painted shape. */
-        box-shadow: 0 1px 2px rgba(25, 23, 15, 0.05),
-                    0 12px 26px -8px rgba(25, 23, 15, 0.2),
-                    0 30px 64px -20px rgba(25, 23, 15, 0.34),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        /* Three outer layers to place it above the page, then two insets: a
+           bright specular along the top edge and a fainter one underneath.
+           Those two are most of what reads as glass rather than as a
+           rectangle of colour. */
+        box-shadow: 0 1px 2px rgba(18, 26, 38, 0.1),
+                    0 14px 30px -10px rgba(18, 26, 38, 0.36),
+                    0 34px 72px -22px rgba(18, 26, 38, 0.44),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+                    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
         /* Gets out of the way when the drawer arrives — see the drawer's own
            timing; this leaves on the same curve so the two read as one move. */
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1104,23 +1118,28 @@
       /* Nothing in a browser without backdrop-filter should read as a
          half-transparent panel with the list legible through it. */
       @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .tabbar { background: var(--card); }
+        .tabbar { background-color: #47597a; }
       }
-      .tabbar-inner { padding: 5px 5px 4px; }
-      .tabbar button { padding: 8px 2px 7px; border-radius: 17px; gap: 5px; }
-      /* The blue goes on the tab you are on, not on the furniture. Solid, so
-         the bar carries a mark you find without looking for it — and only
-         here, so the primary buttons on the screen above still mean
-         "do this" rather than matching the navigation. */
-      .tabbar button.active { color: #fff; }
-      /* Held to the marker's width, not the cell's. An org that calls its
-         customers something longer would otherwise run white text past the
-         navy and onto the white bar. Inside, it ellipsises. */
-      .tabbar button.active .tab-label { max-width: calc(100% - 6px); }
+      .tabbar-inner { padding: 5px 4px 4px; }
+      /* The 6px of side padding is the breathing room: the label's max-width
+         is its content box, so the marker below now clears the text on both
+         sides instead of ending a hair past it. Applied to every button, not
+         just the active one, so a label does not change width when you
+         select it. */
+      .tabbar button {
+        padding: 9px 6px 8px; border-radius: 17px; gap: 5px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+      /* Brighter glass on darker glass, and the navy moves to the text. A
+         solid navy pill would have vanished into a navy bar; a lit pane on a
+         tinted one is the same distinction iOS draws, and it carries the
+         strongest contrast on the bar to the label you are on. */
       .tabbar button.active::before {
-        content: ''; position: absolute; inset: 2px 5px;
-        background: var(--primary); border-radius: 16px; z-index: -1;
-        box-shadow: 0 4px 10px -3px rgba(44, 62, 87, 0.5);
+        content: ''; position: absolute; inset: 1px;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 16px; z-index: -1;
+        box-shadow: 0 2px 8px -2px rgba(14, 22, 34, 0.42),
+                    inset 0 1px 0 rgba(255, 255, 255, 1);
       }
       /* Navigation moved to the thumb, so the corner it used to sit in is
          free — which is most of why the header stopped feeling jammed. The
