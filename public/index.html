@@ -1162,12 +1162,14 @@
         transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
       }
       /* The element above is the full cell, which keeps the slide's maths a
-         whole number of cells. The bubble itself is four fifths of that,
-         centred — a lens over the icon with air either side rather than a
-         cell filled edge to edge, but still wider than it is tall, so it
-         stays the bar's own stadium and not a circle. */
+         whole number of cells. The bubble is bigger than the cell, measured
+         off the reference: nine tenths of the bar's height with 3px above
+         and below, and wider than the icon pitch, reaching 4px past its own
+         cell on each side — on the end tabs it comes within a pixel of the
+         bar's edge, as it does there. A lens that large is most of why the
+         reference's reads as a lens and a smaller one read as a sticker. */
       .tab-pill::before {
-        content: ''; position: absolute; inset: 0 10%; border-radius: 22px;
+        content: ''; position: absolute; inset: -2px -4px; border-radius: 24px;
         background: rgba(138, 138, 144, 0.34);
         -webkit-backdrop-filter: blur(6px) saturate(110%);
         backdrop-filter: blur(6px) saturate(110%);
