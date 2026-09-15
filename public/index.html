@@ -497,14 +497,24 @@
     }
     /* A logo keeps its own shape. Squeezing one into the monogram's tile turns
        a wordmark into an illegible 28px smudge, and a bordered tile makes a
-       brand look like an avatar. Height is the constraint; width follows. */
+       brand look like an avatar.
+       Both limits are maxima and both sit on the image, so the box ends up the
+       size of what is actually drawn: a tall crest is bounded by the height, a
+       wide banner by the width, and neither is letterboxed inside a box of the
+       wrong proportions. It may shrink if the header runs out of room. */
     .brand-mark.is-logo {
-      width: auto; height: 28px; max-width: 148px;
-      border-radius: 4px; overflow: visible;
+      width: auto; height: auto; border-radius: 0; overflow: visible;
+      display: block; flex: none;
     }
+    /* The height is a definite length, not a max, and that is load-bearing: an
+       SVG with a viewBox and no width/height carries a ratio but no intrinsic
+       size, and `height: auto` on one inside a shrink-to-fit flex item resolves
+       to zero — the entire brand disappears. A fixed height gives the ratio
+       something to multiply. max-width then catches a banner, and object-fit
+       scales it down rather than squashing it. */
     .brand-mark.is-logo img {
-      display: block; height: 100%; width: auto;
-      max-width: 148px; object-fit: contain;
+      display: block; height: 30px; width: auto;
+      max-width: 260px; object-fit: contain;
     }
     /* Brand text acts as a refresh affordance (tap to reload), so style it
        as a button without any visible button chrome. */
@@ -3252,8 +3262,11 @@
       .topbar .brand-button { gap: 9px; }
       .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
       .brand-mark.is-monogram { font-size: 10.5px; }
-      .brand-mark.is-logo { width: auto; height: 24px; max-width: 108px; }
-      .brand-mark.is-logo img { max-width: 108px; }
+      /* Half the screen at most, in vw so the bound scales with the phone
+         rather than being a number that happens to fit one of them. With the
+         name no longer printed beside it, a wordmark has room to be read
+         rather than squeezed into the 108px left over after the text. */
+      .brand-mark.is-logo img { height: 26px; max-width: 52vw; }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
@@ -5449,6 +5462,60 @@ function Icon({ name }) {
     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
       <path d={d} />
     </svg>
+  );
+}
+
+// The header's identity, and whether the name needs saying twice.
+//
+// A wordmark is the account's name written the way its owner writes it, so
+// printing the same words beside it said everything twice — and on a phone the
+// second copy was clipped half way through saying it. A symbol is not a name,
+// though, and dropping the text next to one leaves a small coloured square
+// alone in the header. So ask the logo which it is: its own proportions are
+// the tell, since words are wide and marks are not.
+//
+// Nothing is printed until the image has reported those proportions, which is
+// why 'pending' exists — rendering the name first and retracting it once the
+// logo loads would flash the duplicate we are trying to avoid.
+//
+// A logo that fails to load falls back to the monogram rather than to an empty
+// box: the old markup rendered a zero-width mark and a gap where the brand
+// should be, which is a worse header than the one it was trying to improve.
+const WORDMARK_RATIO = 2.5;
+
+function Brand({ orgName, orgId, logo, onClick }) {
+  const [shape, setShape] = useState('pending');
+  useEffect(() => { setShape('pending'); }, [logo]);
+
+  const measure = (e) => {
+    const { naturalWidth: w, naturalHeight: h } = e.target;
+    setShape(w && h && w / h >= WORDMARK_RATIO ? 'wordmark' : 'symbol');
+  };
+
+  const failed = shape === 'failed';
+  const useLogo = logo && !failed;
+  const showName = !useLogo || shape === 'symbol';
+  return (
+    <button
+      type="button"
+      className="brand brand-button"
+      onClick={onClick}
+      title="Refresh"
+      aria-label="Refresh app"
+    >
+      {useLogo ? (
+        <span className="brand-mark is-logo">
+          <img src={logo} alt={orgName} onLoad={measure} onError={() => setShape('failed')} />
+        </span>
+      ) : (
+        <span
+          className="brand-mark is-monogram"
+          style={{ background: avatarColor(orgId) }}
+          aria-hidden="true"
+        >{nameInitials(orgName)}</span>
+      )}
+      {showName && <span className="brand-name">{orgName}</span>}
+    </button>
   );
 }
 
@@ -13665,33 +13732,12 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
-        {(() => {
-          const orgName = (me && me.display_name) || session.organization.name;
-          const logo = me && me.logo_url;
-          return (
-            <button
-              type="button"
-              className="brand brand-button"
-              onClick={() => window.location.reload()}
-              title="Refresh"
-              aria-label="Refresh app"
-            >
-              {/* An account with no logo yet still gets a mark of its own,
-                  coloured off its id like every other avatar in the app, so
-                  the header reads as somebody's rather than as a blank. */}
-              {logo ? (
-                <span className="brand-mark is-logo"><img src={logo} alt="" /></span>
-              ) : (
-                <span
-                  className="brand-mark is-monogram"
-                  style={{ background: avatarColor(session.organization.id) }}
-                  aria-hidden="true"
-                >{nameInitials(orgName)}</span>
-              )}
-              <span className="brand-name">{orgName}</span>
-            </button>
-          );
-        })()}
+        <Brand
+          orgName={(me && me.display_name) || session.organization.name}
+          orgId={session.organization.id}
+          logo={me && me.logo_url}
+          onClick={() => window.location.reload()}
+        />
         <div className="right">
           {me && (
             <span className={`plan-pill plan-${plan}`} onClick={isFree && isAdmin ? () => startUpgrade(session) : undefined}>
