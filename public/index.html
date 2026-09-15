@@ -1233,6 +1233,62 @@
       font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    /* On a phone the drawer is the bar's other half: the same ink, the same
+       27px stadium, the same 12px off the screen's edges — mirrored to the
+       top. It drops in on the bar's own curve while the bar leaves on it, so
+       the two read as one object making room for itself rather than as a
+       panel arriving from somewhere else. The active destination is a white
+       pill, which is the bar's marker carried into the menu. */
+    @media (max-width: 720px) {
+      .drawer {
+        top: calc(12px + env(safe-area-inset-top)); left: 12px; right: 12px;
+        bottom: auto; width: auto; max-width: none;
+        /* Content-sized, up to the screen less the same 12px below. */
+        max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        background: #151a22; border: 0; border-radius: 27px;
+        color: rgba(255, 255, 255, 0.86);
+        /* Clips the scroller to the radius. The close moved inside the sheet
+           for this reason; a tab hung off the edge would be sliced away. */
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(16, 14, 10, 0.16),
+                    0 24px 48px -16px rgba(16, 14, 10, 0.6);
+        animation: sheet-in 0.44s cubic-bezier(0.32, 0.72, 0, 1) both;
+      }
+      .drawer.is-closing { animation: sheet-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) both; }
+      /* Its own height plus the offset, so it starts entirely above the edge. */
+      @keyframes sheet-in { from { transform: translateY(calc(-100% - 60px)); } to { transform: none; } }
+      @keyframes sheet-out { from { transform: none; } to { transform: translateY(calc(-100% - 60px)); } }
+      .drawer-scroll { padding: 12px 10px 14px; }
+      .drawer-head {
+        padding: 6px 8px 12px 10px; margin-bottom: 6px;
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+        /* Room for the close at the right. */
+        padding-right: 48px;
+      }
+      .drawer-head .drawer-org { color: #fff; }
+      .drawer-tab {
+        left: auto; right: 10px; top: 10px;
+        width: 36px; height: 36px; border: 0; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.85);
+        font-size: 22px; box-shadow: none;
+      }
+      .drawer-tab:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+      .drawer-tab:focus-visible { outline-color: #fff; }
+      .drawer .rail-group { color: rgba(255, 255, 255, 0.42); }
+      .drawer .rail-item {
+        color: rgba(255, 255, 255, 0.8); padding: 11px 14px; border-radius: 14px;
+        font-size: 14.5px;
+      }
+      .drawer .rail-item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+      .drawer .rail-item:focus-visible { outline-color: #fff; }
+      .drawer .rail-item .icon { font-size: 17px; opacity: 0.85; }
+      .drawer .rail-item.active { background: #fff; color: #151a22; box-shadow: none; }
+      .drawer .rail-item.active .icon { color: #151a22; }
+      .drawer .rail-note { color: rgba(255, 255, 255, 0.5); }
+      .drawer .rail-item.active .rail-note { color: rgba(21, 26, 34, 0.55); }
+      .drawer .rail-note.over, .drawer .rail-item.active .rail-note.over { color: #e07b6a; }
+    }
     @media (max-width: 1000px) { .rail { display: none; } }
     /* The menu button exists in exactly one band: too narrow for the rail,
        too wide for the tab bar. Written as a range rather than as a hide-then-
