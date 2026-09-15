@@ -1131,8 +1131,10 @@
       position: fixed; top: 0; left: 0; bottom: 0; z-index: 61;
       width: 278px; max-width: 84vw; background: var(--bg-elevated);
       border-right: 1px solid var(--border); box-shadow: var(--shadow-md);
-      padding: 10px 10px 24px; overflow-y: auto; overscroll-behavior: contain;
-      padding-top: max(10px, env(safe-area-inset-top));
+      /* The panel itself no longer scrolls or clips — its tab hangs off the
+         right edge, and overflow-y on this element quietly clips the x axis
+         too, which would slice the tab off. The scrolling moved inside. */
+      display: flex; flex-direction: column; overflow: visible;
       /* Decelerating curve: the panel arrives quickly and settles, which is
          what a sheet being pulled out feels like. Leaving is quicker and
          linear-ish — an exit that eases out reads as hesitant. */
@@ -1154,37 +1156,28 @@
       .drawer, .drawer.is-closing, .drawer-scrim, .drawer-scrim.is-closing,
       .drawer .rail-group, .drawer .rail-item { animation-duration: 0.01ms; }
     }
-    /* The one control, in two states: a plus to add, the same plus at 45
-       degrees to close. Sits above the drawer so the panel cannot clip it. */
-    .drawer-dismiss {
-      position: fixed; z-index: 62;
-      /* Below the header, not on top of it — at 12px it landed square on the
-         account avatar, which the scrim dims but does not remove. */
-      top: calc(70px + env(safe-area-inset-top)); right: 14px;
-      width: 40px; height: 40px; border-radius: 999px;
-      display: grid; place-items: center; cursor: pointer;
-      font-family: inherit; font-size: 24px; font-weight: 400; line-height: 1;
-      color: #fff; background: var(--primary); border: 1px solid var(--primary);
-      box-shadow: 0 2px 6px rgba(25, 23, 15, 0.18),
-                  0 14px 30px -10px rgba(25, 23, 15, 0.4);
-      animation: dismiss-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+    .drawer-scroll {
+      flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+      padding: 10px 10px 24px;
+      padding-top: max(10px, env(safe-area-inset-top));
     }
-    .drawer-dismiss:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
-    .drawer-dismiss:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-    .drawer-dismiss.is-closing { animation: dismiss-out 0.24s ease both; }
-    /* Turns as it arrives, so the plus becoming a close is something you
-       watch happen rather than a different icon appearing. */
-    @keyframes dismiss-in {
-      from { opacity: 0; transform: rotate(0deg) scale(0.7); }
-      to { opacity: 1; transform: rotate(45deg) scale(1); }
+    /* A tab off the panel's edge, in the panel's own colours — same fill, same
+       border, rounded only on the outer side, so it reads as part of the
+       drawer rather than as a control sitting on the page. */
+    .drawer-tab {
+      position: absolute; left: 100%; top: max(18px, env(safe-area-inset-top));
+      width: 34px; height: 46px; cursor: pointer;
+      background: var(--bg-elevated); color: var(--text-muted);
+      border: 1px solid var(--border); border-left: 0;
+      border-radius: 0 13px 13px 0;
+      display: grid; place-items: center;
+      font-family: inherit; font-size: 21px; line-height: 1;
+      box-shadow: 6px 2px 14px -8px rgba(25, 23, 15, 0.3);
     }
-    @keyframes dismiss-out {
-      from { opacity: 1; transform: rotate(45deg) scale(1); }
-      to { opacity: 0; transform: rotate(0deg) scale(0.7); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .drawer-dismiss, .drawer-dismiss.is-closing { animation-duration: 0.01ms; transform: rotate(45deg); }
-    }
+    .drawer-tab:hover { color: var(--text); background: var(--card); }
+    .drawer-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    /* Their plus, on its side. */
+    .drawer-tab span { display: block; transform: rotate(45deg); }
 
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
@@ -13799,20 +13792,19 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             aria-label="Close menu"
             onClick={closeDrawer}
           />
-          {/* Outside the panel, in the corner the panel does not reach. It is the
-              same button as the one that opens things, turned 45 degrees —
-              a plus on its side is a close, and the pair reads as one control
-              in two states. */}
-          <button
-            type="button"
-            className={`drawer-dismiss${drawerClosing ? ' is-closing' : ''}`}
-            onClick={closeDrawer}
-            aria-label="Close menu"
-          >+</button>
           <nav
             className={`drawer${drawerClosing ? ' is-closing' : ''}${drawerResumed && !drawerClosing ? ' is-resumed' : ''}`}
             aria-label="Main"
           >
+            {/* On the panel's edge rather than floating over the page, so it
+                arrives with the drawer and reads as part of it. */}
+            <button
+              type="button"
+              className="drawer-tab"
+              onClick={closeDrawer}
+              aria-label="Close menu"
+            ><span>+</span></button>
+            <div className="drawer-scroll">
             <div className="drawer-head">
               <span className="drawer-org">{(me && me.display_name) || session.organization.name}</span>
             </div>
@@ -13837,6 +13829,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
                 ))}
               </React.Fragment>
             ))}
+            </div>
           </nav>
         </>
       )}
