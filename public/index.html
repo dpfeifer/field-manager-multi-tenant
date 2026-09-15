@@ -1085,7 +1085,7 @@
                     0 24px 52px -14px rgba(25, 23, 15, 0.34);
         /* Gets out of the way when the drawer arrives — see the drawer's own
            timing; this leaves on the same curve so the two read as one move. */
-        transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+        transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
       }
       .tabbar.is-stowed {
         transform: translateY(calc(100% + 24px));
@@ -1117,11 +1117,14 @@
     }
 
     .drawer-scrim {
-      position: fixed; inset: 0; background: rgba(15, 13, 8, 0.38);
+      /* Dark enough that the page behind reads as out of play. At 0.38 the
+         controls behind it still looked live, and the close button appeared to
+         be sitting in a row with them. */
+      position: fixed; inset: 0; background: rgba(15, 13, 8, 0.52);
       z-index: 60; border: 0; padding: 0;
-      animation: scrim-in 0.24s ease both;
+      animation: scrim-in 0.34s ease both;
     }
-    .drawer-scrim.is-closing { animation: scrim-out 0.2s ease both; }
+    .drawer-scrim.is-closing { animation: scrim-out 0.28s ease both; }
     @keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
     @keyframes scrim-out { from { opacity: 1; } to { opacity: 0; } }
     .drawer {
@@ -1134,21 +1137,55 @@
          what a sheet being pulled out feels like. Leaving is quicker and
          linear-ish — an exit that eases out reads as hesitant. */
       will-change: transform;
-      animation: drawer-in 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+      animation: drawer-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
     }
-    .drawer.is-closing { animation: drawer-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
+    /* Out is a touch quicker than in, but eased at both ends now — the old
+       exit accelerated away and read as a snap rather than a close. */
+    .drawer.is-closing { animation: drawer-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both; }
     .drawer.is-resumed, .drawer.is-resumed .rail-group, .drawer.is-resumed .rail-item { animation: none; }
     @keyframes drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
     @keyframes drawer-out { from { transform: none; } to { transform: translateX(-100%); } }
     /* The destinations trail the panel by a hair, so it reads as one movement
        arriving rather than a block sliding on. */
-    .drawer .rail-group, .drawer .rail-item { animation: drawer-items 0.24s ease 0.07s both; }
+    .drawer .rail-group, .drawer .rail-item { animation: drawer-items 0.32s ease 0.1s both; }
     .drawer.is-closing .rail-group, .drawer.is-closing .rail-item { animation: none; }
     @keyframes drawer-items { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
       .drawer, .drawer.is-closing, .drawer-scrim, .drawer-scrim.is-closing,
       .drawer .rail-group, .drawer .rail-item { animation-duration: 0.01ms; }
     }
+    /* The one control, in two states: a plus to add, the same plus at 45
+       degrees to close. Sits above the drawer so the panel cannot clip it. */
+    .drawer-dismiss {
+      position: fixed; z-index: 62;
+      /* Below the header, not on top of it — at 12px it landed square on the
+         account avatar, which the scrim dims but does not remove. */
+      top: calc(70px + env(safe-area-inset-top)); right: 14px;
+      width: 40px; height: 40px; border-radius: 999px;
+      display: grid; place-items: center; cursor: pointer;
+      font-family: inherit; font-size: 24px; font-weight: 400; line-height: 1;
+      color: #fff; background: var(--primary); border: 1px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(25, 23, 15, 0.18),
+                  0 14px 30px -10px rgba(25, 23, 15, 0.4);
+      animation: dismiss-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    .drawer-dismiss:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .drawer-dismiss:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .drawer-dismiss.is-closing { animation: dismiss-out 0.24s ease both; }
+    /* Turns as it arrives, so the plus becoming a close is something you
+       watch happen rather than a different icon appearing. */
+    @keyframes dismiss-in {
+      from { opacity: 0; transform: rotate(0deg) scale(0.7); }
+      to { opacity: 1; transform: rotate(45deg) scale(1); }
+    }
+    @keyframes dismiss-out {
+      from { opacity: 1; transform: rotate(45deg) scale(1); }
+      to { opacity: 0; transform: rotate(0deg) scale(0.7); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .drawer-dismiss, .drawer-dismiss.is-closing { animation-duration: 0.01ms; transform: rotate(45deg); }
+    }
+
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
       padding: 4px 6px 10px; margin-bottom: 2px;
@@ -1158,12 +1195,6 @@
       font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .drawer-close {
-      margin-left: auto; flex: none; background: none; border: 0;
-      font-size: 20px; line-height: 1; color: var(--text-muted);
-      cursor: pointer; padding: 2px 7px; border-radius: 7px;
-    }
-    .drawer-close:hover { background: var(--tinted); color: var(--text); }
     @media (max-width: 1000px) { .rail { display: none; } }
     /* The menu button exists in exactly one band: too narrow for the rail,
        too wide for the tab bar. Written as a range rather than as a hide-then-
@@ -13452,7 +13483,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
       setDrawerMounted(false);
       setDrawerClosing(false);
       setDrawerResumed(false);
-    }, 230);
+    }, 360);
     return () => clearTimeout(t);
   }, [drawerClosing]);
   // Set by an area (Settings, System) that wants the rail for its own sections.
@@ -13768,18 +13799,22 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             aria-label="Close menu"
             onClick={closeDrawer}
           />
+          {/* Outside the panel, in the corner the panel does not reach. It is the
+              same button as the one that opens things, turned 45 degrees —
+              a plus on its side is a close, and the pair reads as one control
+              in two states. */}
+          <button
+            type="button"
+            className={`drawer-dismiss${drawerClosing ? ' is-closing' : ''}`}
+            onClick={closeDrawer}
+            aria-label="Close menu"
+          >+</button>
           <nav
             className={`drawer${drawerClosing ? ' is-closing' : ''}${drawerResumed && !drawerClosing ? ' is-resumed' : ''}`}
             aria-label="Main"
           >
             <div className="drawer-head">
               <span className="drawer-org">{(me && me.display_name) || session.organization.name}</span>
-              <button
-                type="button"
-                className="drawer-close"
-                onClick={closeDrawer}
-                aria-label="Close menu"
-              >&times;</button>
             </div>
             {railGroups.map((g) => (
               <React.Fragment key={g.name}>
