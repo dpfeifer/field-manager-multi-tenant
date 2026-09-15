@@ -216,6 +216,17 @@
       stroke-linecap: round; stroke-linejoin: round;
       fill: none;
     }
+    /* Filled, not stroked: .icon sets a 2px stroke for the drawn icons, and
+       inheriting that would outline the letterform instead of setting it.
+       At 20 units the glyph's ink measures 18.6 tall, against 18 plus a 1.7
+       stroke for the drawn icons — so the two read at the same size. The
+       central baseline puts its ink centre at 18.92 units, which is where
+       the measured optical centre lands too. */
+    .icon-glyph text {
+      fill: currentColor; stroke: none;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 20px; font-weight: 600;
+    }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
@@ -5363,7 +5374,6 @@ const ICONS = {
   dashboard: 'M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.5H9V21H4a1 1 0 0 1-1-1z',
   jobs: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   customers: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  invoices: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
   quotes: 'M3 21l3-3h13a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM9 9h.01M12 9h.01M15 9h.01',
   requests: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
   reports: 'M3 3v18h18M7 14l4-4 4 4 5-5',
@@ -5414,7 +5424,18 @@ function BackLink({ onClick, children }) {
   );
 }
 
+// Icons that are characters rather than drawings.
+const GLYPH_ICONS = { invoices: '$' };
+
 function Icon({ name }) {
+  const glyph = GLYPH_ICONS[name];
+  if (glyph) {
+    return (
+      <svg className="icon icon-glyph" viewBox="0 0 24 24" aria-hidden="true">
+        <text x="12" y="12" textAnchor="middle" dominantBaseline="central">{glyph}</text>
+      </svg>
+    );
+  }
   const d = ICONS[name];
   if (!d) return null;
   return (
