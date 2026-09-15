@@ -1113,9 +1113,15 @@
       /* The marker only ever has to hold an icon, never a word — so the
          crowding that came of bounding a label inside a pill cannot return at
          any label length, in any org's renamed vocabulary. */
+      /* The marker is the bar's own shape, one size down and concentric with
+         it: the capsule is 54 tall on a 27 radius, a true stadium, and the
+         marker is 44 on a 22 — the same figure inset by the 5px of padding.
+         Filling the whole cell is what makes the surround even, including on
+         the end tabs, where the gap to the bar's edge is that same 5px rather
+         than whatever a fixed-width circle happened to leave. */
       .tab-ic {
         position: relative; display: grid; place-items: center;
-        width: 44px; height: 44px; border-radius: 999px;
+        width: 100%; height: 44px; border-radius: 22px;
       }
       .tabbar button .icon { opacity: 1; }
       .tabbar button.active { color: #151a22; }
@@ -1128,10 +1134,11 @@
         padding: 0; overflow: hidden; white-space: nowrap;
         clip-path: inset(50%);
       }
-      /* Anchored to the icon now rather than the cell, and ringed in whatever
-         it happens to be sitting on. */
+      /* Hung off the icon's own top-right corner rather than the cell's, now
+         that the marker is as wide as the cell — and ringed in whatever it
+         happens to be sitting on. */
       .tabbar .tab-badge {
-        top: 1px; right: 1px; left: auto; margin-left: 0;
+        top: 4px; left: 50%; right: auto; margin-left: 6px;
         box-shadow: 0 0 0 2px #151a22;
       }
       .tabbar button.active .tab-badge { box-shadow: 0 0 0 2px #fff; }
