@@ -1075,19 +1075,19 @@
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
     @media (max-width: 720px) {
-      /* A solid ink capsule floating over the page. Every earlier attempt to
-         make this bar a lighter, half-transparent version of the brand navy
-         landed on a desaturated slate — rgb(93, 110, 132) — which is close
-         enough to a Windows 95 title bar to read as one. A surface this dark
-         has no mid-tone to land on the wrong side of, and it stops trying to
-         belong to the cream palette at all: it is simply the one dark object
-         on the screen, which is what navigation should be. */
+      /* A solid navy capsule floating over the page — the brand primary, so
+         the navigation belongs to the palette rather than sitting on it.
+         Solid matters more than the exact colour: every earlier attempt at a
+         lighter, half-transparent version landed on a desaturated slate —
+         rgb(93, 110, 132) — close enough to a Windows 95 title bar to read as
+         one. An opaque surface has no mid-tone to land on the wrong side of,
+         and the flat marker below has no edge to read as a bevel. */
       .tabbar {
         display: block; position: fixed; z-index: 40;
         left: 12px; right: 12px;
         /* Clear of the home indicator on a modern iPhone, and of the edge. */
         bottom: calc(10px + env(safe-area-inset-bottom));
-        background: #151a22;
+        background: var(--primary);
         border: 0;
         border-radius: 27px;
         /* Two layers, both cast by the bar rather than drawn on it. No inner
@@ -1123,7 +1123,7 @@
         width: 100%; height: 44px; border-radius: 22px;
       }
       .tabbar button .icon { opacity: 1; }
-      .tabbar button.active { color: #151a22; }
+      .tabbar button.active { color: var(--primary); }
       .tabbar button.active .tab-ic { background: #fff; }
       /* The words come off the bar but stay in the accessibility tree — they
          are still each button's name for a screen reader, and the page's own
@@ -1138,7 +1138,7 @@
          happens to be sitting on. */
       .tabbar .tab-badge {
         top: 4px; left: 50%; right: auto; margin-left: 6px;
-        box-shadow: 0 0 0 2px #151a22;
+        box-shadow: 0 0 0 2px var(--primary);
       }
       .tabbar button.active .tab-badge { box-shadow: 0 0 0 2px #fff; }
       /* Navigation moved to the thumb, so the corner it used to sit in is
@@ -1221,7 +1221,7 @@
       font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    /* On a phone the drawer is the bar's other half: the same ink, the same
+    /* On a phone the drawer is the bar's other half: the same navy, the same
        27px stadium, the same 12px off the screen's edges — mirrored to the
        top. It drops in on the bar's own curve while the bar leaves on it, so
        the two read as one object making room for itself rather than as a
@@ -1234,7 +1234,7 @@
         /* Content-sized, up to the screen less the same 12px below. */
         max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
         max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-        background: #151a22; border: 0; border-radius: 27px;
+        background: var(--primary); border: 0; border-radius: 27px;
         color: rgba(255, 255, 255, 0.86);
         /* Clips the scroller to the radius. The close moved inside the sheet
            for this reason; a tab hung off the edge would be sliced away. */
@@ -1277,10 +1277,10 @@
       .drawer .rail-item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
       .drawer .rail-item:focus-visible { outline-color: #fff; }
       .drawer .rail-item .icon { font-size: 17px; opacity: 0.85; }
-      .drawer .rail-item.active { background: #fff; color: #151a22; box-shadow: none; }
-      .drawer .rail-item.active .icon { color: #151a22; }
+      .drawer .rail-item.active { background: #fff; color: var(--primary); box-shadow: none; }
+      .drawer .rail-item.active .icon { color: var(--primary); }
       .drawer .rail-note { color: rgba(255, 255, 255, 0.5); }
-      .drawer .rail-item.active .rail-note { color: rgba(21, 26, 34, 0.55); }
+      .drawer .rail-item.active .rail-note { color: rgba(44, 62, 87, 0.6); }
       .drawer .rail-note.over, .drawer .rail-item.active .rail-note.over { color: #e07b6a; }
     }
     @media (max-width: 1000px) { .rail { display: none; } }
@@ -3317,9 +3317,9 @@
          name no longer printed beside it, a wordmark has room to be read
          rather than squeezed into the 108px left over after the text. */
       .brand-mark.is-logo img { height: 28px; max-width: 52vw; }
-      /* The same ink as the bar and the sheet, so the three dark objects on a
-         phone are one material rather than a navy button beside two ink ones. */
-      .user-menu-avatar { background: #151a22; }
+      /* Flat, in the same navy as the bar and the sheet, so the three dark
+         objects on a phone are one material; the desktop keeps its gradient. */
+      .user-menu-avatar { background: var(--primary); }
       .topbar .right { gap: 8px; font-size: 12px; flex-wrap: wrap; }
       .content { padding: 0 16px; margin: 20px auto; }
       .form-grid { grid-template-columns: 1fr; }
