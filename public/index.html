@@ -1064,46 +1064,27 @@
       font-weight: 700; line-height: 1; padding: 2px 4.5px; border-radius: 999px;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
-    /* Light ring on a light bar, dark ring on the tinted one. */
     @media (max-width: 720px) {
-      .tabbar .tab-badge { box-shadow: 0 0 0 2px rgba(26, 38, 56, 0.45); }
-    }
-    @media (max-width: 720px) {
-      /* A capsule that floats over the page rather than a bar welded to the
-         bottom of it. The list keeps running underneath, softened through the
-         blur, which is most of where the sense of depth comes from — a solid
-         bar just ends the screen. */
+      /* A solid ink capsule floating over the page. Every earlier attempt to
+         make this bar a lighter, half-transparent version of the brand navy
+         landed on a desaturated slate — rgb(93, 110, 132) — which is close
+         enough to a Windows 95 title bar to read as one. A surface this dark
+         has no mid-tone to land on the wrong side of, and it stops trying to
+         belong to the cream palette at all: it is simply the one dark object
+         on the screen, which is what navigation should be. */
       .tabbar {
         display: block; position: fixed; z-index: 40;
         left: 12px; right: 12px;
         /* Clear of the home indicator on a modern iPhone, and of the edge. */
         bottom: calc(10px + env(safe-area-inset-bottom));
-        /* Tinted glass. A navy lighter than the app's primary and thin
-           enough to read the list through, so it stays a material the page
-           passes under rather than becoming a filled button the width of the
-           screen — which is what would put it in competition with every
-           Create button above it. The gradient is the sheen: light gathers
-           along the top of a curved pane and falls off fast. */
-        background-color: rgba(55, 76, 106, 0.8);
-        background-image: linear-gradient(to bottom,
-                            rgba(255, 255, 255, 0.17),
-                            rgba(255, 255, 255, 0.03) 46%,
-                            rgba(255, 255, 255, 0) 72%);
-        -webkit-backdrop-filter: blur(30px) saturate(180%);
-        backdrop-filter: blur(30px) saturate(180%);
-        /* On a dark translucent surface the edge is where light collects, so
-           the rim is a highlight rather than the app's ink border. */
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 26px;
-        /* Three outer layers to place it above the page, then two insets: a
-           bright specular along the top edge and a fainter one underneath.
-           Those two are most of what reads as glass rather than as a
-           rectangle of colour. */
-        box-shadow: 0 1px 2px rgba(18, 26, 38, 0.1),
-                    0 14px 30px -10px rgba(18, 26, 38, 0.36),
-                    0 34px 72px -22px rgba(18, 26, 38, 0.44),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-                    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+        background: #151a22;
+        border: 0;
+        border-radius: 27px;
+        /* Two layers, both cast by the bar rather than drawn on it. No inner
+           rim: a bright inner edge is a bevel, and a bevel is the single most
+           dated thing this could wear. */
+        box-shadow: 0 2px 4px rgba(16, 14, 10, 0.16),
+                    0 16px 34px -12px rgba(16, 14, 10, 0.5);
         /* Gets out of the way when the drawer arrives — see the drawer's own
            timing; this leaves on the same curve so the two read as one move. */
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1115,39 +1096,40 @@
       @media (prefers-reduced-motion: reduce) {
         .tabbar { transition-duration: 0.01ms; }
       }
-      /* Nothing in a browser without backdrop-filter should read as a
-         half-transparent panel with the list legible through it. */
-      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .tabbar { background-color: #47597a; }
+      .tabbar-inner { padding: 6px 5px; }
+      .tabbar button { padding: 0; gap: 0; color: rgba(255, 255, 255, 0.58); }
+      /* The marker only ever has to hold an icon, never a word — so the
+         crowding that came of bounding a label inside a pill cannot return at
+         any label length, in any org's renamed vocabulary. */
+      .tab-ic {
+        position: relative; display: grid; place-items: center;
+        width: 42px; height: 42px; border-radius: 999px;
       }
-      .tabbar-inner { padding: 5px 4px 4px; }
-      /* The 6px of side padding is the breathing room: the label's max-width
-         is its content box, so the marker below now clears the text on both
-         sides instead of ending a hair past it. Applied to every button, not
-         just the active one, so a label does not change width when you
-         select it. */
-      .tabbar button {
-        padding: 9px 6px 8px; border-radius: 17px; gap: 5px;
-        color: rgba(255, 255, 255, 0.82);
+      .tabbar button .icon { opacity: 1; }
+      .tabbar button.active { color: #151a22; }
+      .tabbar button.active .tab-ic { background: #fff; }
+      /* The words come off the bar but stay in the accessibility tree — they
+         are still each button's name for a screen reader, and the page's own
+         heading names the screen right above it for everyone else. */
+      .tabbar .tab-label {
+        position: absolute; width: 1px; height: 1px; margin: -1px;
+        padding: 0; overflow: hidden; white-space: nowrap;
+        clip-path: inset(50%);
       }
-      /* Brighter glass on darker glass, and the navy moves to the text. A
-         solid navy pill would have vanished into a navy bar; a lit pane on a
-         tinted one is the same distinction iOS draws, and it carries the
-         strongest contrast on the bar to the label you are on. */
-      .tabbar button.active::before {
-        content: ''; position: absolute; inset: 1px;
-        background: rgba(255, 255, 255, 0.88);
-        border-radius: 16px; z-index: -1;
-        box-shadow: 0 2px 8px -2px rgba(14, 22, 34, 0.42),
-                    inset 0 1px 0 rgba(255, 255, 255, 1);
+      /* Anchored to the icon now rather than the cell, and ringed in whatever
+         it happens to be sitting on. */
+      .tabbar .tab-badge {
+        top: 1px; right: 1px; left: auto; margin-left: 0;
+        box-shadow: 0 0 0 2px #151a22;
       }
+      .tabbar button.active .tab-badge { box-shadow: 0 0 0 2px #fff; }
       /* Navigation moved to the thumb, so the corner it used to sit in is
          free — which is most of why the header stopped feeling jammed. The
          button's base rule already hides it; the range above never matches
          here, so there is nothing to undo. */
-      /* Room for the bar and the gap it now floats in, so the last row of a
-         list clears it rather than hiding behind the glass. */
-      .app-frame { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+      /* Room for the bar and the gap it floats in, so the last row of a list
+         clears it rather than sitting underneath. */
+      .app-frame { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
     }
 
     .drawer-scrim {
@@ -5377,10 +5359,10 @@
 const { useState, useEffect, useCallback, useRef } = React;
 
 const ICONS = {
-  dashboard: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z',
-  jobs: 'M9 4h6v3M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4M9 4h6m-6 0v3h6V4M9 12h6M9 16h4',
+  dashboard: 'M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.5H9V21H4a1 1 0 0 1-1-1z',
+  jobs: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   customers: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  invoices: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  invoices: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15.5 8.5h-4.75a2.25 2.25 0 0 0 0 4.5h2.5a2.25 2.25 0 0 1 0 4.5H8M12 6.5v11',
   quotes: 'M3 21l3-3h13a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM9 9h.01M12 9h.01M15 9h.01',
   requests: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
   reports: 'M3 3v18h18M7 14l4-4 4 4 5-5',
@@ -13812,9 +13794,11 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
               aria-current={view === it.key ? 'page' : undefined}
               onClick={() => navigate(it.to)}
             >
-              <Icon name={it.icon} />
+              <span className="tab-ic">
+                <Icon name={it.icon} />
+                {it.badge > 0 && <span className="tab-badge">{it.badge}</span>}
+              </span>
               <span className="tab-label">{it.label}</span>
-              {it.badge > 0 && <span className="tab-badge">{it.badge}</span>}
             </button>
           ))}
           {!tabsFitAll && (
@@ -13824,11 +13808,13 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
             aria-expanded={drawerOpen}
             onClick={openDrawer}
           >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
+            <span className="tab-ic">
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+              {moreBadge > 0 && <span className="tab-badge">{moreBadge}</span>}
+            </span>
             <span className="tab-label">More</span>
-            {moreBadge > 0 && <span className="tab-badge">{moreBadge}</span>}
           </button>
           )}
         </div>
