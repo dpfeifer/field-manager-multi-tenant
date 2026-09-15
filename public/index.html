@@ -1062,18 +1062,45 @@
       font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 999px;
     }
     @media (max-width: 720px) {
+      /* A capsule that floats over the page rather than a bar welded to the
+         bottom of it. The list keeps running underneath, softened through the
+         blur, which is most of where the sense of depth comes from — a solid
+         bar just ends the screen. */
       .tabbar {
-        display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-        background: var(--card); border-top: 1px solid var(--border);
-        /* Clear the home indicator on a modern iPhone. */
-        padding-bottom: env(safe-area-inset-bottom);
+        display: block; position: fixed; z-index: 40;
+        left: 12px; right: 12px;
+        /* Clear of the home indicator on a modern iPhone, and of the edge. */
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, 0.82);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+        backdrop-filter: blur(20px) saturate(150%);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        /* Two shadows: a tight one to seat the edge, a wide soft one to lift
+           the whole thing off the page. */
+        box-shadow: 0 1px 3px rgba(25, 23, 15, 0.05),
+                    0 14px 34px -12px rgba(25, 23, 15, 0.26);
+      }
+      /* Nothing in a browser without backdrop-filter should read as a
+         half-transparent panel with the list legible through it. */
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .tabbar { background: var(--card); }
+      }
+      .tabbar-inner { padding: 4px 4px 3px; }
+      .tabbar button { padding: 7px 2px 6px; border-radius: 16px; }
+      /* The current tab sits on a soft pill of its own, inset from the cell so
+         it reads as a marker rather than as a filled block. */
+      .tabbar button.active::before {
+        content: ''; position: absolute; inset: 2px 5px;
+        background: var(--tinted); border-radius: 15px; z-index: -1;
       }
       /* Navigation moved to the thumb, so the corner it used to sit in is
          free — which is most of why the header stopped feeling jammed. The
          button's base rule already hides it; the range above never matches
          here, so there is nothing to undo. */
-      /* Room for the bar, so the last row of a list is not underneath it. */
-      .app-frame { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+      /* Room for the bar and the gap it now floats in, so the last row of a
+         list clears it rather than hiding behind the glass. */
+      .app-frame { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
     }
 
     .drawer-scrim {
