@@ -119,7 +119,7 @@ router.get('/profile/:slug', async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT o.slug, o.name AS organization_name,
-              s.company_name, s.logo_url, s.about,
+              s.company_name, s.logo_url, s.about, s.tagline,
               s.address, s.phone, s.email,
               s.customer_label, s.customer_label_plural,
               s.job_label, s.job_label_plural
@@ -134,6 +134,7 @@ router.get('/profile/:slug', async (req, res, next) => {
       slug: row.slug,
       name: row.company_name || row.organization_name,
       logo_url: row.logo_url,
+      tagline: row.tagline || '',
       about: row.about,
       address: row.address,
       phone: row.phone,

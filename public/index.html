@@ -321,6 +321,12 @@
       font-size: 36px; letter-spacing: -0.02em;
       margin: 0 0 14px;
     }
+    /* One line under the name, quieter than the name and set apart from the
+       paragraph of about-text below it. */
+    .profile-tagline {
+      margin: -6px 0 24px; font-size: 15px; color: var(--text-muted);
+      letter-spacing: 0.01em;
+    }
     .profile-about {
       color: var(--text-muted); font-size: 16px; line-height: 1.6;
       margin: 0 0 28px; max-width: 460px; margin-left: auto; margin-right: auto;
@@ -18624,6 +18630,7 @@ function PublicProfileView({ slug }) {
           <img className="profile-logo" src={org.logo_url} alt={org.name} />
         )}
         <h1 className="profile-name">{org.name}</h1>
+        {org.tagline && <p className="profile-tagline">{org.tagline}</p>}
         {org.about && <p className="profile-about">{org.about}</p>}
 
         <div className="profile-cta-row">
