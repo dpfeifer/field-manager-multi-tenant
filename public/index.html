@@ -2423,6 +2423,16 @@
       flex-wrap: wrap;
     }
     .dash-quick-actions button { font-size: 13px; }
+    /* On a phone the row wrapped two-up with each button as wide as its own
+       words, so the second line never lined up with the first. A grid of two
+       equal columns: every button the same width, every row the same shape,
+       and a third or fifth action simply starts a new row on the left. */
+    @media (max-width: 720px) {
+      .dash-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .dash-quick-actions button {
+        width: 100%; justify-content: center; padding: 12px 10px; font-size: 14px;
+      }
+    }
 
     /* Dashboard widget editor in Settings */
     .viewas-banner {
