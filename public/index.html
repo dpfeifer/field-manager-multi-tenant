@@ -1102,18 +1102,19 @@
            timing; this leaves on the same curve so the two read as one move. */
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
       }
-      .tabbar::before, .tabbar::after, .drawer::before, .drawer::after {
+      .tabbar::before, .tabbar::after, .drawer::before, .drawer::after,
+      .topbar::before, .topbar::after {
         content: ''; position: absolute; inset: 0; border-radius: inherit;
         pointer-events: none;
       }
-      .tabbar::before, .drawer::before {
+      .tabbar::before, .drawer::before, .topbar::before {
         background: rgba(255, 255, 255, var(--glass-a));
         -webkit-backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
         backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
       }
       /* The ring: a padding-box/content-box mask leaves only the outer 1.5px.
          The highlight in it sits where the phone is tilted toward. */
-      .tabbar::after, .drawer::after {
+      .tabbar::after, .drawer::after, .topbar::after {
         padding: 1.5px;
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor;
@@ -1128,8 +1129,8 @@
       /* Nothing in a browser without backdrop-filter should read as a
          half-transparent panel with the list legible through it. */
       @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .tabbar::before, .drawer::before { background: rgba(255, 255, 255, 0.94); }
-        .tabbar::after, .drawer::after { display: none; }
+        .tabbar::before, .drawer::before, .topbar::before { background: rgba(255, 255, 255, 0.94); }
+        .tabbar::after, .drawer::after, .topbar::after { display: none; }
       }
       .tabbar.is-stowed {
         transform: translateY(calc(100% + 24px));
@@ -1137,6 +1138,14 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .tabbar, .tab-pill { transition-duration: 0.01ms; }
+      }
+      /* On a strip the ring would draw a bright line down the screen's edges,
+         where there is no edge to catch light. Just the one line, along the
+         bottom where the glass ends. */
+      .topbar::after {
+        -webkit-mask: none; mask: none; padding: 0;
+        -webkit-backdrop-filter: none; backdrop-filter: none; background: none;
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
       }
       /* Above the glass layers. */
       .tabbar-inner { position: relative; z-index: 1; padding: 5px; }
@@ -3362,7 +3371,21 @@
         padding-top: max(14px, env(safe-area-inset-top));
         padding-left: max(16px, env(safe-area-inset-left));
         padding-right: max(16px, env(safe-area-inset-right));
+        /* The bar's glass, at the top: no paint, no border, and the page
+           scrolls under it. Same two-layer build as the bar — the layers are
+           declared with the bar's — denser here because it carries text.
+           Sticky rather than fixed, so it keeps its place in the flow and
+           nothing below needs a top offset to clear it. */
+        position: sticky; top: 0; z-index: 30;
+        background: none; border-bottom: 0;
+        --glass-a: 0.55; --glass-blur: 14px;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
       }
+      .topbar > * { position: relative; z-index: 1; }
+      /* Two things that stick to the top of the page would now stick under
+         the header: the schedule card's head in the 681–720 overlap, and the
+         dashboard's edit bar. Both start where the header ends instead. */
+      .rechead, .dash-edit-bar { top: calc(max(14px, env(safe-area-inset-top)) + 51px); }
       .topbar .right { flex: none; gap: 10px; }
       .topbar .brand-button { min-width: 0; flex: 0 1 auto; margin-right: auto; }
       /* A plan badge is worth a corner of a laptop, not a fifth of a phone's
