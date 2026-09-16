@@ -2418,6 +2418,13 @@
     }
     .dash-pending-requests strong { font-family: var(--serif); font-size: 22px; font-weight: 600; margin-right: 6px; }
 
+    /* One rhythm for the dashboard, whatever the order: the column sets the
+       gap, and a widget's own leading and trailing margins are cancelled so
+       they cannot add to it or, when absent, leave two cards touching. */
+    .dash-widgets { display: flex; flex-direction: column; gap: 24px; }
+    .dash-widget:empty { display: none; }
+    .dash-widget > :first-child { margin-top: 0; }
+    .dash-widget > :last-child { margin-bottom: 0; }
     .dash-quick-actions {
       display: flex; gap: 8px; margin: 16px 0;
       flex-wrap: wrap;
@@ -15009,12 +15016,21 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
               jobs={jobs}
             />
           )}
-          {widgets
-            .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id) && w.id !== 'team_notes')
-            .map((w) => {
-              const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
-              return <W key={w.id} ctx={ctx} />;
-            })}
+          {/* Each widget in a box of its own, spaced by the column rather
+              than by whatever margin the widget happened to end with. The
+              stats grid carried a bottom margin and the schedule card did
+              not, so Today followed by Outstanding touched, while the other
+              way round they did not — the gap depended on the order the
+              owner had chosen. A widget that renders nothing leaves an
+              empty box, which :empty hides so it costs no gap either. */}
+          <div className="dash-widgets">
+            {widgets
+              .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id) && w.id !== 'team_notes')
+              .map((w) => {
+                const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
+                return <div className="dash-widget" key={w.id}><W ctx={ctx} /></div>;
+              })}
+          </div>
         </>
       )}
     </div>
