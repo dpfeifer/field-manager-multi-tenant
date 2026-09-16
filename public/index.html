@@ -5740,12 +5740,22 @@ const WORDMARK_RATIO = 2.5;
 
 function Brand({ orgName, logo, onClick }) {
   const [shape, setShape] = useState('pending');
-  useEffect(() => { setShape('pending'); }, [logo]);
+  const imgRef = useRef(null);
 
-  const measure = (e) => {
-    const { naturalWidth: w, naturalHeight: h } = e.target;
+  const measure = (el) => {
+    const { naturalWidth: w, naturalHeight: h } = el;
     setShape(w && h && w / h >= WORDMARK_RATIO ? 'wordmark' : 'symbol');
   };
+
+  // An image served from cache can finish loading before React has a load
+  // handler on it, and then onLoad never fires — the name stayed hidden
+  // behind a 'pending' that nothing would resolve. So after mount, and
+  // whenever the logo changes, ask the element directly.
+  useEffect(() => {
+    setShape('pending');
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth) measure(el);
+  }, [logo]);
 
   const failed = shape === 'failed';
   const useLogo = logo && !failed;
@@ -5760,7 +5770,7 @@ function Brand({ orgName, logo, onClick }) {
     >
       {useLogo && (
         <span className="brand-mark is-logo">
-          <img src={logo} alt={orgName} onLoad={measure} onError={() => setShape('failed')} />
+          <img ref={imgRef} src={logo} alt={orgName} onLoad={(e) => measure(e.target)} onError={() => setShape('failed')} />
         </span>
       )}
       {showName && <span className="brand-name">{orgName}</span>}
@@ -5950,6 +5960,12 @@ function jobCustomerName(j) {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// "Sep 7" — for a phone, where "Mon, Sep 7, 2026" costs a line.
+function formatDateShort(str) {
+  if (!str) return '';
+  const [y, mo, d] = str.split('-').map(Number);
+  return new Date(y, mo - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 function formatDateString(s) {
   const d = parseDate(s);
   if (!d) return '';
@@ -8775,6 +8791,11 @@ function CompletionForm({ job, initialDate, onSubmit, onCancel, busy, defaultAdd
 }
 
 function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
+  // On a phone three controls did not fit the row: the text-template picker
+  // was truncated to "Text…" beside Mark complete and Open. One button and a
+  // menu instead — the templates become items under a heading. Ahead of any
+  // early return, as hooks must be.
+  const compact = useMediaQuery('(max-width: 720px)');
   const smsTemplates = useSmsTemplates();
   const d = parseDate(occurrence.date);
   const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
@@ -8809,7 +8830,7 @@ function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
         </div>
       </div>
       <div className="actions">
-        {showSms && (
+        {showSms && !compact && (
           <select
             className="row-sms"
             onClick={(e) => e.stopPropagation()}
@@ -8832,7 +8853,19 @@ function OccurrenceRow({ occurrence, onMarkComplete, onUncomplete, onEdit }) {
         {occurrence.completed && onUncomplete && (
           <button className="secondary" onClick={() => onUncomplete(occurrence.job, occurrence.date)}>Undo</button>
         )}
-        <button className="secondary" onClick={() => onEdit(occurrence.job)}>Open</button>
+        {compact ? (
+          <RowMenu
+            label="More actions"
+            items={[
+              { label: 'Open', onClick: () => onEdit(occurrence.job) },
+              ...(showSms && smsTemplates.length > 0
+                ? [{ section: 'Text' }, ...smsTemplates.map((t) => ({ label: t.label, onClick: () => sendSmsTemplate(phone, t, occurrence.job) }))]
+                : []),
+            ]}
+          />
+        ) : (
+          <button className="secondary" onClick={() => onEdit(occurrence.job)}>Open</button>
+        )}
       </div>
     </div>
   );
@@ -14496,6 +14529,8 @@ function DashboardWidgetOverdue({ ctx }) {
 
 function DashboardWidgetOutstanding({ ctx }) {
   const { outstandingInvoices, onMarkPaid, invoicesUsable } = ctx;
+  // Ahead of the early returns: hooks cannot follow one.
+  const compact = useMediaQuery('(max-width: 720px)');
   if (!invoicesUsable) return null;
   if (outstandingInvoices.length === 0) return null;
   return (
@@ -14518,7 +14553,7 @@ function DashboardWidgetOutstanding({ ctx }) {
                     first_name: inv.customer_first_name,
                     last_name: inv.customer_last_name,
                     business_name: inv.customer_business_name,
-                  })} • Sent {inv.sent_date ? formatDateString(inv.sent_date.split('T')[0]) : '—'} · {days}d outstanding
+                  })} • Sent {inv.sent_date ? (compact ? formatDateShort : formatDateString)(inv.sent_date.split('T')[0]) : '—'} · {days}d outstanding
                   {late && <> · <span className="badge" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>Late</span></>}
                 </div>
               </div>
