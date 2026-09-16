@@ -1108,19 +1108,18 @@
            timing; this leaves on the same curve so the two read as one move. */
         transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
       }
-      .tabbar::before, .tabbar::after, .drawer::before, .drawer::after,
-      .topbar::before, .topbar::after {
+      .tabbar::before, .tabbar::after, .topbar::before, .topbar::after {
         content: ''; position: absolute; inset: 0; border-radius: inherit;
         pointer-events: none;
       }
-      .tabbar::before, .drawer::before, .topbar::before {
+      .tabbar::before, .topbar::before {
         background: rgba(255, 255, 255, var(--glass-a));
         -webkit-backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
         backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
       }
       /* The ring: a padding-box/content-box mask leaves only the outer 1.5px.
          The highlight in it sits where the phone is tilted toward. */
-      .tabbar::after, .drawer::after, .topbar::after {
+      .tabbar::after, .topbar::after {
         padding: 1.5px;
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor;
@@ -1135,8 +1134,8 @@
       /* Nothing in a browser without backdrop-filter should read as a
          half-transparent panel with the list legible through it. */
       @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .tabbar::before, .drawer::before, .topbar::before { background: rgba(255, 255, 255, 0.94); }
-        .tabbar::after, .drawer::after, .topbar::after { display: none; }
+        .tabbar::before, .topbar::before { background: rgba(255, 255, 255, 0.94); }
+        .tabbar::after, .topbar::after { display: none; }
       }
       .tabbar.is-stowed {
         transform: translateY(calc(100% + 24px));
@@ -1282,64 +1281,66 @@
       font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    /* On a phone the drawer is the bar's other half: the same glass and the
-       same 27px stadium, 20px off the screen's edges, mirrored to the top —
-       denser, because it carries text and text over glass needs both a
-       heavier fill and more blur underneath than five icons do. It drops in
-       on the bar's own curve while the bar leaves on it, so the two read as
-       one object making room for itself. The layer rules live with the bar. */
-    @media (max-width: 720px) {
+    /* Below the rail the drawer is glass, in the bar's material — the same
+       two layers, denser because it carries text and text over glass needs
+       both a heavier fill and more blur underneath than five icons do. This
+       block is the material, shared by the tablet's left drawer and the
+       phone's top sheet; each band sets only its own geometry below. The
+       layers are pseudo-elements of a container with no filter of its own,
+       because a child's backdrop-filter cannot see through a parent that has
+       one. */
+    @media (max-width: 1000px) {
       .drawer {
-        top: calc(12px + env(safe-area-inset-top)); left: 20px; right: 20px;
-        bottom: auto; width: auto; max-width: none;
-        /* Content-sized, up to the screen less the same 12px below. */
-        max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-        max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-        background: none; border: 0; border-radius: 27px;
+        background: none; border: 0; color: var(--text);
         --glass-a: 0.72; --glass-blur: 16px;
-        color: var(--text);
-        /* Clips the scroller to the radius. The close moved inside the sheet
-           for this reason; a tab hung off the edge would be sliced away. */
-        overflow: hidden;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05),
                     0 12px 32px -12px rgba(0, 0, 0, 0.4);
-        animation: sheet-in 0.44s cubic-bezier(0.32, 0.72, 0, 1) both;
+      }
+      .drawer::before, .drawer::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit;
+        pointer-events: none;
+      }
+      .drawer::before {
+        background: rgba(255, 255, 255, var(--glass-a));
+        -webkit-backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
+        backdrop-filter: blur(var(--glass-blur)) brightness(1.16) saturate(135%);
+      }
+      .drawer::after {
+        padding: 1.5px;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        -webkit-backdrop-filter: blur(1px) brightness(1.14) saturate(150%);
+        backdrop-filter: blur(1px) brightness(1.14) saturate(150%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+      }
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .drawer::before { background: rgba(255, 255, 255, 0.94); }
+        .drawer::after { display: none; }
       }
       /* Above the glass layers. */
       .drawer > * { position: relative; z-index: 1; }
       /* The desktop drawer's 52% wash is what the glass would be blurring —
          a darkened page — and that composites to a flat grey slab. Light
-         enough here that the page still reads as the page through the sheet,
-         which is the entire point of it being glass. */
+         enough here that the page still reads as the page through the glass,
+         which is the entire point of it. */
       .drawer-scrim { background: rgba(15, 13, 8, 0.22); }
-      .drawer.is-closing { animation: sheet-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) both; }
-      /* The shorthand above resets the duration the app-wide reduced-motion
-         rule set earlier in the file, so it has to be said again here, after. */
-      @media (prefers-reduced-motion: reduce) {
-        .drawer, .drawer.is-closing { animation-duration: 0.01ms; }
-      }
-      /* Its own height plus the offset, so it starts entirely above the edge. */
-      @keyframes sheet-in { from { transform: translateY(calc(-100% - 60px)); } to { transform: none; } }
-      @keyframes sheet-out { from { transform: none; } to { transform: translateY(calc(-100% - 60px)); } }
-      .drawer-scroll { padding: 14px 10px 14px; }
-      /* No name at the top. The glass header says it on every screen, and the
-         sheet drops in right over that header — so the row was repeating the
-         line it had just covered, and paying a divider for it. The sheet opens
-         straight onto Work, and the close shares that first line. */
-      .drawer-head { display: none; }
-      .drawer .rail-group:first-child { padding-right: 48px; }
-      /* Restated: the `.drawer > *` rule above sets position: relative on
+      .drawer-head { border-bottom-color: rgba(0, 0, 0, 0.08); }
+      .drawer-head .drawer-org { color: var(--text); }
+      /* The tablet's close hangs off the panel's edge in the panel's own
+         glass; the phone repositions it inside the sheet below. Absolute is
+         restated: the `.drawer > *` rule above sets position: relative on
          every direct child at the same specificity as the base rule that
-         made this absolute, and it comes later — without this the close
-         drops into the flex flow at the top-left of the sheet. */
+         made this absolute, and would otherwise drop it into the flex flow. */
       .drawer-tab {
-        position: absolute; left: auto; right: 10px; top: 10px; z-index: 2;
-        width: 36px; height: 36px; border: 0; border-radius: 999px;
-        background: rgba(0, 0, 0, 0.06); color: var(--text);
-        box-shadow: none;
+        position: absolute; z-index: 2; border: 0; color: var(--text);
+        background: rgba(255, 255, 255, 0.72);
+        -webkit-backdrop-filter: blur(16px) saturate(135%);
+        backdrop-filter: blur(16px) saturate(135%);
+        box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.25);
       }
-      .drawer-tab svg { width: 16px; height: 16px; }
-      .drawer-tab:hover { background: rgba(0, 0, 0, 0.1); color: var(--text); }
+      .drawer-tab:hover { background: rgba(255, 255, 255, 0.9); color: var(--text); }
       .drawer-tab:focus-visible { outline-color: var(--primary); }
       .drawer .rail-group { color: rgba(29, 27, 22, 0.55); }
       .drawer .rail-item {
@@ -1357,6 +1358,64 @@
       .drawer .rail-item.active .icon { color: var(--text); }
       .drawer .rail-note { color: var(--text-muted); }
       .drawer .rail-note.over { color: var(--danger); }
+    }
+    /* The tablet's drawer is a full-height panel on the screen's left edge:
+       three of its four edges are the screen's, with nothing to catch light,
+       so the ring keeps only the line along its right edge where the glass
+       ends. */
+    @media (min-width: 721px) and (max-width: 1000px) {
+      .drawer::after {
+        -webkit-mask: none; mask: none; padding: 0;
+        -webkit-backdrop-filter: none; backdrop-filter: none;
+        box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
+      }
+    }
+    /* On a phone the drawer is the bar's other half: the same 27px stadium,
+       20px off the screen's edges, mirrored to the top. It drops in on the
+       bar's own curve while the bar leaves on it, so the two read as one
+       object making room for itself. Geometry only — the material is above. */
+    @media (max-width: 720px) {
+      .drawer {
+        top: calc(12px + env(safe-area-inset-top)); left: 20px; right: 20px;
+        bottom: auto; width: auto; max-width: none;
+        /* Content-sized, up to the screen less the same 12px below. */
+        max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        border-radius: 27px;
+        /* Clips the scroller to the radius. The close moved inside the sheet
+           for this reason; a tab hung off the edge would be sliced away. */
+        overflow: hidden;
+        animation: sheet-in 0.44s cubic-bezier(0.32, 0.72, 0, 1) both;
+      }
+      .drawer.is-closing { animation: sheet-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) both; }
+      /* The shorthand above resets the duration the app-wide reduced-motion
+         rule set earlier in the file, so it has to be said again here, after. */
+      @media (prefers-reduced-motion: reduce) {
+        .drawer, .drawer.is-closing { animation-duration: 0.01ms; }
+      }
+      /* Its own height plus the offset, so it starts entirely above the edge. */
+      @keyframes sheet-in { from { transform: translateY(calc(-100% - 60px)); } to { transform: none; } }
+      @keyframes sheet-out { from { transform: none; } to { transform: translateY(calc(-100% - 60px)); } }
+      .drawer-scroll { padding: 14px 10px 14px; }
+      /* No name at the top. The glass header says it on every screen, and the
+         sheet drops in right over that header — so the row was repeating the
+         line it had just covered, and paying a divider for it. The sheet opens
+         straight onto Work, and the close shares that first line. */
+      .drawer-head { display: none; }
+      .drawer .rail-group:first-child { padding-right: 48px; }
+      /* Inside the sheet, in a corner, rather than hung off an edge that is
+         clipped to the radius. Restated absolute: the `.drawer > *` rule sets
+         position: relative on every direct child at the same specificity, and
+         without this the close drops into the flex flow at the top-left. */
+      .drawer-tab {
+        position: absolute; left: auto; right: 10px; top: 10px;
+        width: 36px; height: 36px; border-radius: 999px;
+        background: rgba(0, 0, 0, 0.06);
+        -webkit-backdrop-filter: none; backdrop-filter: none;
+        box-shadow: none;
+      }
+      .drawer-tab svg { width: 16px; height: 16px; }
+      .drawer-tab:hover { background: rgba(0, 0, 0, 0.1); }
     }
     @media (max-width: 1000px) { .rail { display: none; } }
     /* The menu button exists in exactly one band: too narrow for the rail,
@@ -1449,10 +1508,49 @@
 
       /* "+ New invoice" under a heading that says Invoices is saying it twice.
          The label goes and the button becomes its verb. */
-      .toolbar .tb-actions .primary { padding: 0; width: 34px; height: 34px;
-        display: inline-grid; place-items: center; font-size: 18px; line-height: 1; }
       .toolbar .tb-actions .primary .btn-label { display: none; }
-      .toolbar .rowmenu-trigger { border-color: var(--border); background: var(--card); }
+      /* Both actions become glass circles, in the bar's material — the last
+         two painted objects between two panes of glass. The glyphs are bare
+         text, and an absolutely positioned pseudo-element paints after
+         in-flow text, so the layers would cover the "+" and the dots. The
+         button becomes its own stacking context (z-index on a positioned
+         element — which, unlike filter or opacity, does not make it a
+         backdrop root) and the layers sit at -1 inside it: above the
+         button's own background, below its text, and still blurring the
+         page. */
+      .toolbar .tb-actions .primary, .toolbar .rowmenu-trigger {
+        position: relative; z-index: 0; width: 40px; height: 40px; padding: 0;
+        display: inline-grid; place-items: center; font-size: 18px; line-height: 1;
+        border: 0; border-radius: 999px; background: none; color: var(--text);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05), 0 6px 16px -8px rgba(0, 0, 0, 0.35);
+      }
+      .toolbar .tb-actions .primary:hover, .toolbar .rowmenu-trigger:hover,
+      .toolbar .tb-actions .primary:active, .toolbar .rowmenu-trigger:active { background: none; color: var(--text); }
+      .toolbar .tb-actions .primary::before, .toolbar .rowmenu-trigger::before,
+      .toolbar .tb-actions .primary::after, .toolbar .rowmenu-trigger::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        z-index: -1;
+      }
+      .toolbar .tb-actions .primary::before, .toolbar .rowmenu-trigger::before {
+        background: rgba(255, 255, 255, 0.3);
+        -webkit-backdrop-filter: blur(8px) brightness(1.16) saturate(135%);
+        backdrop-filter: blur(8px) brightness(1.16) saturate(135%);
+      }
+      .toolbar .tb-actions .primary::after, .toolbar .rowmenu-trigger::after {
+        padding: 1.5px;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        -webkit-backdrop-filter: blur(1px) brightness(1.14) saturate(150%);
+        backdrop-filter: blur(1px) brightness(1.14) saturate(150%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+      }
+      .toolbar .tb-actions .primary:hover::before, .toolbar .rowmenu-trigger:hover::before { background: rgba(255, 255, 255, 0.45); }
+      @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .toolbar .tb-actions .primary::before, .toolbar .rowmenu-trigger::before { background: rgba(255, 255, 255, 0.94); }
+        .toolbar .tb-actions .primary::after, .toolbar .rowmenu-trigger::after { display: none; }
+      }
 
       /* Statuses swipe rather than collapse into a select. A select showed
          "Unpaid (8)" and hid that four are drafts and four are sent; the strip
