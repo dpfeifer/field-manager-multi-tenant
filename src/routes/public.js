@@ -156,6 +156,7 @@ router.get('/landing/:slug', async (req, res, next) => {
     const { rows } = await query(
       `SELECT o.slug, o.name AS organization_name,
               s.company_name, s.logo_url, s.about, s.address, s.phone, s.email,
+              s.tagline,
               s.customer_label, s.customer_label_plural,
               s.job_label, s.job_label_plural,
               s.booking_form_config, s.landing_page_config
@@ -193,7 +194,8 @@ router.get('/landing/:slug', async (req, res, next) => {
         notes_placeholder: typeof bfc.notes_placeholder === 'string' ? bfc.notes_placeholder : '',
       },
       landing: {
-        tagline: typeof cfg.tagline === 'string' ? cfg.tagline : '',
+        // On the company now; the config copy only until the migration backfill has run.
+        tagline: row.tagline || (typeof cfg.tagline === 'string' ? cfg.tagline : ''),
         accent_color: typeof cfg.accent_color === 'string' ? cfg.accent_color : '',
         background_color: typeof cfg.background_color === 'string' ? cfg.background_color : '',
         background_image_url: typeof cfg.background_image_url === 'string' ? cfg.background_image_url : '',
@@ -343,7 +345,7 @@ router.get('/invoices/:id', async (req, res, next) => {
          s.email AS company_email,
          s.venmo_handle,
          s.payment_link_url,
-         s.landing_page_config
+         s.tagline
        FROM invoices i
        JOIN customers c ON c.id = i.customer_id
        JOIN organizations o ON o.id = i.organization_id
@@ -356,12 +358,7 @@ router.get('/invoices/:id', async (req, res, next) => {
     );
 
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    // The tagline the operator wrote for their landing page, under the name
-    // on the invoice too. Only that one field leaves the config — the rest
-    // is the landing page's business, not the invoice's.
-    const { landing_page_config: cfg, ...invoice } = rows[0];
-    invoice.tagline = cfg && typeof cfg.tagline === 'string' ? cfg.tagline.trim() : '';
-    res.json(invoice);
+    res.json(rows[0]);
   } catch (err) { next(err); }
 });
 

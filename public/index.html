@@ -12264,6 +12264,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         job_label: data.job_label || 'Job',
         job_label_plural: data.job_label_plural || 'Jobs',
         about: data.about || '',
+        tagline: data.tagline || '',
         sms_templates: Array.isArray(data.sms_templates) ? data.sms_templates : [],
         dashboard_widgets: Array.isArray(data.dashboard_widgets) && data.dashboard_widgets.length > 0
           ? data.dashboard_widgets
@@ -12648,6 +12649,16 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           <div className="full">
             <label>Company name <span className="hint">(what customers see on invoices, your booking page, and your landing page)</span></label>
             <input value={form.company_name} onChange={(e) => setField('company_name', e.target.value)} disabled={!isAdmin} />
+          </div>
+          <div className="full">
+            <label>Tagline <span className="hint">(one line under your name — on invoices, and on your landing page if you have one)</span></label>
+            <input
+              value={form.tagline || ''}
+              onChange={(e) => setField('tagline', e.target.value)}
+              placeholder="Electric lawn care, Las Vegas"
+              maxLength={80}
+              disabled={!isAdmin}
+            />
           </div>
           <div className="full">
             <label>About <span className="hint">(shown on your profile page)</span></label>
@@ -16783,8 +16794,10 @@ function LandingPageEditor({ slug, token, initial, saveUrl, uploadEndpoint, apiS
       </label>
       <p className="hint" style={{ marginTop: 4 }}>When off, visitors to /{slug} see a "not found" page.</p>
 
-      <label>Tagline <span className="hint">(small line under your name in the nav, e.g. "LAS VEGAS BARBER")</span></label>
-      <input value={cfg.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="LAS VEGAS BARBER" />
+      <label>Tagline</label>
+      <p className="hint" style={{ margin: '0 0 12px' }}>
+        Set under <strong>Your public details</strong>, so it prints on invoices too. It shows here under your name.
+      </p>
 
       <div className="section-heading">Style</div>
       <label>Accent color <span className="hint">(buttons, image frame, tagline — defaults to terracotta)</span></label>

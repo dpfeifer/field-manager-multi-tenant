@@ -310,7 +310,7 @@ async function landingMetaForPath(pathname) {
   if (RESERVED_SLUGS.has(slug)) return null;
   try {
     const { rows } = await query(
-      `SELECT o.name AS organization_name, s.company_name, s.landing_page_config
+      `SELECT o.name AS organization_name, s.company_name, s.tagline, s.landing_page_config
        FROM organizations o
        LEFT JOIN organization_settings s ON s.organization_id = o.id
        WHERE o.slug = $1 AND o.deleted_at IS NULL
@@ -332,7 +332,7 @@ async function landingMetaForPath(pathname) {
       : company;
     const description = (typeof cfg.hero_subtitle === 'string' && cfg.hero_subtitle.trim())
       ? cfg.hero_subtitle.trim()
-      : (typeof cfg.tagline === 'string' && cfg.tagline.trim() ? cfg.tagline.trim() : `Visit ${company}.`);
+      : ((r.tagline && r.tagline.trim()) || (typeof cfg.tagline === 'string' && cfg.tagline.trim()) || `Visit ${company}.`);
     return { title, description, image };
   } catch (err) {
     return null;

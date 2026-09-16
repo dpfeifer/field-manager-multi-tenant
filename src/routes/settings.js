@@ -20,7 +20,7 @@ const FIELDS = [
   'company_name', 'logo_url', 'address', 'phone', 'email',
   'venmo_handle', 'payment_link_url', 'resend_from_email', 'cloudinary_folder',
   'customer_label', 'customer_label_plural', 'job_label', 'job_label_plural',
-  'about', 'sms_templates', 'dashboard_widgets',
+  'about', 'tagline', 'sms_templates', 'dashboard_widgets',
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
   'auto_append_to_draft',
   'booking_form_config',
@@ -30,7 +30,7 @@ const SELECT = `
   SELECT company_name, logo_url, address, phone, email,
          venmo_handle, payment_link_url, resend_from_email, cloudinary_folder,
          customer_label, customer_label_plural, job_label, job_label_plural,
-         about, sms_templates, dashboard_widgets,
+         about, tagline, sms_templates, dashboard_widgets,
          auto_invoice_schedule, auto_invoice_day_of_month,
          auto_invoice_day_of_week, auto_invoice_last_run_at,
          auto_append_to_draft,
@@ -220,6 +220,8 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
       let v = body[f] === '' ? null : body[f];
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
+      // One line, and the invoice header is the tightest place it prints.
+      if (f === 'tagline') v = typeof v === 'string' ? (v.trim().slice(0, 80) || null) : null;
       if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
       if (f === 'dashboard_widgets') v = JSON.stringify(normalizeDashboardWidgets(v));
       if (f === 'booking_form_config') v = JSON.stringify(normalizeBookingFormConfig(v));
