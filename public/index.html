@@ -1093,7 +1093,8 @@
         left: 20px; right: 20px;
         /* Clear of the home indicator on a modern iPhone, and of the edge. */
         bottom: calc(12px + env(safe-area-inset-bottom));
-        border: 0; border-radius: 27px;
+        /* 60 tall on a 30 radius: a true stadium. Cells are 50, the bubble 54. */
+        border: 0; border-radius: 30px;
         --glass-a: 0.16; --glass-blur: 7px;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05),
                     0 10px 28px -12px rgba(0, 0, 0, 0.35);
@@ -1146,7 +1147,7 @@
       .tabbar button .icon { font-size: 26px; stroke-width: 1.8; opacity: 1; }
       .tab-ic {
         position: relative; display: grid; place-items: center;
-        width: 100%; height: 44px;
+        width: 100%; height: 50px;
       }
       /* One bubble that travels. It sits behind the buttons, one cell wide,
          and moves by whole cells on the bar's own curve, so a change of tab
@@ -1155,7 +1156,7 @@
          it lands as a light grey, over a photo as a paler version of what is
          behind it, with no brightness push of its own. */
       .tab-pill {
-        position: absolute; left: 5px; top: 5px; height: 44px;
+        position: absolute; left: 5px; top: 5px; height: 50px;
         width: calc((100% - 10px) / var(--tabs, 5));
         pointer-events: none;
         transform: translateX(calc(var(--tab, 0) * 100%));
@@ -1169,7 +1170,7 @@
          bar's edge, as it does there. A lens that large is most of why the
          reference's reads as a lens and a smaller one read as a sticker. */
       .tab-pill::before {
-        content: ''; position: absolute; inset: -2px -4px; border-radius: 24px;
+        content: ''; position: absolute; inset: -2px -4px; border-radius: 27px;
         background: rgba(138, 138, 144, 0.34);
         -webkit-backdrop-filter: blur(6px) saturate(110%);
         backdrop-filter: blur(6px) saturate(110%);
@@ -1192,7 +1193,7 @@
       }
       /* Room for the bar and the gap it floats in, so the last row of a list
          clears it rather than sitting underneath. */
-      .app-frame { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+      .app-frame { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
     }
 
     .drawer-scrim {
