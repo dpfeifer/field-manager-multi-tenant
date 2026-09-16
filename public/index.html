@@ -5799,12 +5799,19 @@ function useLocation() {
 
 function navigate(to, opts = {}) {
   if (window.location.pathname === to && !opts.force) return;
+  // A new screen starts at its top. Without this the scroll position carried
+  // over from the last screen, and with a sticky header on the phone the new
+  // page's title opened hidden underneath it. Only when the path changes: a
+  // view or filter that rewrites the query on the same page keeps its place,
+  // and Back is the browser's own, so it restores where you were.
+  const leaving = to.split('?')[0] !== window.location.pathname;
   if (opts.replace) {
     window.history.replaceState({}, '', to);
   } else {
     window.history.pushState({}, '', to);
   }
   window.dispatchEvent(new PopStateEvent('popstate'));
+  if (leaving) window.scrollTo(0, 0);
 }
 const STAFF_STORAGE = { token: 'fm_staff_token', user: 'fm_staff_user' };
 
