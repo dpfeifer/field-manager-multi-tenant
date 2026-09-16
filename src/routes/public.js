@@ -342,7 +342,8 @@ router.get('/invoices/:id', async (req, res, next) => {
          s.phone AS company_phone,
          s.email AS company_email,
          s.venmo_handle,
-         s.payment_link_url
+         s.payment_link_url,
+         s.landing_page_config
        FROM invoices i
        JOIN customers c ON c.id = i.customer_id
        JOIN organizations o ON o.id = i.organization_id
@@ -355,7 +356,12 @@ router.get('/invoices/:id', async (req, res, next) => {
     );
 
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    res.json(rows[0]);
+    // The tagline the operator wrote for their landing page, under the name
+    // on the invoice too. Only that one field leaves the config — the rest
+    // is the landing page's business, not the invoice's.
+    const { landing_page_config: cfg, ...invoice } = rows[0];
+    invoice.tagline = cfg && typeof cfg.tagline === 'string' ? cfg.tagline.trim() : '';
+    res.json(invoice);
   } catch (err) { next(err); }
 });
 
