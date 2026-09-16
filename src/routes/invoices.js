@@ -256,6 +256,27 @@ router.post('/:id/send', requireRole('admin', 'lead'), async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
+// The way back from "sent": a draft again, with no send date. Only from
+// sent — a paid invoice has to be marked unpaid first, which returns it to
+// sent, and from there this. The public link at /i/<id> stops working while
+// it is a draft, which is the point of taking it back.
+router.post('/:id/mark-draft', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rowCount } = await query(
+      `UPDATE invoices
+       SET status = 'draft',
+           sent_date = NULL,
+           updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+         AND status = 'sent'`,
+      [req.params.id, req.organization.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'Not found or not sent' });
+    const { rows } = await query(`${BASE_SELECT} WHERE i.id = $1 LIMIT 1`, [req.params.id]);
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
 // Apply a customer's prepaid credit to this invoice. Writes a negative ledger
 // row and bumps the invoice's credit_applied; if credit covers the remaining
 // balance the invoice is marked paid. Amount defaults to the most that helps

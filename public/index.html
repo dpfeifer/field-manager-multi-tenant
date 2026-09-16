@@ -7685,6 +7685,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                           <button className="inv-util" onClick={() => navigate(`/i/${inv.id}?from=app`)}>View</button>
                         )}
                         <button className="inv-util" onClick={() => navigate(`/invoices?open=${inv.id}`)}>Edit</button>
+                        {inv.status === 'sent' && (
+                          <button className="inv-util" onClick={() => invTransition(inv.id, 'mark-draft')}>Unsend</button>
+                        )}
                         <button className="inv-util inv-util-danger" onClick={() => invDelete(inv.id)}>Delete</button>
                       </div>
                     </div>
@@ -11224,6 +11227,8 @@ function InvoicesView({ session }) {
                         && { label: `Email to ${terms.customerLower}`, onClick: () => emailInvoice(inv) },
                       canMutate && inv.status !== 'paid' && math.balanceDue > 0 && creditFor(inv.customer_id) > 0
                         && { label: 'Apply credit', onClick: () => applyCredit(inv) },
+                      canMutate && inv.status === 'sent'
+                        && { label: 'Unsend', onClick: () => transition(inv.id, 'mark-draft') },
                       canMutate && inv.status === 'paid'
                         && { label: 'Mark unpaid', onClick: () => transition(inv.id, 'mark-unpaid') },
                       canMutate && { label: 'Edit', onClick: () => { setEditing(inv); setMode('edit'); } },
