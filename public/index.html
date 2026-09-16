@@ -2403,19 +2403,10 @@
       margin: 0; color: var(--text-muted);
       font-size: 14px; line-height: 1.5;
     }
-    .dash-greeting-action {
-      flex-shrink: 0; padding: 8px 14px;
-      font-size: 13px; align-self: center;
-    }
-    @media (max-width: 600px) {
-      .dash-greeting-head {
-        flex-wrap: nowrap;
-      }
-      .dash-greeting-action {
-        font-size: 12px; padding: 7px 10px;
-        white-space: nowrap;
-      }
-    }
+    /* Wider than the list toolbars' gap: a greeting is two lines of serif,
+       and the actions sit against its first line rather than its middle. */
+    .dash-greeting-head.toolbar { margin-bottom: 0; align-items: flex-start; }
+    .dash-greeting-head .tb-actions { padding-top: 4px; }
 
     .dash-pending-requests {
       display: flex; align-items: center; justify-content: space-between;
@@ -14279,7 +14270,12 @@ function DashboardWidgetGreeting({ ctx }) {
   const unreadCount = allNotes.filter((n) => !n.is_read && n.author_user_id !== userId).length;
   const recent = allNotes.slice(0, 4);
 
-  const dateStr = ctx.today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  // On a phone the subtitle has to fit one line beside nothing: a short
+  // date, and "today" rather than "on the schedule".
+  const compact = useMediaQuery('(max-width: 720px)');
+  const dateStr = ctx.today.toLocaleDateString(undefined, compact
+    ? { weekday: 'short', month: 'short', day: 'numeric' }
+    : { weekday: 'long', month: 'long', day: 'numeric' });
   const jobsCount = ctx.todayOccurrences.length;
   const jobsLabel = jobsCount === 1 ? terms.jobLower : terms.jobsLower;
 
@@ -14303,17 +14299,25 @@ function DashboardWidgetGreeting({ ctx }) {
 
   return (
     <div className="dash-greeting">
-      <div className="dash-greeting-head">
-        <div className="dash-greeting-text">
+      {/* The same shape as every list's toolbar — title left, the actions
+          right — so on a phone the greeting gets the glass "+" and "⋯" the
+          lists have, instead of a wide button squeezing the words. */}
+      <div className="dash-greeting-head toolbar">
+        <div className="dash-greeting-text tb-title">
           <h2>{timeOfDayGreeting()}{firstName ? `, ${firstName}` : ''}.</h2>
           <p>
-            {dateStr} · {jobsCount} {jobsLabel} on the schedule · {allNotes.length} {allNotes.length === 1 ? 'note' : 'notes'}
+            {dateStr} · {jobsCount} {jobsLabel} {compact ? 'today' : 'on the schedule'} · {allNotes.length} {allNotes.length === 1 ? 'note' : 'notes'}
             {unreadCount > 0 && <> (<strong style={{ color: 'var(--accent)' }}>{unreadCount} new</strong>)</>}
           </p>
         </div>
-        <button type="button" className="secondary dash-greeting-action" onClick={() => setComposing(true)}>
-          + Send a note
-        </button>
+        <span className="tb-actions">
+          <button type="button" className="primary dash-greeting-action" onClick={() => setComposing(true)}>
+            +<span className="btn-label"> Send a note</span>
+          </button>
+          {isAdmin && ctx.onEditLayout && (
+            <RowMenu label="Dashboard options" items={[{ label: 'Edit layout', onClick: ctx.onEditLayout }]} />
+          )}
+        </span>
       </div>
 
       {recent.length > 0 && (
@@ -14886,6 +14890,12 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
 
   const plan = (me && me.plan) || 'pro';
   const isFree = plan === 'free';
+  // Local copy so a saved layout takes effect immediately, without waiting
+  // for `me` to be refetched by the shell. Declared ahead of ctx, which
+  // hands the edit action to the greeting widget.
+  const [layoutOverride, setLayoutOverride] = useState(null);
+  const [editingLayout, setEditingLayout] = useState(false);
+
   const ctx = {
     session, terms, today,
     jobs, invoices, customers,
@@ -14901,12 +14911,11 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
     onMarkComplete: (job, date) => setCompleting({ job, date }),
     onUncomplete: uncompleteOccurrence,
     onMarkPaid: markInvoicePaid,
+    // The greeting's ⋯ carries "Edit layout", so the dashboard no longer
+    // spends a line of its own on it — unless the greeting is switched off.
+    onEditLayout: () => setEditingLayout(true),
   };
 
-  // Local copy so a saved layout takes effect immediately, without waiting
-  // for `me` to be refetched by the shell.
-  const [layoutOverride, setLayoutOverride] = useState(null);
-  const [editingLayout, setEditingLayout] = useState(false);
   const widgets = layoutOverride
     || ((me && Array.isArray(me.dashboard_widgets) && me.dashboard_widgets.length > 0)
       ? me.dashboard_widgets
@@ -14939,7 +14948,7 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
         <>
           {/* Above the widgets, not below them — you decide to rearrange when
               you look at the thing, not after scrolling past all of it. */}
-          {role === 'admin' && (
+          {role === 'admin' && !widgets.some((w) => w.id === 'greeting' && w.enabled) && (
             <div className="dash-top">
               <button className="link-button" onClick={() => setEditingLayout(true)}>
                 Edit layout
