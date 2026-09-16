@@ -1547,6 +1547,11 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
       }
       .toolbar .tb-actions .primary:hover::before, .toolbar .rowmenu-trigger:hover::before { background: rgba(255, 255, 255, 0.45); }
+      /* The "+" is a bare glyph, and Inter draws its plus 1.3px below the
+         centre of its own box at this size — measured against the circle,
+         not eyeballed. The dots sit dead centre and get nothing. Padding on
+         one side moves the centred content by half its amount. */
+      .toolbar .tb-actions .primary { padding-bottom: 2.6px; }
       @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         .toolbar .tb-actions .primary::before, .toolbar .rowmenu-trigger::before { background: rgba(255, 255, 255, 0.94); }
         .toolbar .tb-actions .primary::after, .toolbar .rowmenu-trigger::after { display: none; }
