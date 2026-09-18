@@ -8606,6 +8606,56 @@ function CustomerForm({ initial, onSubmit, onCancel, busy, customers = [] }) {
   );
 }
 
+function DeleteCustomerDialog({ customer, onConfirm, onCancel }) {
+  const terms = useTerms();
+  const name = customerDisplayName(customer);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  // Forgiving about case and stray spaces — the point is intent, not a typing test.
+  const norm = (v) => v.trim().replace(/\s+/g, ' ').toLowerCase();
+  const matches = norm(typed) === norm(name);
+  const owed = parseFloat(customer.outstanding_balance) || 0;
+  const credit = parseFloat(customer.credit_balance) || 0;
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+  async function submit(e) {
+    e.preventDefault();
+    if (!matches || busy) return;
+    setBusy(true);
+    await onConfirm();
+  }
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <form className="modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="modal-head" style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Delete {name}?</h3>
+          <button type="button" className="modal-close" onClick={onCancel} aria-label="Close">×</button>
+        </div>
+        <p className="hint" style={{ marginTop: 0 }}>
+          This removes the {terms.customerLower} from your lists and cannot be undone from the app.
+          {(owed > 0 || credit > 0) && (
+            <> They currently {owed > 0 && <>owe <strong style={{ color: 'var(--text)' }}>{formatPrice(owed)}</strong></>}{owed > 0 && credit > 0 && ' and '}{credit > 0 && <>have <strong style={{ color: 'var(--text)' }}>{formatPrice(credit)}</strong> in credit</>}.</>
+          )}
+        </p>
+        <label htmlFor="delete-customer-confirm">Type <strong>{name}</strong> to confirm</label>
+        <input
+          id="delete-customer-confirm" autoFocus autoComplete="off" spellCheck={false}
+          value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={name}
+        />
+        <div className="form-actions">
+          <button type="submit" className="danger" disabled={!matches || busy}>
+            {busy ? 'Deleting...' : `Delete ${terms.customerLower}`}
+          </button>
+          <button type="button" className="secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function CustomersView({ session, planContext, features = {} }) {
   const terms = useTerms();
   // Declared with the other hooks: this view returns early for its form modes,
@@ -8683,15 +8733,18 @@ function CustomersView({ session, planContext, features = {} }) {
     finally { setBusy(false); }
   }
 
+  // Deleting asks for the name to be typed. A confirm() is one reflexive tap
+  // away from the row's other menu items; this is not.
+  const [deleting, setDeleting] = useState(null);
   async function deleteCustomer(id) {
-    if (!confirm(`Delete this ${terms.customerLower}? This cannot be undone from the UI.`)) return;
     setError(null);
     try {
       await apiRequest(`/api/customers/${id}`, {
         method: 'DELETE', slug: session.slug, token: session.token,
       });
+      setDeleting(null);
       await refresh();
-    } catch (err) { setError(err); }
+    } catch (err) { setDeleting(null); setError(err); }
   }
 
   if (mode === 'create') {
@@ -8763,6 +8816,13 @@ function CustomersView({ session, planContext, features = {} }) {
 
   return (
     <div>
+      {deleting && (
+        <DeleteCustomerDialog
+          customer={deleting}
+          onConfirm={() => deleteCustomer(deleting.id)}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
       <div className="toolbar">
         <span className="tb-title">
           <h2>{terms.customers}</h2>
@@ -8880,7 +8940,7 @@ function CustomersView({ session, planContext, features = {} }) {
                       label={`Actions for ${customerDisplayName(c)}`}
                       items={[
                         { label: 'Edit details', onClick: () => { setEditing(c); setMode('edit'); } },
-                        { label: 'Delete', danger: true, onClick: () => deleteCustomer(c.id) },
+                        { label: 'Delete', danger: true, onClick: () => setDeleting(c) },
                       ]}
                     />
                   )}
@@ -12395,8 +12455,18 @@ function QuotesView({ session, features = { invoices: true } }) {
 
 // Its own tab rather than a corner of Auto-invoice: it is a thing an owner
 // goes looking for by name.
-function ReferralPanel({ form, setField, isAdmin, busy, saved, error, submit }) {
+function ReferralPanel({ session, form, setField, isAdmin, busy, saved, error, submit }) {
   const terms = useTerms();
+  const [sample, setSample] = useState(null); // null | 'sending' | { ok, text }
+  async function sendSample() {
+    setSample('sending');
+    try {
+      const r = await apiRequest('/api/settings/referrals/sample-email', {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setSample({ ok: true, text: `Sent to ${r.to}.` });
+    } catch (err) { setSample({ ok: false, text: err.message }); }
+  }
   return (
     <>
       {error && <div className="error">{error}</div>}
@@ -12445,6 +12515,16 @@ function ReferralPanel({ form, setField, isAdmin, busy, saved, error, submit }) 
             </span>
           </span>
         </label>
+        {isAdmin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '10px 0 0 28px' }}>
+            <button type="button" className="secondary" onClick={sendSample} disabled={sample === 'sending'}>
+              {sample === 'sending' ? 'Sending...' : 'Send me a sample'}
+            </button>
+            {sample && sample !== 'sending' && (
+              <span className="hint" role="status" style={{ color: sample.ok ? 'var(--success)' : 'var(--danger)' }}>{sample.text}</span>
+            )}
+          </div>
+        )}
 
         {isAdmin && (
           <div className="form-actions">
@@ -13325,7 +13405,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
       )}
 
       {subView === 'referrals' && isAdmin && features.referrals && (
-        <ReferralPanel form={form} setField={setField} isAdmin={isAdmin} busy={busy} saved={saved} error={error} submit={submit} />
+        <ReferralPanel session={session} form={form} setField={setField} isAdmin={isAdmin} busy={busy} saved={saved} error={error} submit={submit} />
       )}
 
       {subView === 'booking-form' && isAdmin && (

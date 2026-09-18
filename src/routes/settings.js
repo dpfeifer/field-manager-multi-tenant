@@ -6,6 +6,8 @@ const { normalizeLandingPageConfig } = require('../utils/landing');
 const { validateSlug } = require('../utils/slug');
 const { DEFAULT_TIMEZONE, isValidTimezone } = require('../utils/timezone');
 const { withTransaction } = require('../config/db');
+const { sendEmail } = require('../utils/email');
+const { referralCreditTemplate } = require('../utils/emailTemplates');
 
 const router = express.Router();
 
@@ -212,6 +214,44 @@ function normalizeLabel(v) {
   }
   return trimmed;
 }
+
+// The referral thank-you, with made-up names and the org's own reward rate,
+// sent to whoever pressed the button — so an owner can see what their
+// customers get without staging a referral to find out.
+router.post('/referrals/sample-email', requireRole('admin'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT u.email, u.name, o.name AS organization_name,
+              s.company_name, s.email AS company_email, s.phone AS company_phone,
+              COALESCE(s.referral_percent, 10) AS referral_percent
+       FROM users u
+       JOIN organizations o ON o.id = u.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE u.id = $1 AND o.id = $2 LIMIT 1`,
+      [req.user.sub, req.organization.id]
+    );
+    const r = rows[0];
+    if (!r || !r.email) return res.status(400).json({ error: 'Your account has no email address' });
+    const amount = Math.round(60 * parseFloat(r.referral_percent)) / 100; // a $60 job
+    const tpl = referralCreditTemplate({
+      companyName: r.company_name || r.organization_name,
+      companyEmail: r.company_email, companyPhone: r.company_phone,
+      recipientName: (r.name || '').split(' ')[0] || 'there',
+      referredName: 'Jordan',
+      amount, balance: amount * 3,
+    });
+    const result = await sendEmail({
+      to: r.email, subject: `[Sample] ${tpl.subject}`, html: tpl.html, text: tpl.text,
+      replyTo: r.company_email || undefined,
+    });
+    if (!result.sent) {
+      return res.status(502).json({
+        error: result.reason === 'not_configured' ? 'Email is not set up on this server' : 'The email could not be sent. Try again in a minute.',
+      });
+    }
+    res.json({ ok: true, to: r.email });
+  } catch (err) { next(err); }
+});
 
 router.put('/', requireRole('admin'), async (req, res, next) => {
   const body = req.body || {};
