@@ -16332,7 +16332,7 @@ function InstallInstructions() {
 function OnboardingPage({ session, onDone }) {
   const terms = useTerms();
   const [step, setStep] = useState('modules');
-  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false, requests: false });
+  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false, requests: false, referrals: false });
   const [terminology, setTerminology] = useState({
     customer_label: 'Customer',
     customer_label_plural: 'Customers',
@@ -16534,6 +16534,11 @@ function OnboardingPage({ session, onDone }) {
           enabled={features.requests} onToggle={() => toggle('requests')}
           label="Requests"
           description={`Public booking page where ${terms.customersLower} can request appointments. Adds a Requests tab where you accept or decline them.`}
+        />
+        <FeatureRow
+          enabled={!!features.referrals} onToggle={() => toggle('referrals')}
+          label="Referrals"
+          description={`Give each ${terms.customerLower} a booking link of their own. When someone they send becomes a ${terms.customerLower}, they earn credit on every ${terms.jobLower} you complete — 10% of the first five to start, and you can change both in Settings.`}
         />
 
         <div className="form-actions" style={{ marginTop: 24 }}>
