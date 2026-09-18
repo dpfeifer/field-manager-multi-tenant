@@ -4,10 +4,12 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const ALLOWED_FEATURES = new Set(['invoices', 'quotes', 'reports', 'team', 'requests']);
+const ALLOWED_FEATURES = new Set(['invoices', 'quotes', 'reports', 'team', 'requests', 'referrals']);
 
 function normalizeFeatures(input) {
-  const out = { invoices: true, quotes: true, reports: true, team: true, requests: true };
+  // Referrals is the one section that starts off: it pays out credit, so it
+  // should be something an owner chose rather than found running.
+  const out = { invoices: true, quotes: true, reports: true, team: true, requests: true, referrals: false };
   if (!input || typeof input !== 'object') return out;
   for (const key of Object.keys(out)) {
     if (input[key] === false) out[key] = false;

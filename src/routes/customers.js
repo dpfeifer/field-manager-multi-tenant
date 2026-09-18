@@ -112,12 +112,12 @@ router.get('/referral-summary', requireRole('admin', 'lead'), async (req, res, n
       [req.organization.id]
     );
     const s = await query(
-      `SELECT referral_enabled, referral_percent, referral_cap_jobs
+      `SELECT referral_percent, referral_cap_jobs
        FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
       [req.organization.id]
     );
     res.json({
-      program: s.rows[0] || { referral_enabled: false, referral_percent: 10, referral_cap_jobs: 5 },
+      program: s.rows[0] || { referral_percent: 10, referral_cap_jobs: 5 },
       referrers: rows,
     });
   } catch (err) { next(err); }

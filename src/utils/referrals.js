@@ -9,15 +9,22 @@ function displayName(c) {
 }
 
 // Called inside the completion's transaction. Quietly does nothing when the
-// program is off, nobody referred this customer, the visit has no price, the
+// section is off, nobody referred this customer, the visit has no price, the
 // cap is reached, or this visit has already paid out.
 async function awardReferralCredit(client, { orgId, job, date, userId }) {
+  // The Referrals section (Settings → Sections) is the on/off switch; the
+  // settings row only holds the terms, and may not exist yet — hence the
+  // defaults, which match the column defaults.
   const { rows: s } = await client.query(
-    `SELECT referral_enabled, referral_percent, referral_cap_jobs
-     FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
+    `SELECT (o.features->>'referrals') = 'true' AS enabled,
+            COALESCE(st.referral_percent, 10) AS referral_percent,
+            CASE WHEN st.organization_id IS NULL THEN 5 ELSE st.referral_cap_jobs END AS referral_cap_jobs
+     FROM organizations o
+     LEFT JOIN organization_settings st ON st.organization_id = o.id
+     WHERE o.id = $1 LIMIT 1`,
     [orgId]
   );
-  if (!s[0] || !s[0].referral_enabled) return null;
+  if (!s[0] || !s[0].enabled) return null;
   const percent = parseFloat(s[0].referral_percent) || 0;
   const price = parseFloat(job.default_price) || 0;
   const amount = round2(price * percent / 100);

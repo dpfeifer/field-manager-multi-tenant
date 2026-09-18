@@ -7795,7 +7795,7 @@ function AuthShell({ onSession }) {
   );
 }
 
-function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOpenCustomer }) {
+function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOpenCustomer, showReferrals = false }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -7985,7 +7985,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
         <CustomerCard
           customer={customer}
           creditBalance={credit.balance}
-          referredBy={referrals.referred_by ? customerDisplayName(referrals.referred_by) : null}
+          referredBy={showReferrals && referrals.referred_by ? customerDisplayName(referrals.referred_by) : null}
           onEdit={canMutate ? () => onEdit(customer) : null}
         />
       </div>
@@ -7998,9 +7998,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
           { key: 'invoices', label: 'Invoices', count: loading ? '' : invoices.length },
           { key: 'quotes', label: 'Quotes', count: loading ? '' : quotes.length },
           { key: 'credit', label: 'Credit', count: loading ? '' : formatPrice(credit.balance) },
-          { key: 'referrals', label: 'Referrals', count: loading ? '' : referrals.referred.length },
+          showReferrals && { key: 'referrals', label: 'Referrals', count: loading ? '' : referrals.referred.length },
           { key: 'notes', label: 'Notes', count: loading ? '' : notes.length },
-        ].map((sec) => (
+        ].filter(Boolean).map((sec) => (
           <button
             key={sec.key}
             type="button"
@@ -8554,7 +8554,7 @@ function CustomerForm({ initial, onSubmit, onCancel, busy, customers = [] }) {
   );
 }
 
-function CustomersView({ session, planContext }) {
+function CustomersView({ session, planContext, features = {} }) {
   const terms = useTerms();
   // Declared with the other hooks: this view returns early for its form modes,
   // and a hook below one of those changes the hook order between renders.
@@ -8649,7 +8649,7 @@ function CustomersView({ session, planContext }) {
         <div className="page-header"><h2>New {terms.customerLower}</h2></div>
         <PlanError error={error} session={session} />
         <div className="form-card">
-          <CustomerForm customers={customers} onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+          <CustomerForm customers={features.referrals ? customers : []} onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
         </div>
       </div>
     );
@@ -8664,7 +8664,7 @@ function CustomersView({ session, planContext }) {
         <div className="form-card">
           <CustomerForm
             initial={editing}
-            customers={customers}
+            customers={features.referrals ? customers : []}
             onSubmit={updateCustomer}
             onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
             busy={busy}
@@ -8681,6 +8681,7 @@ function CustomersView({ session, planContext }) {
         session={session}
         customer={viewing}
         canMutate={canMutate}
+        showReferrals={!!features.referrals}
         onOpenCustomer={openCustomer}
         onBack={() => { setViewing(null); setMode('list'); }}
         onEdit={(c) => { setEditing(c); setMode('edit'); }}
@@ -12334,45 +12335,31 @@ function ReferralPanel({ form, setField, isAdmin, busy, saved, error, submit }) 
       )}
       <form onSubmit={submit} className="form-card">
         <div className="section-heading" style={{ marginTop: 0 }}>Referral rewards</div>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, fontWeight: 'normal' }}>
-          <input
-            type="checkbox"
-            checked={!!form.referral_enabled}
-            disabled={!isAdmin}
-            onChange={(e) => setField('referral_enabled', e.target.checked)}
-            style={{ marginTop: 3 }}
-          />
-          <span>
-            Reward {terms.customersLower} who refer someone.
-            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
-              Set who referred a {terms.customerLower} on their record. Each time you complete a {terms.jobLower} for them, the person who sent them earns a share of its price as credit on their own account. Undoing the completion takes it back.
-            </span>
-          </span>
-        </label>
-        {form.referral_enabled && (
-          <div className="form-grid">
-            <div>
-              <label>Reward <span className="hint">(% of each {terms.jobLower})</span></label>
-              <input
-                type="number" min="0" max="100" step="0.5"
-                value={form.referral_percent ?? ''}
-                disabled={!isAdmin}
-                onChange={(e) => setField('referral_percent', e.target.value)}
-              />
-            </div>
-            <div>
-              <label>Limit <span className="hint">({terms.jobsLower} per referred {terms.customerLower})</span></label>
-              <input
-                type="number" min="1" step="1"
-                value={form.referral_cap_jobs ?? ''}
-                placeholder="No limit"
-                disabled={!isAdmin}
-                onChange={(e) => setField('referral_cap_jobs', e.target.value)}
-              />
-              <span className="hint" style={{ display: 'block', marginTop: 4 }}>Leave empty to reward every {terms.jobLower}, forever.</span>
-            </div>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+          Set who referred a {terms.customerLower} on their record. Each time you complete a {terms.jobLower} for them, the person who sent them earns a share of its price as credit on their own account. Undoing the completion takes it back. To switch referrals off altogether, use Sections.
+        </p>
+        <div className="form-grid">
+          <div>
+            <label>Reward <span className="hint">(% of each {terms.jobLower})</span></label>
+            <input
+              type="number" min="0" max="100" step="0.5"
+              value={form.referral_percent ?? ''}
+              disabled={!isAdmin}
+              onChange={(e) => setField('referral_percent', e.target.value)}
+            />
           </div>
-        )}
+          <div>
+            <label>Limit <span className="hint">({terms.jobsLower} per referred {terms.customerLower})</span></label>
+            <input
+              type="number" min="1" step="1"
+              value={form.referral_cap_jobs ?? ''}
+              placeholder="No limit"
+              disabled={!isAdmin}
+              onChange={(e) => setField('referral_cap_jobs', e.target.value)}
+            />
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>Leave empty to reward every {terms.jobLower}, forever.</span>
+          </div>
+        </div>
 
         {isAdmin && (
           <div className="form-actions">
@@ -12942,7 +12929,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
 
   const isAdmin = session.user.role === 'admin';
 
-  useEffect(() => { setLocalFeatures(features); }, [features.invoices, features.quotes, features.reports]);
+  // Every section, not a hand-picked few: the panel mounts before the account
+  // has loaded, and a key missing here kept showing its default instead of
+  // what was saved — Team and Requests had been doing that quietly.
+  useEffect(() => { setLocalFeatures(features); },
+    [features.invoices, features.quotes, features.reports, features.team, features.requests, features.referrals]);
 
   function toggleFeature(key) {
     setLocalFeatures((f) => ({ ...f, [key]: !f[key] }));
@@ -12991,7 +12982,6 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
         auto_append_to_draft: !!data.auto_append_to_draft,
-        referral_enabled: !!data.referral_enabled,
         referral_percent: data.referral_percent != null ? parseFloat(data.referral_percent) : 10,
         referral_cap_jobs: data.referral_cap_jobs != null ? data.referral_cap_jobs : (data.updated_at ? '' : 5),
         booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')
@@ -13113,7 +13103,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           { key: 'company', label: 'Business', icon: 'storefront', group: 'Your business' },
           { key: 'payments', label: 'Payments', icon: 'receipt', group: 'Getting paid' },
           isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', icon: 'repeat', group: 'Getting paid' },
-          isAdmin && { key: 'referrals', label: 'Referrals', icon: 'customers', group: 'Getting paid' },
+          isAdmin && features.referrals && { key: 'referrals', label: 'Referrals', icon: 'gift', group: 'Getting paid' },
           { key: 'links', label: 'Share links', icon: 'link', group: 'What customers see' },
           isAdmin && features.requests
             && { key: 'booking-form', label: 'Booking form', icon: 'clipboard', group: 'What customers see' },
@@ -13179,6 +13169,11 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
               label="Requests"
               description="Public booking page + an inbox tab where you accept or decline incoming requests."
             />
+            <FeatureRow
+              enabled={!!localFeatures.referrals} onToggle={() => toggleFeature('referrals')}
+              label="Referrals"
+              description="Reward customers who send you someone: a share of each job you do for the new customer, as credit on the referrer's account."
+            />
             {featuresSaved && (
               <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a', marginTop: 8 }}>Saved.</div>
             )}
@@ -13243,7 +13238,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         />
       )}
 
-      {subView === 'referrals' && isAdmin && (
+      {subView === 'referrals' && isAdmin && features.referrals && (
         <ReferralPanel form={form} setField={setField} isAdmin={isAdmin} busy={busy} saved={saved} error={error} submit={submit} />
       )}
 
@@ -14552,8 +14547,8 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         isAdmin && (isFree || features.reports) && {
           key: 'reports', label: 'Reports', icon: 'reports', to: '/reports', locked: isFree,
         },
-        // Only once the program is on — an owner who never uses it never sees it.
-        isAdmin && me && me.referral_enabled && {
+        // Off by default (Settings → Sections) — an owner who never uses it never sees it.
+        isAdmin && features.referrals && {
           key: 'referrals', label: 'Referrals', icon: 'gift', to: '/referrals',
         },
       ],
@@ -14743,7 +14738,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         {view === 'reports' && (isFree
           ? <LockedFeature feature="reports" session={session} />
           : (features.reports && session.user.role === 'admin' && <ReportsView session={session} />))}
-        {view === 'referrals' && session.user.role === 'admin' && <ReferralsView session={session} />}
+        {view === 'referrals' && session.user.role === 'admin' && features.referrals && <ReferralsView session={session} />}
         {view === 'team' && (isFree
           ? <LockedFeature feature="team" session={session} />
           : (session.user.role === 'admin' && features.team && <TeamView session={session} />))}
@@ -15806,9 +15801,9 @@ function ReferralsView({ session }) {
   const program = data && data.program;
   const referredTotal = referrers.reduce((n, r) => n + r.referred.length, 0);
   const earnedTotal = referrers.reduce((n, r) => n + (parseFloat(r.earned) || 0), 0);
-  const terms_ = program && program.referral_enabled
+  const terms_ = program
     ? `${parseFloat(program.referral_percent)}% of each ${terms.jobLower}${program.referral_cap_jobs != null ? `, first ${program.referral_cap_jobs} per referred ${terms.customerLower}` : ''}`
-    : 'Rewards are off';
+    : 'Reward settings';
 
   return (
     <div>

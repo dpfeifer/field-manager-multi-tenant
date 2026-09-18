@@ -24,7 +24,7 @@ const FIELDS = [
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
   'auto_append_to_draft',
   'booking_form_config',
-  'referral_enabled', 'referral_percent', 'referral_cap_jobs',
+  'referral_percent', 'referral_cap_jobs',
 ];
 
 const SELECT = `
@@ -36,7 +36,7 @@ const SELECT = `
          auto_invoice_day_of_week, auto_invoice_last_run_at,
          auto_append_to_draft,
          booking_form_config, landing_page_config,
-         referral_enabled, referral_percent, referral_cap_jobs,
+         referral_percent, referral_cap_jobs,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -224,7 +224,6 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
       // One line, and the invoice header is the tightest place it prints.
       if (f === 'tagline') v = typeof v === 'string' ? (v.trim().slice(0, 80) || null) : null;
-      if (f === 'referral_enabled') v = !!v;
       // A share of the job, so 0–100; two decimals is what the column holds.
       if (f === 'referral_percent') {
         const n = parseFloat(v);
