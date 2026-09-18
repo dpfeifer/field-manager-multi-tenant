@@ -34,7 +34,7 @@ function shellHTML({ heading, bodyHtml, footerHtml }) {
 </html>`;
 }
 
-function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, tax }) {
+function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, tax, referral = null }) {
   const companyName = settings.company_name || org.name;
   const customerLabel = settings.customer_label || 'Customer';
   const customerName = (invoice.customer_business_name) ||
@@ -75,6 +75,7 @@ function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, ta
     </div>
 
     ${venmo}
+    ${referral ? `<p style="margin:28px 0 0; padding-top:16px; border-top:1px solid #ece6d8; color:#6d6a64; font-size:13px; line-height:1.5;">Know someone who could use us? Share your link and earn ${referral.percent}% of ${referral.cap_jobs != null ? `their first ${referral.cap_jobs} jobs` : 'every job we do for them'} as credit:<br/><a href="${referral.link}" style="color:#2c3e57; word-break:break-all;">${escapeHtml(referral.link)}</a></p>` : ''}
   `;
 
   const footerHtml = `
@@ -88,7 +89,7 @@ function invoiceTemplate({ invoice, org, settings, total, subtotal, discount, ta
     footerHtml,
   });
 
-  const text = `${companyName}\n\nInvoice #${invoice.invoice_number}\nTotal: ${moneyUSD(total)}\n\nView the full invoice: ${invoiceUrl}\n${settings.venmo_handle && invoice.status !== 'paid' ? `\nPay via Venmo: @${settings.venmo_handle}\n` : ''}`;
+  const text = `${companyName}\n\nInvoice #${invoice.invoice_number}\nTotal: ${moneyUSD(total)}\n\nView the full invoice: ${invoiceUrl}\n${settings.venmo_handle && invoice.status !== 'paid' ? `\nPay via Venmo: @${settings.venmo_handle}\n` : ''}${referral ? `\nKnow someone who could use us? Share your link and earn ${referral.percent}% as credit: ${referral.link}\n` : ''}`;
 
   return {
     subject: `Invoice #${invoice.invoice_number} from ${companyName} — ${moneyUSD(total)}`,

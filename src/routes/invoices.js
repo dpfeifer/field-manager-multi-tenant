@@ -5,6 +5,7 @@ const { sendEmail } = require('../utils/email');
 const { invoiceTemplate } = require('../utils/emailTemplates');
 const { round2, creditBalance, invoiceTotal, releaseInvoiceCredit } = require('../utils/credits');
 
+const { invoiceReferralNote } = require('../utils/referrals');
 const router = express.Router();
 
 const BASE_SELECT = `
@@ -208,11 +209,13 @@ router.post('/:id/send-email', requireRole('admin', 'lead'), async (req, res, ne
     const tax = discounted * (parseFloat(inv.tax_rate) || 0) / 100;
     const total = discounted + tax;
 
+    // Never worth failing a send over.
+    const referral = await invoiceReferralNote({ query }, req.organization.id, inv.customer_id).catch(() => null);
     const { subject, html, text } = invoiceTemplate({
       invoice: inv,
       org: orgRow.rows[0],
       settings,
-      total, subtotal, discount, tax,
+      total, subtotal, discount, tax, referral,
     });
 
     const result = await sendEmail({

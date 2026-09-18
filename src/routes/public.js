@@ -5,7 +5,7 @@ const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const { resolveReferrer, ensureReferralCode, displayName: referrerName } = require('../utils/referrals');
+const { resolveReferrer, ensureReferralCode, invoiceReferralNote, displayName: referrerName } = require('../utils/referrals');
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
@@ -403,6 +403,7 @@ router.get('/invoices/:id', async (req, res, next) => {
          i.id, i.invoice_number, i.status, i.description,
          i.date, i.sent_date, i.paid_date, i.line_items,
          i.discount_type, i.discount_value, i.tax_rate, i.credit_applied,
+         i.customer_id AS _customer_id, i.organization_id AS _organization_id,
          c.first_name AS customer_first_name,
          c.last_name AS customer_last_name,
          c.business_name AS customer_business_name,
@@ -433,7 +434,10 @@ router.get('/invoices/:id', async (req, res, next) => {
     );
 
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    res.json(rows[0]);
+    // Internal ids stay internal; they are only here to look up the note.
+    const { _customer_id, _organization_id, ...invoice } = rows[0];
+    invoice.referral = await invoiceReferralNote({ query }, _organization_id, _customer_id).catch(() => null);
+    res.json(invoice);
   } catch (err) { next(err); }
 });
 

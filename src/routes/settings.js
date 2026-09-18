@@ -26,7 +26,7 @@ const FIELDS = [
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
   'auto_append_to_draft',
   'booking_form_config',
-  'referral_percent', 'referral_cap_jobs', 'referral_email_enabled',
+  'referral_percent', 'referral_cap_jobs', 'referral_email_enabled', 'referral_invoice_note',
 ];
 
 const SELECT = `
@@ -38,7 +38,7 @@ const SELECT = `
          auto_invoice_day_of_week, auto_invoice_last_run_at,
          auto_append_to_draft,
          booking_form_config, landing_page_config,
-         referral_percent, referral_cap_jobs, referral_email_enabled,
+         referral_percent, referral_cap_jobs, referral_email_enabled, referral_invoice_note,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -275,6 +275,7 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
         v = Number.isInteger(n) && n > 0 ? Math.min(n, 100000) : null;
       }
       if (f === 'referral_email_enabled') v = v !== false;
+      if (f === 'referral_invoice_note') v = v !== false;
       if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
       if (f === 'dashboard_widgets') v = JSON.stringify(normalizeDashboardWidgets(v));
       if (f === 'booking_form_config') v = JSON.stringify(normalizeBookingFormConfig(v));

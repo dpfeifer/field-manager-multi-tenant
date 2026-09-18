@@ -1831,6 +1831,11 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    .invoice-referral { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .invoice-referral p { margin: 0 0 10px; font-size: 13.5px; color: var(--text-muted); }
+    .invoice-referral p strong { color: var(--text); }
+    .invoice-referral-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .invoice-referral-row input { flex: 1 1 200px; min-width: 0; font-size: 13px; }
     /* A dialog you type into sits high on a phone: centred, the keyboard
        covers its lower half, buttons included. */
     @media (max-width: 560px) { .modal-overlay.modal-overlay--typing { align-items: flex-start; padding-top: max(72px, 10vh); } }
@@ -12644,6 +12649,21 @@ function ReferralPanel({ session, form, setField, isAdmin, busy, saved, error, s
             )}
           </div>
         )}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 20, fontWeight: 'normal' }}>
+          <input
+            type="checkbox"
+            checked={form.referral_invoice_note !== false}
+            disabled={!isAdmin}
+            onChange={(e) => setField('referral_invoice_note', e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            Mention referrals on invoices.
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              A quiet line at the bottom of the invoice page and the invoice email, with the {terms.customerLower}&apos;s own referral link. Never on the printed or PDF copy.
+            </span>
+          </span>
+        </label>
 
         {isAdmin && (
           <div className="form-actions">
@@ -13267,6 +13287,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
         auto_append_to_draft: !!data.auto_append_to_draft,
         referral_email_enabled: data.referral_email_enabled !== false,
+        referral_invoice_note: data.referral_invoice_note !== false,
         referral_percent: data.referral_percent != null ? parseFloat(data.referral_percent) : 10,
         referral_cap_jobs: data.referral_cap_jobs != null ? data.referral_cap_jobs : (data.updated_at ? '' : 5),
         booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')
@@ -18943,6 +18964,20 @@ function PublicInvoiceView({ id }) {
         <div className="invoice-actions no-print">
           <button className="secondary" onClick={() => window.print()}>Print or save as PDF</button>
         </div>
+
+        {/* Last, and quieter than everything above it: paying comes first.
+            The referral link, not the private page — invoices get forwarded. */}
+        {invoice.referral && (
+          <div className="invoice-referral no-print">
+            <p>
+              Know someone who could use us? Share your link and earn <strong>{invoice.referral.percent}%</strong> of {invoice.referral.cap_jobs != null ? `their first ${invoice.referral.cap_jobs} jobs` : 'every job we do for them'} as credit.
+            </p>
+            <div className="invoice-referral-row">
+              <input readOnly value={invoice.referral.link} onFocus={(e) => e.target.select()} aria-label="Your referral link" />
+              <CopyButton text={invoice.referral.link} label="Copy link" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

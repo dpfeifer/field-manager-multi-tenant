@@ -159,6 +159,30 @@ function publicBase() {
   return (process.env.APP_URL || 'https://fieldmgr.com').replace(/\/+$/, '');
 }
 
+// What an invoice says about referrals, or null when it should say nothing:
+// the section is off, the owner has switched the note off, or there is no
+// customer. It carries the referral LINK, which is made to be passed around —
+// never the private page, since invoices get forwarded.
+async function invoiceReferralNote(db, orgId, customerId) {
+  if (!customerId) return null;
+  const { rows } = await db.query(
+    `SELECT o.slug,
+            COALESCE(s.referral_percent, 10) AS percent,
+            CASE WHEN s.organization_id IS NULL THEN 5 ELSE s.referral_cap_jobs END AS cap_jobs
+     FROM organizations o
+     LEFT JOIN organization_settings s ON s.organization_id = o.id
+     WHERE o.id = $1 AND (o.features->>'referrals') = 'true'
+       AND COALESCE(s.referral_invoice_note, TRUE) LIMIT 1`,
+    [orgId]
+  );
+  if (rows.length === 0) return null;
+  const percent = parseFloat(rows[0].percent);
+  if (!(percent > 0)) return null;
+  const code = await ensureReferralCode(db, orgId, customerId);
+  if (!code) return null;
+  return { link: `${publicBase()}/book/${rows[0].slug}?ref=${code}`, percent, cap_jobs: rows[0].cap_jobs };
+}
+
 // Who a referral link belongs to. Only a code counts: what a visitor types
 // into "Referred by" is shown to the owner, who picks the customer themselves
 // when promoting the prospect — a name is not an identity, and this decides
@@ -181,4 +205,4 @@ async function resolveReferrer(db, orgId, { code }) {
   return null;
 }
 
-module.exports = { ensureReferralPageToken, publicBase, awardReferralCredit, reverseReferralCredit, notifyReferralCredit, ensureReferralCode, resolveReferrer, displayName };
+module.exports = { invoiceReferralNote, ensureReferralPageToken, publicBase, awardReferralCredit, reverseReferralCredit, notifyReferralCredit, ensureReferralCode, resolveReferrer, displayName };
