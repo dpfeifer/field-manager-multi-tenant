@@ -7878,6 +7878,16 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
   const [creditBusy, setCreditBusy] = useState(false);
   const [referrals, setReferrals] = useState({ referred_by: null, referred: [], earned: 0 });
   const [inviteState, setInviteState] = useState(null); // null | 'sending' | { ok, text }
+  async function resetReferralPage() {
+    if (!confirm(`Reset ${customerDisplayName(customer)}'s referral page link? The link they have now stops working, so you will need to send them the new one. Their referral link, credit and history are not affected.`)) return;
+    try {
+      const r = await apiRequest(`/api/customers/${customer.id}/referrals/reset-page`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setReferrals((cur) => ({ ...cur, referral_page_token: r.referral_page_token }));
+      setInviteState({ ok: true, text: 'New link made. The old one no longer works — send them this one.' });
+    } catch (err) { setInviteState({ ok: false, text: err.message }); }
+  }
   async function emailReferralLink() {
     setInviteState('sending');
     try {
@@ -8234,6 +8244,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
                       )}
                       <CopyButton text={`${window.location.origin}/r/${referrals.referral_page_token}`} label="Copy their referral page" />
                       <a className="link-btn" style={{ fontWeight: 500, fontSize: 13 }} href={`/r/${referrals.referral_page_token}`} target="_blank" rel="noopener noreferrer">Preview</a>
+                      {canMutate && (
+                        <button type="button" className="link-btn" style={{ fontWeight: 500, fontSize: 13, color: 'var(--text-muted)' }} onClick={resetReferralPage}>Reset link</button>
+                      )}
                       {inviteState && inviteState !== 'sending' && (
                         <span className="hint" role="status" style={{ color: inviteState.ok ? 'var(--success)' : 'var(--danger)' }}>{inviteState.text}</span>
                       )}
@@ -8241,7 +8254,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
                     </div>
                   )}
                   <p className="hint" style={{ marginBottom: 0 }}>
-                    Their referral page is private to them: their credit, who booked through their link, and the link itself.
+                    Their referral page is private to them: their credit, who booked through their link, and the link itself. If it ends up with someone else, reset it and the old link stops working.
                   </p>
                 </div>
               )}

@@ -316,6 +316,22 @@ router.get('/:id/referrals', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Replace a customer's private page link. The old URL stops working at once;
+// their referral code, credit and history are untouched.
+router.post('/:id/referrals/reset-page', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const token = require('crypto').randomBytes(24).toString('base64url');
+    const { rows } = await query(
+      `UPDATE customers SET referral_page_token = $3, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+       RETURNING referral_page_token`,
+      [req.params.id, req.organization.id, token]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ referral_page_token: rows[0].referral_page_token });
+  } catch (err) { next(err); }
+});
+
 // Email a customer their referral link and their private page.
 router.post('/:id/referrals/send-link', requireRole('admin', 'lead'), async (req, res, next) => {
   try {
