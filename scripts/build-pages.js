@@ -42,57 +42,127 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const unsplash = (id, w = 1400) =>
   `https://images.unsplash.com/${id}?w=${w}&q=75&auto=format&fit=crop`;
 
-// UI mockups drawn in markup, not screenshots: nothing to keep in sync with
-// the app's real data, no customer information can leak, and they stay crisp
-// at any density. Authors drop {{mock:name}} on its own line in the markdown.
-const MOCKS = {
-  route: `<div class="cm-frame">
-  <div class="cm-bar"><span>Schedule · Tuesday</span></div>
-  <div class="cm-card">
-    <div class="cm-card-row cm-card-done"><span>Heather Stahl</span><span class="cm-card-check">✓</span></div>
-    <div class="cm-card-row cm-card-done"><span>Crowley residence</span><span class="cm-card-check">✓</span></div>
-    <div class="cm-card-row"><span>Marcus Bell</span><span class="cm-card-time">10:30 AM</span></div>
-    <div class="cm-card-row"><span>Dee Whitfield</span><span class="cm-card-time">11:15 AM</span></div>
-    <div class="cm-card-row"><span>Riverbend HOA</span><span class="cm-card-time">1:00 PM</span></div>
-  </div>
-</div>`,
-  invoices: `<div class="cm-frame">
-  <div class="cm-bar"><span>Invoices · Drafts</span></div>
-  <div class="cm-list">
-    <div class="cm-list-row"><div><strong>#1041</strong> · Heather Stahl</div><div class="cm-amt">$220</div></div>
-    <div class="cm-list-row"><div><strong>#1042</strong> · Marcus Bell</div><div class="cm-amt">$130</div></div>
-    <div class="cm-list-row"><div><strong>#1043</strong> · Dee Whitfield</div><div class="cm-amt">$260</div></div>
-  </div>
-  <div class="cm-cta">Review &amp; send all</div>
-</div>`,
-  booking: `<div class="cm-frame">
-  <div class="cm-bar"><span>Request an appointment</span></div>
-  <div class="cm-list">
-    <div class="cm-list-row"><div>Name</div><div>Marcus Bell</div></div>
-    <div class="cm-list-row"><div>Service</div><div>Full cut + beard</div></div>
-    <div class="cm-list-row"><div>Preferred</div><div>Thu, 4:00 PM</div></div>
-  </div>
-  <div class="cm-cta">Send request</div>
-</div>`,
-  client: `<div class="cm-frame">
-  <div class="cm-bar"><span>Client · Marcus Bell</span></div>
-  <div class="cm-card">
-    <div class="cm-card-row"><span>Full cut + beard</span><span class="cm-card-time">Jul 18 · $45</span></div>
-    <div class="cm-card-row"><span>Full cut</span><span class="cm-card-time">Jun 27 · $35</span></div>
-    <div class="cm-card-row"><span>Full cut + beard</span><span class="cm-card-time">Jun 6 · $45</span></div>
-    <div class="cm-card-row"><span>Notes</span><span class="cm-card-time">#2 sides, tight</span></div>
-  </div>
-</div>`,
-  quote: `<div class="cm-frame">
-  <div class="cm-bar"><span>Quote #308 · Accepted</span></div>
-  <div class="cm-list">
-    <div class="cm-list-row"><div>Labor · 6 hrs</div><div class="cm-amt">$390</div></div>
-    <div class="cm-list-row"><div>Materials</div><div class="cm-amt">$145</div></div>
-    <div class="cm-list-row"><div><strong>Total</strong></div><div class="cm-amt">$535</div></div>
-  </div>
-  <div class="cm-cta">Convert to job → invoice</div>
-</div>`,
+// Product shots drawn in markup, not screenshots: nothing to keep in sync
+// with the app's real data, no customer information can leak, and they stay
+// crisp at any density. They are the landing page's phone — the same frame,
+// glass and tab bar — and the CSS is lifted out of public/index.html at build
+// time (see PHONE_CSS) so the two cannot drift apart. Authors drop
+// {{mock:name}} on its own line, or name one in a {{chapter:name}} block.
+const ICON_PATHS = {
+  dashboard: 'M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.5H9V21H4a1 1 0 0 1-1-1z',
+  jobs: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  customers: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  more: 'M4 7h16M4 12h16M4 17h16',
 };
+const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON_PATHS[name]}"/></svg>`;
+const DOLLAR = '<svg class="icon icon-glyph" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12" text-anchor="middle" dominant-baseline="central">$</text></svg>';
+const ACTIONS = '<div class="pd-acts"><span class="pd-gc pd-glass"><span>+</span></span><span class="pd-gc pd-glass"><span>···</span></span></div>';
+const initials = (name) => name.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+
+// tab: which of the bar's five cells is lit (0 home · 1 calendar · 2 people ·
+// 3 money · 4 more). chrome:false is a public page — no app bar, no tab bar.
+function phone({ label, company, tab = 0, chrome = true, body }) {
+  return `<div class="pd-phone" role="img" aria-label="${esc(label)}">
+  <div class="pd-scr"><div class="pd-app" aria-hidden="true">
+    ${chrome ? `<div class="pd-top pd-glass"><b>${esc(company)}</b><span class="pd-av"><i>${esc(initials(company)[0] || 'S')}</i></span></div>` : ''}
+    <div class="pd-view on${chrome ? '' : ' pd-view--page'}">${body}</div>
+    ${chrome ? `<div class="pd-bar pd-glass"><div class="pd-in" style="--pd-i:${tab}"><span class="pd-pill"></span>
+      <span class="pd-t">${icon('dashboard')}</span><span class="pd-t">${icon('jobs')}</span><span class="pd-t">${icon('customers')}</span><span class="pd-t">${DOLLAR}</span><span class="pd-t">${icon('more')}</span>
+    </div></div>` : ''}
+  </div></div>
+</div>`;
+}
+
+// The calendar's day view at 80px to the hour. Jobs: [minutes past 8 AM,
+// length in minutes, time label, price, title, who].
+function dayGrid(jobs, nowMinutes) {
+  const H = 80;
+  const hours = ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM'];
+  return `<div class="pd-day">
+    <div class="pd-day-hrs">${hours.map((h) => `<div style="height:${H}px"><span>${h}</span></div>`).join('')}</div>
+    <div class="pd-day-lanes" style="height:${hours.length * H}px">
+      ${hours.map(() => `<div class="pd-day-lane" style="height:${H}px"></div>`).join('')}
+      <div class="pd-day-now" style="top:${(nowMinutes / 60) * H}px"><i></i><b></b></div>
+      ${jobs.map(([at, dur, time, price, title, who]) => `<div class="pd-day-blk" style="top:${(at / 60) * H}px;height:${(dur / 60) * H - 2}px">
+        <div class="pd-day-hd"><span>${time}</span><em>${price}</em></div>
+        <div class="pd-day-ti">${esc(title)}</div>
+        <div class="pd-day-bt"><span>${esc(who)}</span><u>Mark complete</u></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+const rows = (items) => `<div class="pd-lst">${items.join('')}</div>`;
+
+const MOCKS = {
+  route: (company) => phone({
+    label: 'The day view of the calendar, with three timed visits', company, tab: 1,
+    body: `<div class="pd-tb"><div><h5>Calendar</h5><div class="pd-c">Tue, Sep 15 · <b>3 visits</b> · <b>$245</b></div></div>${ACTIONS}</div>
+      <div class="pd-seg"><span>Month</span><span>Week</span><span class="on">Day</span></div>
+      ${dayGrid([
+        [0, 60, '8:00 AM', '$65', 'Weekly service', 'Heather Stahl'],
+        [150, 90, '10:30 AM', '$120', 'Weekly service', 'Marcus Bell'],
+        [300, 60, '1:00 PM', '$60', 'Weekly service', 'Riverbend HOA'],
+      ], 80)}`,
+  }),
+  invoices: (company) => phone({
+    label: 'The invoices list, with drafts ready to send', company, tab: 3,
+    body: `<div class="pd-tb"><div><h5>Invoices</h5><div class="pd-c">8 total · <b>$610</b> in drafts</div></div>${ACTIONS}</div>
+      <div class="pd-seg"><span>All 8</span><span>Unpaid 2</span><span class="on">Draft 3</span><span>Paid 3</span></div>
+      ${rows([['#1041', 'Heather Stahl', '$220.00'], ['#1042', 'Marcus Bell', '$130.00'], ['#1043', 'Dee Whitfield', '$260.00']].map(([n, who, amt]) =>
+        `<div class="pd-ro"><span class="pd-inv">${n}</span><div class="pd-fill"><div class="pd-nm">${who}</div><div class="pd-mt"><span class="pd-bdg draft">draft</span> ${amt}</div></div><span class="pd-mc pd-mc--quiet">Mark sent</span></div>`))}`,
+  }),
+  booking: (company) => phone({
+    label: 'The public booking page, filled in by a new customer', company, chrome: false,
+    body: `<div class="pd-book">
+      <div class="pd-book-logo">${esc(initials(company))}</div>
+      <h5>Book with ${esc(company)}</h5>
+      <p>Tell us what you need and when. We’ll confirm by text.</p>
+      <label>Your name</label><div class="pd-field">Marcus Bell</div>
+      <label>Phone</label><div class="pd-field">555-664-2211</div>
+      <label>What do you need?</label><div class="pd-field pd-field--tall">Full service, this week if you can</div>
+      <label>Preferred date</label><div class="pd-field">Thu, 4:00 PM</div>
+      <div class="pd-submit">Request a booking</div>
+    </div>`,
+  }),
+  client: (company) => phone({
+    label: 'One customer’s page: past visits, what each cost, and notes', company, tab: 2,
+    body: `<div class="pd-tb"><div><h5>Marcus Bell</h5><div class="pd-c">Customer since March · <b>$125</b> this summer</div></div></div>
+      <div class="pd-seg"><span class="on">Jobs 3</span><span>Invoices 3</span><span>Notes 1</span></div>
+      ${rows([['Jul 18', 'Full service', '$45.00'], ['Jun 27', 'Standard', '$35.00'], ['Jun 6', 'Full service', '$45.00']].map(([d, t, amt]) =>
+        `<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">${t}</div><div class="pd-mt">Completed ${d}</div></div><span class="pd-earn" style="color:var(--text)">${amt}</span></div>`))}
+      <div class="pd-sec">Notes</div>
+      ${rows(['<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">Same as last time</div><div class="pd-mt">Prefers late afternoon. Text, don’t call.</div></div></div>'])}`,
+  }),
+  quote: (company) => phone({
+    label: 'An accepted quote, one tap from becoming a job and an invoice', company, tab: 4,
+    body: `<div class="pd-tb"><div><h5>Quote #308</h5><div class="pd-c">Dee Whitfield · <b>accepted</b> online</div></div><span class="pd-credit">Accepted</span></div>
+      ${rows([['Labor · 6 hrs', '$390.00'], ['Materials', '$145.00']].map(([t, amt]) =>
+        `<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">${t}</div></div><span class="pd-earn" style="color:var(--text)">${amt}</span></div>`)
+        .concat('<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">Total</div></div><span class="pd-earn" style="color:var(--text);font-size:17px">$535.00</span></div>'))}
+      <div class="pd-submit" style="margin-top:14px">Create job</div>
+      <div class="pd-submit" style="margin-top:8px;background:#fff;color:var(--text);border:1px solid var(--border)">Create invoice</div>`,
+  }),
+  referrals: (company) => phone({
+    label: 'A customer’s referrals: their link, who they sent, and the credit earned', company, tab: 2,
+    body: `<div class="pd-tb"><div><h5>Heather Stahl</h5><div class="pd-c">3 referred · <b>$61.50</b> earned</div></div><span class="pd-credit">$61.50 credit</span></div>
+      <div class="pd-seg"><span>Jobs 3</span><span>Invoices 6</span><span class="on">Referrals 3</span></div>
+      <div class="pd-link"><div class="pd-l">Heather’s referral link</div><div class="pd-link-row"><span>fieldmgr.com/book/you?ref=N9MJAX7R</span><b>Copy</b></div></div>
+      ${rows([['Marcus Bell', '5 rewards earned', '+$27.50'], ['Dee Whitfield', '4 rewards earned', '+$34.00'], ['Riverbend HOA', 'No rewards yet', '']].map(([n, m, amt]) =>
+        `<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">${n}</div><div class="pd-mt">${m}</div></div>${amt ? `<span class="pd-earn">${amt}</span>` : ''}</div>`))}`,
+  }),
+};
+
+// The phone's CSS, cut from the landing page's stylesheet rather than copied:
+// one source, so a change to the app's look reaches these pages on the next
+// build. Fails the build loudly if the block ever moves.
+const PHONE_CSS = (() => {
+  const css = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+  const start = css.indexOf('/* ---- the phone ---- */');
+  const endMark = '@media (prefers-reduced-motion: reduce) { .pd-view, .pd-pill';
+  const end = css.indexOf(endMark, start);
+  if (start < 0 || end < 0) fail('could not find the phone CSS block in public/index.html');
+  return css.slice(start, css.indexOf('\n', end));
+})();
 
 // Feature rows. Authored as a block in the markdown, parsed BEFORE marked so
 // the prose still renders as markdown:
@@ -117,27 +187,30 @@ function extractChapters(md, file) {
   return { md: out, chapters };
 }
 
-function renderChapters(html, chapters) {
+function renderChapters(html, chapters, company) {
   return html.replace(/<p>\{\{CHAPTER_(\d+)\}\}<\/p>|\{\{CHAPTER_(\d+)\}\}/g, (_m, a, b) => {
-    const c = chapters[Number(a ?? b)];
-    return `<section class="page-chapter">
+    const n = Number(a ?? b);
+    const c = chapters[n];
+    // Alternate sides, as the landing page's chapters do. A class rather than
+    // :nth-child — other article content can sit between two chapters.
+    return `<section class="page-chapter${n % 2 ? ' page-chapter--flip' : ''}">
   <div class="ed-chapter-body-col">
     <h2 class="ed-chapter-title">${esc(c.title)}</h2>
     <div class="ed-chapter-prose">${marked.parse(c.prose)}</div>
   </div>
-  <div class="ed-chapter-mock">${MOCKS[c.mock]}</div>
+  <div class="ed-chapter-mock">${MOCKS[c.mock](company)}</div>
 </section>`;
   });
 }
 
 // {{mock:name}} → the markup above, with an optional caption line beneath:
 // {{mock:route|Your route for the day, in order.}}
-function expandMocks(html, file) {
+function expandMocks(html, file, company) {
   return html.replace(/\{\{mock:([a-z]+)(?:\|([^}]*))?\}\}/g, (_m, name, caption) => {
     if (!MOCKS[name]) fail(`${file}: unknown mock "${name}" (have: ${Object.keys(MOCKS).join(', ')})`);
     // Runs after marked.parse, so the caption is already HTML-escaped —
     // escaping again would turn a typographic apostrophe into &amp;#39;.
-    return MOCKS[name] + (caption ? `\n<div class="cm-figcap">${caption.trim()}</div>` : '');
+    return `<div class="page-mock">${MOCKS[name](company)}</div>` + (caption ? `\n<div class="cm-figcap">${caption.trim()}</div>` : '');
   });
 }
 const routeToFile = (p) => p.replace(/^\//, '').replace(/\//g, '__') + '.html';
@@ -193,8 +266,10 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
   <style>
     :root {
       --bg: #f7f4ec; --card: #ffffff; --text: #19170f; --text-muted: #66635c;
-      --border: #e8e1d1; --primary: #2c3e57; --primary-hover: #1b2940;
-      --accent: #c98558; --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+      --border: #e8e1d1; --border-strong: #d4cab4; --tinted: #efe7d3;
+      --primary: #2c3e57; --primary-hover: #1b2940; --danger: #a23b2c;
+      /* Navy, as on the landing page: the marketing site has one accent. */
+      --accent: #2c3e57; --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
     }
     * { box-sizing: border-box; margin: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; line-height: 1.65; }
@@ -221,7 +296,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     }
     .ed-nav-link:hover { color: var(--text); }
     .ed-nav-cta {
-      background: var(--text); color: var(--bg);
+      background: var(--primary); color: #fff;
       border-radius: 999px; text-decoration: none;
       padding: 9px 18px; font-size: 13px; font-weight: 600;
       transition: transform 0.2s ease, opacity 0.2s ease;
@@ -397,7 +472,6 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     .page-chapter:has(+ .page-chapter) { margin-bottom: 0; }
     .ed-chapter-body-col { max-width: 460px; }
     .ed-chapter-mock { display: flex; justify-content: center; }
-    .ed-chapter-mock .cm-frame { margin: 0; }
     .ed-chapter-title {
       font-family: var(--serif); font-weight: 500;
       font-size: clamp(26px, 3.2vw, 36px);
@@ -410,13 +484,20 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     }
     .ed-chapter-prose p:last-child { margin-bottom: 0; }
     .ed-chapter-prose em { font-style: italic; color: var(--text); }
-    /* Two columns only when both fit; below that, stack. */
+    /* Alternate sides so a run of chapters does not read as one long column. */
+    @media (min-width: 781px) {
+      .page-chapter--flip { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
+      .page-chapter--flip .ed-chapter-body-col { order: 2; }
+    }
+    /* Two columns only when both fit; below that, stack — words first, and
+       centred over the phone rather than left-aligned above a centred one. */
     @media (max-width: 780px) {
       .page-chapter {
-        grid-template-columns: 1fr; gap: 28px; padding: 40px 0; margin: 40px 0;
+        grid-template-columns: 1fr; gap: 32px; padding: 44px 0; margin: 44px 0;
         align-items: start;
       }
-      .ed-chapter-mock { justify-content: flex-start; }
+      .ed-chapter-body-col { max-width: 540px; margin: 0 auto; text-align: center; }
+      .ed-chapter-title { text-wrap: balance; }
     }
     /* Break out of the prose column once there's room on both sides. */
     @media (min-width: 1000px) {
@@ -426,70 +507,42 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       }
       .page-photo { margin-bottom: 44px; }
     }
-    .cm-frame {
-      width: 100%; max-width: 360px; margin: 28px auto;
-      background: var(--card);
-      border: 1px solid var(--border-strong);
-      border-radius: 10px;
-      box-shadow: 0 14px 36px -22px rgba(40,30,20,0.25);
-      overflow: hidden; font-size: 12px;
-    }
-    .cm-bar {
-      padding: 10px 14px; background: var(--tinted);
-      border-bottom: 1px solid var(--border);
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      color: var(--text-muted);
-    }
-    /* Schedule-style rows: tight, dashed (matches .cm-card-row on the landing page). */
-    .cm-card { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-    .cm-card-row {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 12px; color: var(--text);
-      padding: 6px 0; border-bottom: 1px dashed var(--border);
-    }
-    .cm-card-row:last-child { border-bottom: none; }
-    .cm-card-time { font-size: 11px; color: var(--text-muted); }
-    .cm-card-done span:first-child { text-decoration: line-through; opacity: 0.6; }
-    .cm-card-check {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 18px; height: 18px; border-radius: 50%;
-      background: #2f6b46; color: #fff; font-size: 11px; font-weight: 700;
-    }
-    /* List-style rows: roomier, solid (matches .cm-list-row on the landing page). */
-    .cm-list { padding: 6px 14px 14px; }
-    .cm-list-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 0; border-bottom: 1px solid var(--border);
-      font-size: 12px; color: var(--text);
-    }
-    .cm-list-row:last-child { border-bottom: none; }
-    .cm-list-row strong { font-weight: 600; }
-    .cm-amt {
-      font-family: var(--serif); font-weight: 500;
-      font-size: 14px; color: var(--text);
-    }
-    .cm-cta {
-      margin: 0 14px 14px; padding: 10px 12px;
-      background: var(--text); color: var(--bg);
-      font-size: 12px; font-weight: 600;
-      text-align: center; border-radius: 6px;
-    }
-    .cm-pill {
-      display: inline-block; padding: 2px 9px; border-radius: 999px;
-      background: var(--card); color: var(--text-muted);
-      font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
-    }
+    ${PHONE_CSS}
+    .pd-phone { --pd-w: 270; }
+    .page-mock { display: flex; justify-content: center; margin: 32px 0; }
+    @media (max-width: 780px) { .pd-phone { --pd-w: 256; } }
+    /* The app's icon set, as far as the phone's tab bar needs it. */
+    .icon { display: inline-block; width: 1em; height: 1em; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .icon-glyph text { fill: currentColor; stroke: none; font: 600 20px 'Inter', sans-serif; }
     .cm-figcap {
       font-size: 13px; color: var(--text-muted);
       text-align: center; margin: -14px 0 30px;
     }
-
-    .cta {
-      background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
-      border-radius: 12px; padding: 20px 24px; margin: 34px 0 0; font-size: 16px;
+    /* The closing band: the landing page's two matched pills. */
+    .page-final {
+      margin: 56px 0 0; padding: 48px 0 8px; text-align: center;
+      border-top: 1px solid var(--border);
     }
-    .cta a { color: var(--primary); font-weight: 600; }
+    .page-final p {
+      font-family: var(--serif); font-weight: 500; font-size: clamp(22px, 3vw, 28px);
+      line-height: 1.2; letter-spacing: -0.02em; color: var(--text);
+      margin: 0 auto 24px; max-width: 24ch; text-wrap: balance;
+    }
+    .page-final-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: stretch; }
+    .page-final-actions a {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 17px 28px; border-radius: 999px; border: 1px solid var(--primary);
+      font-size: 17px; font-weight: 600; line-height: 1.25; text-decoration: none;
+      background: var(--primary); color: #fff;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .page-final-actions a + a { background: #fff; color: var(--text); border-color: var(--border); }
+    .page-final-actions a:hover { transform: translateY(-1px); opacity: 0.94; }
+    @media (max-width: 600px) { .page-final-actions a { flex: 1 1 100%; } }
+    @media (min-width: 1000px) {
+      .page-final { width: 880px; margin-left: 50%; transform: translateX(-50%); }
+    }
+
     .page-list { list-style: none; padding: 0; }
     .page-list li { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; }
     .page-list a { font-family: var(--serif); font-weight: 600; font-size: 20px; color: var(--text); text-decoration: none; }
@@ -572,7 +625,9 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   const { meta, body } = parseFrontmatter(raw, file);
   const { md, chapters } = extractChapters(body, file);
   let bodyHtml = marked.parse(md);
-  bodyHtml = renderChapters(bodyHtml, chapters);
+  // The business named on the phones. A use-case page sets its own trade's.
+  const company = meta.demo_name || 'Acme Lawn & Landscape';
+  bodyHtml = renderChapters(bodyHtml, chapters, company);
   // First paragraph acts as the standfirst under the photo.
   bodyHtml = bodyHtml.replace('<p>', '<p class="standfirst">', 1);
   // Horizontal scroll for wide tables on phones.
@@ -580,7 +635,17 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   // marked wraps a standalone {{mock:…}} in a <p>; unwrap so the frame isn't
   // nested in a paragraph, then expand.
   bodyHtml = bodyHtml.replace(/<p>(\{\{mock:[^}]*\}\})<\/p>/g, '$1');
-  bodyHtml = expandMocks(bodyHtml, file);
+  bodyHtml = expandMocks(bodyHtml, file, company);
+  // The closing line, authored as <div class="cta">Lead text <a>…</a> or
+  // <a>…</a>.</div>, becomes the landing page's closing band: the lead as a
+  // headline, the links as its two matched pills. The joining words go.
+  bodyHtml = bodyHtml.replace(/<div class="cta">([\s\S]*?)<\/div>/g, (_m, inner) => {
+    const links = inner.match(/<a [^>]*>[\s\S]*?<\/a>/g) || [];
+    // A link written mid-sentence ("or <a>try the live demo</a>") is a button now.
+    const cap = (l) => l.replace(/>(\s*)([a-z])/, (_x, sp, ch) => `>${sp}${ch.toUpperCase()}`);
+    const lead = inner.slice(0, inner.indexOf('<a ')).trim();
+    return `<section class="page-final">${lead ? `<p>${lead}</p>` : ''}<div class="page-final-actions">${links.map(cap).join('')}</div></section>`;
+  });
   pages.push({ ...meta, bodyHtml });
 }
 

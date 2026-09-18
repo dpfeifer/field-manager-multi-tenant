@@ -4,6 +4,7 @@ description: Recurring mowing schedules, mark-complete from the truck, and month
 path: /lawncare
 eyebrow: For lawn care
 collection: use-cases
+demo_name: Acme Lawn & Landscape
 date: 2026-08-06
 photo: photo-1458245201577-fc8a130b8829
 photo_alt: A mower cutting a stripe into a lawn
@@ -23,6 +24,13 @@ Month-end billing that does itself.
 Every completed visit rolls into one invoice per customer automatically — monthly on the day you pick, or weekly — at each customer's rate, itemised by visit.
 
 Prefer to review first? Generate it per customer in two clicks instead. Customers who prepay or pay per visit can be excluded.
+{{/chapter}}
+
+{{chapter:referrals}}
+The neighbors, sent by the people you already mow for.
+Every customer gets a booking link of their own. When the house next door books through it, they arrive already marked as that customer's referral — and each yard you finish for them puts a share of the job on the referrer's account as credit.
+
+You set the percentage and how many jobs it runs for. They can watch the credit add up on a page of their own, which is the reason they keep passing the link along.
 {{/chapter}}
 
 ## The rest of the week

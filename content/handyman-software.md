@@ -4,6 +4,7 @@ description: Quote the job, schedule it, invoice it — without a per-seat platf
 path: /handyman
 eyebrow: For handymen
 collection: use-cases
+demo_name: Ridgeline Handyman
 date: 2026-08-06
 photo: photo-1426927308491-6380b6a9936f
 photo_alt: Hand tools hung on a workshop wall
@@ -16,6 +17,13 @@ Quotes that become jobs.
 Write the estimate, send it, they accept it online — and it converts into a scheduled job, then an invoice carrying the same numbers.
 
 No re-entering the line items three times.
+{{/chapter}}
+
+{{chapter:referrals}}
+The referral that used to be a favor, paid back.
+Most of your work comes from someone saying your name. Give each customer a booking link of their own: when a neighbor books through it, they arrive marked as that customer's referral, and every job you finish for them puts a share on the referrer's account as credit.
+
+You set the percentage and how many jobs it runs for. Nobody keeps a list of who sent whom.
 {{/chapter}}
 
 ## Everything else you’ll use

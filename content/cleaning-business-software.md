@@ -4,6 +4,7 @@ description: Recurring cleans, per-property notes, and monthly invoicing that bu
 path: /cleaners
 eyebrow: For cleaning
 collection: use-cases
+demo_name: Brightside Cleaning
 date: 2026-08-06
 photo: photo-1585421514284-efb74c2b69ba
 photo_alt: Gloved hands wiping down a surface
@@ -21,6 +22,13 @@ Monthly invoices that build themselves.
 Every completed clean rolls into one invoice per client automatically — monthly on the day you choose, or weekly — at each client's rate, itemised by visit.
 
 Prefer to review first? Generate it per client in a couple of clicks. Clients who prepay or pay per visit can be excluded.
+{{/chapter}}
+
+{{chapter:referrals}}
+Word of mouth, with the bookkeeping done.
+Cleaning grows by recommendation, and nobody tracks it. Give each client a booking link of their own: when a friend books through it, they arrive marked as that client's referral, and every clean you finish for them puts a share on the referrer's account as credit.
+
+You set the percentage and the limit. The thank-you email, the running balance and the credit on their next invoice all happen without you.
 {{/chapter}}
 
 ## The rest of the rotation

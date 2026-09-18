@@ -4,6 +4,7 @@ description: A booking page, client book, and simple website for independent bar
 path: /barbers
 eyebrow: For barbers
 collection: use-cases
+demo_name: Northside Barbers
 date: 2026-08-06
 photo: photo-1593702275687-f8b402bf1fb5
 photo_alt: A barber finishing a fade
@@ -23,6 +24,13 @@ A client book with real history.
 Every client, every visit, what they paid, and your notes — the fade number, the beard preference, the "always runs 10 minutes late."
 
 When someone you haven't seen in six months books in, you're not starting from zero.
+{{/chapter}}
+
+{{chapter:referrals}}
+Regulars who fill your chair for you.
+Give a client a booking link of their own. When a friend books through it, they arrive already marked as that client's referral — and each cut you finish for them puts a share on the referrer's account as credit toward their own.
+
+You set the percentage and how many visits it runs for. No punch cards, no remembering who sent whom.
 {{/chapter}}
 
 ## The rest of the day

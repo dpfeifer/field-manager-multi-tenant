@@ -4,6 +4,7 @@ description: Take bookings, quote packages, and invoice on the spot — built fo
 path: /detailers
 eyebrow: For detailing
 collection: use-cases
+demo_name: Gleam Auto Detailing
 date: 2026-08-06
 photo: photo-1567808291548-fc3ee04dbcf0
 photo_alt: A freshly detailed car in a dark bay
@@ -16,6 +17,13 @@ A booking page that takes the DM off your plate.
 Your own link and QR code — bio, business card, the back of the van. Customers pick a time and describe the vehicle; you approve or decline.
 
 No app for them, no account to create, no thread to keep scrolling back through.
+{{/chapter}}
+
+{{chapter:referrals}}
+One clean car, three more from the same street.
+Every customer gets a booking link of their own. When someone books through it, they arrive marked as that customer's referral, and each detail you finish for them puts a share on the referrer's account as credit.
+
+You set the percentage and the limit. They get a thank-you email with their balance each time — and a reason to send the link to the next person who asks who did their car.
 {{/chapter}}
 
 ## The rest of the job
