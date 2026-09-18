@@ -29,6 +29,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
               s.customer_label, s.customer_label_plural,
               s.job_label, s.job_label_plural,
               s.sms_templates, s.dashboard_widgets, s.auto_append_to_draft,
+              COALESCE(s.referral_enabled, FALSE) AS referral_enabled,
               (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
               (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count
        FROM users u

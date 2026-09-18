@@ -85,6 +85,44 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// Everyone who has sent somebody, with who they sent and what it has earned
+// them. Declared before '/:id' so the literal path is not read as an id.
+router.get('/referral-summary', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT r.id, r.first_name, r.last_name, r.business_name,
+              COALESCE((SELECT SUM(amount) FROM customer_credits
+                        WHERE customer_id = r.id AND deleted_at IS NULL), 0) AS credit_balance,
+              COALESCE(SUM(e.earned), 0) AS earned,
+              json_agg(json_build_object(
+                'id', c.id, 'first_name', c.first_name, 'last_name', c.last_name,
+                'business_name', c.business_name,
+                'earned', COALESCE(e.earned, 0), 'rewards', COALESCE(e.n, 0)
+              ) ORDER BY c.created_at) AS referred
+       FROM customers c
+       JOIN customers r ON r.id = c.referred_by_customer_id AND r.deleted_at IS NULL
+       LEFT JOIN LATERAL (
+         SELECT SUM(cc.amount) AS earned, COUNT(*)::int AS n
+         FROM customer_credits cc
+         WHERE cc.source_customer_id = c.id AND cc.customer_id = r.id AND cc.deleted_at IS NULL
+       ) e ON TRUE
+       WHERE c.organization_id = $1 AND c.deleted_at IS NULL
+       GROUP BY r.id
+       ORDER BY COALESCE(SUM(e.earned), 0) DESC, COUNT(c.id) DESC, r.created_at`,
+      [req.organization.id]
+    );
+    const s = await query(
+      `SELECT referral_enabled, referral_percent, referral_cap_jobs
+       FROM organization_settings WHERE organization_id = $1 LIMIT 1`,
+      [req.organization.id]
+    );
+    res.json({
+      program: s.rows[0] || { referral_enabled: false, referral_percent: 10, referral_cap_jobs: 5 },
+      referrers: rows,
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(

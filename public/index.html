@@ -1819,6 +1819,9 @@
     }
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
+    .row-link { cursor: pointer; }
+    .row-link:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .link-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
     .row .info .meta { color: var(--text-muted); font-size: 12px; }
     .row .actions, .job-card .actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
@@ -5879,6 +5882,7 @@ const ICONS = {
   quotes: 'M3 21l3-3h13a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM9 9h.01M12 9h.01M15 9h.01',
   requests: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
   reports: 'M3 3v18h18M7 14l4-4 4 4 5-5',
+  gift: 'M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z',
   team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   billing: 'M22 4H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM2 10h20',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7-3a7 7 0 0 0-.1-1.2l2.1-1.6-2-3.4-2.5 1a7 7 0 0 0-2-1.2l-.4-2.6h-4l-.4 2.6a7 7 0 0 0-2 1.2L5 5.8 3 9.2l2.1 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2L3 14.8l2 3.4 2.5-1a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.5 1 2-3.4-2.1-1.6c.05-.4.1-.8.1-1.2z',
@@ -7791,7 +7795,7 @@ function AuthShell({ onSession }) {
   );
 }
 
-function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
+function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOpenCustomer }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -7994,6 +7998,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
           { key: 'invoices', label: 'Invoices', count: loading ? '' : invoices.length },
           { key: 'quotes', label: 'Quotes', count: loading ? '' : quotes.length },
           { key: 'credit', label: 'Credit', count: loading ? '' : formatPrice(credit.balance) },
+          { key: 'referrals', label: 'Referrals', count: loading ? '' : referrals.referred.length },
           { key: 'notes', label: 'Notes', count: loading ? '' : notes.length },
         ].map((sec) => (
           <button
@@ -8129,6 +8134,47 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
             </div>
           )}
 
+          {tab === 'referrals' && (
+            <div>
+              {referrals.referred_by && (
+                <p className="hint" style={{ marginTop: 0 }}>
+                  Referred by{' '}
+                  <button type="button" className="link-btn" onClick={() => onOpenCustomer && onOpenCustomer(referrals.referred_by.id)}>
+                    {customerDisplayName(referrals.referred_by)}
+                  </button>.
+                </p>
+              )}
+              {referrals.referred.length > 0 && (
+                <div className="section-heading" style={{ marginTop: 0 }}>
+                  {referrals.referred.length} referred · {formatPrice(referrals.earned)} earned
+                </div>
+              )}
+              <div className="list">
+                {referrals.referred.length === 0 ? (
+                  <div className="list-empty">
+                    Nobody yet. When {customerDisplayName(customer)} sends you someone, open that {terms.customerLower}, choose Edit, and set "Referred by".
+                  </div>
+                ) : referrals.referred.map((r) => (
+                  <div
+                    key={r.id} className="row row-link" role="button" tabIndex={0}
+                    onClick={() => onOpenCustomer && onOpenCustomer(r.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenCustomer && onOpenCustomer(r.id); } }}
+                  >
+                    <div className="info">
+                      <div className="name">{customerDisplayName(r)}</div>
+                      <div className="meta">
+                        {r.rewards === 0 ? 'No rewards yet' : `${r.rewards} ${r.rewards === 1 ? 'reward' : 'rewards'} earned`}
+                      </div>
+                    </div>
+                    <div className="actions" style={{ fontWeight: 600, color: 'var(--success)' }}>
+                      {parseFloat(r.earned) > 0 ? `+${formatPrice(parseFloat(r.earned))}` : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {tab === 'credit' && (
             <div>
               <div className="form-card">
@@ -8163,29 +8209,6 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                   </form>
                 )}
               </div>
-
-              {referrals.referred.length > 0 && (
-                <>
-                  <div className="section-heading">
-                    Referrals · {formatPrice(referrals.earned)} earned
-                  </div>
-                  <div className="list">
-                    {referrals.referred.map((r) => (
-                      <div key={r.id} className="row">
-                        <div className="info">
-                          <div className="name">{customerDisplayName(r)}</div>
-                          <div className="meta">
-                            {r.rewards === 0 ? 'No rewards yet' : `${r.rewards} ${r.rewards === 1 ? 'reward' : 'rewards'}`}
-                          </div>
-                        </div>
-                        <div className="actions" style={{ fontWeight: 600, color: 'var(--success)' }}>
-                          {parseFloat(r.earned) > 0 ? `+${formatPrice(parseFloat(r.earned))}` : ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
 
               <div className="section-heading">History</div>
               <div className="list">
@@ -8567,6 +8590,22 @@ function CustomersView({ session, planContext }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Jump straight to one customer's page — from a row on their referrer's
+  // Referrals tab, or from /customers?open=<id> (the Referrals screen).
+  const openCustomer = useCallback((id) => {
+    const c = customers.find((x) => x.id === id);
+    if (!c) return;
+    setError(null); setViewing(c); setMode('detail');
+    window.scrollTo(0, 0);
+  }, [customers]);
+  useEffect(() => {
+    if (customers.length === 0) return;
+    const id = new URLSearchParams(window.location.search).get('open');
+    if (!id) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    openCustomer(id);
+  }, [customers, openCustomer]);
+
   async function createCustomer(values) {
     setBusy(true); setError(null);
     try {
@@ -8638,9 +8677,11 @@ function CustomersView({ session, planContext }) {
   if (mode === 'detail' && viewing) {
     return (
       <CustomerDetailView
+        key={viewing.id}
         session={session}
         customer={viewing}
         canMutate={canMutate}
+        onOpenCustomer={openCustomer}
         onBack={() => { setViewing(null); setMode('list'); }}
         onEdit={(c) => { setEditing(c); setMode('edit'); }}
       />
@@ -13535,6 +13576,7 @@ const APP_ROUTES = {
   '/invoices': 'invoices',
   '/quotes': 'quotes',
   '/reports': 'reports',
+  '/referrals': 'referrals',
   '/team': 'team',
   '/billing': 'billing',
   '/settings': 'settings',
@@ -14510,6 +14552,10 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         isAdmin && (isFree || features.reports) && {
           key: 'reports', label: 'Reports', icon: 'reports', to: '/reports', locked: isFree,
         },
+        // Only once the program is on — an owner who never uses it never sees it.
+        isAdmin && me && me.referral_enabled && {
+          key: 'referrals', label: 'Referrals', icon: 'gift', to: '/referrals',
+        },
       ],
     },
     {
@@ -14697,6 +14743,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         {view === 'reports' && (isFree
           ? <LockedFeature feature="reports" session={session} />
           : (features.reports && session.user.role === 'admin' && <ReportsView session={session} />))}
+        {view === 'referrals' && session.user.role === 'admin' && <ReferralsView session={session} />}
         {view === 'team' && (isFree
           ? <LockedFeature feature="team" session={session} />
           : (session.user.role === 'admin' && features.team && <TeamView session={session} />))}
@@ -15739,6 +15786,73 @@ function buildReportBuckets(fromStr, toStr) {
     }
   }
   return out;
+}
+
+// Who has sent you whom, and what it has earned them.
+function ReferralsView({ session }) {
+  const terms = useTerms();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest('/api/customers/referral-summary', { slug: session.slug, token: session.token })
+      .then((d) => { if (!cancelled) setData(d); })
+      .catch((err) => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
+  }, [session.slug, session.token]);
+
+  const referrers = (data && data.referrers) || [];
+  const program = data && data.program;
+  const referredTotal = referrers.reduce((n, r) => n + r.referred.length, 0);
+  const earnedTotal = referrers.reduce((n, r) => n + (parseFloat(r.earned) || 0), 0);
+  const terms_ = program && program.referral_enabled
+    ? `${parseFloat(program.referral_percent)}% of each ${terms.jobLower}${program.referral_cap_jobs != null ? `, first ${program.referral_cap_jobs} per referred ${terms.customerLower}` : ''}`
+    : 'Rewards are off';
+
+  return (
+    <div>
+      <div className="toolbar">
+        <span className="tb-title">
+          <h2>Referrals</h2>
+          <span className="tb-count">
+            {data ? <>{referredTotal} referred{earnedTotal > 0 && <> &middot; <b>{formatPrice(earnedTotal)}</b> earned</>}</> : ''}
+          </span>
+        </span>
+        <span className="tb-gap"></span>
+        <span className="tb-actions">
+          <button className="secondary" onClick={() => navigate('/settings/referrals')}>{terms_}</button>
+        </span>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="list">
+        {!data && !error ? (
+          <div className="list-empty">Loading...</div>
+        ) : referrers.length === 0 ? (
+          <div className="list-empty">
+            No referrals yet. When a {terms.customerLower} sends you someone, open the new {terms.customerLower}, choose Edit, and set "Referred by".
+          </div>
+        ) : referrers.map((r) => (
+          <div
+            key={r.id} className="row row-link" role="button" tabIndex={0}
+            onClick={() => navigate(`/customers?open=${r.id}`)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/customers?open=${r.id}`); } }}
+          >
+            <div className="info">
+              <div className="name">{customerDisplayName(r)}</div>
+              <div className="meta">
+                Referred {r.referred.map((c) => customerDisplayName(c)).join(', ')}
+                {parseFloat(r.credit_balance) > 0 && <> &middot; {formatPrice(parseFloat(r.credit_balance))} credit available</>}
+              </div>
+            </div>
+            <div className="actions" style={{ fontWeight: 600, color: parseFloat(r.earned) > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+              {parseFloat(r.earned) > 0 ? `+${formatPrice(parseFloat(r.earned))}` : 'No rewards yet'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ReportsView({ session }) {
