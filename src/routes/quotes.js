@@ -12,6 +12,7 @@ const BASE_SELECT = `
   SELECT
     q.id, q.customer_id, q.description, q.notes, q.line_items, q.status,
     q.prospect_name, q.prospect_email, q.prospect_phone, q.prospect_address,
+    q.referred_by_customer_id,
     q.created_at, q.updated_at,
     c.first_name AS customer_first_name,
     c.last_name AS customer_last_name,
@@ -268,8 +269,10 @@ router.post('/:id/promote-to-customer', requireRole('admin', 'lead'), async (req
 
       const { rows: cRows } = await client.query(
         `INSERT INTO customers
-          (organization_id, first_name, last_name, business_name, phone, email, address, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          (organization_id, first_name, last_name, business_name, phone, email, address, notes,
+           referred_by_customer_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+                 (SELECT id FROM customers WHERE id = $9 AND organization_id = $1 AND deleted_at IS NULL))
          RETURNING id`,
         [
           req.organization.id,
@@ -280,6 +283,11 @@ router.post('/:id/promote-to-customer', requireRole('admin', 'lead'), async (req
           body.email !== undefined ? (body.email || null) : (quote.prospect_email || null),
           body.address !== undefined ? (body.address || null) : (quote.prospect_address || null),
           body.notes || null,
+          // The form's choice when it sent one (including "Nobody"); otherwise
+          // whoever the booking request said.
+          Object.prototype.hasOwnProperty.call(body, 'referred_by_customer_id')
+            ? (body.referred_by_customer_id || null)
+            : (quote.referred_by_customer_id || null),
         ]
       );
 

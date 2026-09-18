@@ -75,4 +75,64 @@ async function reverseReferralCredit(client, { orgId, jobId, date }) {
   );
 }
 
-module.exports = { awardReferralCredit, reverseReferralCredit };
+// A customer's referral code, made the first time anyone asks for it. Eight
+// characters from an alphabet with no 0/O/1/I/L, so it survives being read
+// out over the phone or copied off a flyer.
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function newCode() {
+  const bytes = require('crypto').randomBytes(8);
+  let out = '';
+  for (let i = 0; i < 8; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
+}
+async function ensureReferralCode(db, orgId, customerId) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { rows } = await db.query(
+      `UPDATE customers SET referral_code = COALESCE(referral_code, $3)
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+       RETURNING referral_code`,
+      [customerId, orgId, newCode()]
+    ).catch((err) => {
+      if (err.code === '23505') return { rows: null }; // code taken — draw again
+      throw err;
+    });
+    if (rows === null) continue;
+    return rows[0] ? rows[0].referral_code : null;
+  }
+  return null;
+}
+
+// Who sent a booking request. A code from a referral link wins; failing that,
+// the name typed into "Referred by" counts only when it matches exactly one
+// customer — a guess between two Bobs would pay the wrong one. Returns a
+// customer row or null, and always null while the Referrals section is off.
+async function resolveReferrer(db, orgId, { code, name }) {
+  const { rows: on } = await db.query(
+    `SELECT 1 FROM organizations WHERE id = $1 AND (features->>'referrals') = 'true'`,
+    [orgId]
+  );
+  if (on.length === 0) return null;
+  const cols = 'id, first_name, last_name, business_name';
+  if (code && /^[A-Za-z0-9]{4,16}$/.test(code)) {
+    const { rows } = await db.query(
+      `SELECT ${cols} FROM customers
+       WHERE organization_id = $1 AND referral_code = $2 AND deleted_at IS NULL LIMIT 1`,
+      [orgId, code.toUpperCase()]
+    );
+    if (rows[0]) return rows[0];
+  }
+  const typed = String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  if (typed.length >= 3) {
+    const { rows } = await db.query(
+      `SELECT ${cols} FROM customers
+       WHERE organization_id = $1 AND deleted_at IS NULL
+         AND (LOWER(BTRIM(CONCAT_WS(' ', first_name, last_name))) = $2 OR LOWER(BTRIM(business_name)) = $2)
+       LIMIT 2`,
+      [orgId, typed]
+    );
+    if (rows.length === 1) return rows[0];
+  }
+  return null;
+}
+
+module.exports = { awardReferralCredit, reverseReferralCredit, ensureReferralCode, resolveReferrer, displayName };

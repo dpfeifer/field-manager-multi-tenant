@@ -64,7 +64,7 @@ async function loadOrg(slug) {
   return rows[0] || null;
 }
 
-function renderPage({ slug, org, appUrl }) {
+function renderPage({ slug, org, appUrl, referrer = null }) {
   const cfg = normalizeConfig(org.booking_form_config);
   const company = org.company_name || org.organization_name || 'us';
   const heading = cfg.title || `Request a booking with ${company}`;
@@ -126,6 +126,7 @@ function renderPage({ slug, org, appUrl }) {
   .logo { max-height: 52px; max-width: 180px; margin-bottom: 16px; }
   h1 { font-size: 21px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+  .refby { margin: -8px 0 20px; padding: 10px 14px; border-radius: 10px; background: rgba(120, 110, 95, 0.1); font-size: 14px; }
   .f { margin-bottom: 14px; }
   label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
   .opt { font-weight: 400; color: var(--muted); }
@@ -167,6 +168,7 @@ function renderPage({ slug, org, appUrl }) {
       ${org.logo_url ? `<img class="logo" src="${esc(org.logo_url)}" alt="${esc(company)}">` : ''}
       <h1>${esc(heading)}</h1>
       <p class="sub">${esc(sub)}</p>
+      ${referrer ? `<p class="refby">You were referred by <strong>${esc(referrer.name)}</strong>.</p>` : ''}
       <div id="err" class="msg err" style="display:none" role="alert"></div>
       <form id="f" novalidate>
         <div class="f">
@@ -198,7 +200,7 @@ function renderPage({ slug, org, appUrl }) {
           <label for="notes">Anything else? <span class="opt">optional</span></label>
           <textarea id="notes" name="notes" placeholder="${esc(cfg.notes_placeholder)}"></textarea>
         </div>` : ''}
-        ${cfg.show_referred_by ? `
+        ${cfg.show_referred_by && !referrer ? `
         <div class="f">
           <label for="ref">How did you hear about us? <span class="opt">optional</span></label>
           <input id="ref" name="referred_by">
@@ -254,6 +256,7 @@ function renderPage({ slug, org, appUrl }) {
       service_description: get('service_description'),
       notes: get('notes'),
       referred_by: get('referred_by'),
+      ref: ${JSON.stringify(referrer ? referrer.code : '')},
       website: get('website')
     };
 

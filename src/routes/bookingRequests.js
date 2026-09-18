@@ -18,7 +18,7 @@ router.get('/', async (req, res, next) => {
     const { rows } = await query(
       `SELECT id, requester_name, requester_email, requester_phone, requester_address,
               service_description, preferred_date, preferred_time_window, preferred_slots, notes,
-              referred_by,
+              referred_by, referred_by_customer_id,
               status, declined_reason,
               created_customer_id, created_job_id, created_quote_id,
               created_at, accepted_at, declined_at
@@ -73,9 +73,9 @@ router.post('/:id/accept', requireRole('admin', 'lead'), async (req, res, next) 
     const quoteInsert = await query(
       `INSERT INTO quotes
         (organization_id, customer_id, description, notes, line_items, status,
-         prospect_name, prospect_email, prospect_phone, prospect_address)
+         prospect_name, prospect_email, prospect_phone, prospect_address, referred_by_customer_id)
        VALUES ($1, NULL, $2, $3, '[]'::jsonb, 'draft',
-               $4, $5, $6, $7)
+               $4, $5, $6, $7, $8)
        RETURNING id`,
       [
         req.organization.id,
@@ -85,6 +85,7 @@ router.post('/:id/accept', requireRole('admin', 'lead'), async (req, res, next) 
         br.requester_email,
         br.requester_phone,
         br.requester_address,
+        br.referred_by_customer_id || null,
       ]
     );
     const quoteId = quoteInsert.rows[0].id;

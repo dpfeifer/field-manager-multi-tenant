@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const bookingPage = require('./bookingPage');
+const { resolveReferrer } = require('./utils/referrals');
 const cors = require('cors');
 const morgan = require('morgan');
 
@@ -492,8 +493,16 @@ app.get('/book/:slug', async (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     const org = await bookingPage.loadOrg(slug);
     if (!org) return res.status(404).type('html').send(bookingPage.notFoundPage());
+    // A referral link: /book/<slug>?ref=<code>. An unknown code, or the
+    // Referrals section being off, just renders the ordinary page.
+    let referrer = null;
+    const ref = typeof req.query.ref === 'string' ? req.query.ref.trim().slice(0, 16) : '';
+    if (ref) {
+      const r = await resolveReferrer({ query }, org.id, { code: ref });
+      if (r) referrer = { code: ref.toUpperCase(), name: r.first_name || r.business_name || 'A friend' };
+    }
     res.type('html').send(bookingPage.renderPage({
-      slug, org, appUrl: process.env.APP_URL || 'https://fieldmgr.com',
+      slug, org, referrer, appUrl: process.env.APP_URL || 'https://fieldmgr.com',
     }));
   } catch (err) { next(err); }
 });

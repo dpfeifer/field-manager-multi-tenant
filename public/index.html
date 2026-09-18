@@ -1820,6 +1820,7 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    .booking-ref { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--tinted); font-size: 14px; }
     .row-link:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .link-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
     .row .info .name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
@@ -4135,6 +4136,12 @@
     .pd-day-bt { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; font-size: 11px; }
     .pd-day-bt span { opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pd-day-bt u { flex: 0 0 auto; text-decoration: none; font-weight: 600; padding: 4px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); }
+    .pd-credit { flex: 0 0 auto; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 999px; background: #e8f1ec; color: #1f6f4a; white-space: nowrap; }
+    .pd-link { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; }
+    .pd-link-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .pd-link-row span { flex: 1 1 auto; min-width: 0; font-size: 12px; color: var(--text-muted); background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pd-link-row b { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; line-height: 1; background: var(--primary); color: #fff; border-radius: 9px; padding: 9px 12px; }
+    .pd-earn { font-size: 14px; font-weight: 600; color: #1f6f4a; }
     .pd-lst { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
     .pd-ro { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-top: 1px solid var(--border); }
     .pd-ro:first-child { border-top: 0; }
@@ -6874,7 +6881,7 @@ function CyclingHeadline() {
 // costs no image bytes, moves, and cannot drift out of date. Every class is
 // prefixed pd-, because the sales page and the app share one stylesheet and
 // the app already owns names like .bar, .view and .row.
-const PD_TABS = { today: 0, day: 1, customers: 2, invoices: 3 };
+const PD_TABS = { today: 0, day: 1, customers: 2, referrals: 2, invoices: 3 };
 
 function PdActions() {
   return (
@@ -6945,6 +6952,22 @@ function PdCustomers({ term }) {
     </>
   );
 }
+// One customer's Referrals tab: who they sent, and what it has earned them.
+function PdReferrals() {
+  const rows = [['Patricia Crowley', '5 rewards earned', '+$27.50'], ['Henry Wells', '4 rewards earned', '+$34.00'], ['Marisol Vega', '2 rewards earned', '+$13.00'], ['Dalida Islas', 'No rewards yet', '']];
+  return (
+    <>
+      <div className="pd-tb"><div><h5>Bob Henderson</h5><div className="pd-c">4 referred · <b>$74.50</b> earned</div></div><span className="pd-credit">$74.50 credit</span></div>
+      <div className="pd-seg"><span>Jobs 3</span><span>Invoices 6</span><span className="on">Referrals 4</span></div>
+      <div className="pd-link"><div className="pd-l">Bob&rsquo;s referral link</div><div className="pd-link-row"><span>fieldmgr.com/book/acme?ref=N9MJAX7R</span><b>Copy</b></div></div>
+      <div className="pd-lst">
+        {rows.map(([n, m, amt]) => (
+          <div className="pd-ro" key={n}><div className="pd-fill"><div className="pd-nm">{n}</div><div className="pd-mt">{m}</div></div>{amt && <span className="pd-earn">{amt}</span>}</div>
+        ))}
+      </div>
+    </>
+  );
+}
 function PdInvoices() {
   const rows = [['#1005', 'Pine Street Apartments', '$960.00', 'sent', 'Mark paid'], ['#1007', 'Dalida Islas', '$165.00', 'draft', 'Mark sent'], ['#1006', 'Henry Wells', '$140.00', 'sent', 'Mark paid'], ['#1008', 'St. Mary’s Church', '$270.00', 'draft', 'Mark sent']];
   return (
@@ -7005,6 +7028,7 @@ function PhoneDemo({ views, term = 'Customers' }) {
             {v === 'day' && <PdDay />}
             {v === 'customers' && <PdCustomers term={term} />}
             {v === 'invoices' && <PdInvoices />}
+            {v === 'referrals' && <PdReferrals />}
             {v === 'booking' && <PdBooking />}
           </div>
         ))}
@@ -7205,6 +7229,18 @@ function LandingPage({ signedIn }) {
           </div>
           <div className="ed-chapter-mock">
             <PhoneDemo views={['booking']} />
+          </div>
+        </article>
+        <article className="ed-chapter" data-reveal>
+          <div className="ed-chapter-body-col">
+            <p className="ed-chapter-kicker">Word of mouth, with a paper trail</p>
+            <h2 className="ed-chapter-title">Your best customers become your sales team.</h2>
+            <p className="ed-chapter-prose">
+              Give a customer their own booking link. When a neighbor books through it, they arrive already marked as that customer&rsquo;s referral &mdash; and every job you finish for them puts a share of it on the referrer&rsquo;s account as credit. You set the percentage and the limit. <em>Nobody keeps a spreadsheet of who sent whom.</em>
+            </p>
+          </div>
+          <div className="ed-chapter-mock">
+            <PhoneDemo views={['referrals']} />
           </div>
         </article>
       </section>
@@ -8136,6 +8172,22 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
 
           {tab === 'referrals' && (
             <div>
+              {referrals.referral_code && (
+                <div className="form-card" style={{ marginBottom: 16 }}>
+                  <div className="section-heading" style={{ marginTop: 0 }}>{customerDisplayName(customer)}&apos;s referral link</div>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Send them this. Anyone who books through it arrives already marked as their referral.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <input
+                      readOnly onFocus={(e) => e.target.select()}
+                      style={{ flex: '1 1 260px', minWidth: 0 }}
+                      value={`${window.location.origin}/book/${session.slug}?ref=${referrals.referral_code}`}
+                    />
+                    <CopyButton text={`${window.location.origin}/book/${session.slug}?ref=${referrals.referral_code}`} label="Copy link" />
+                  </div>
+                </div>
+              )}
               {referrals.referred_by && (
                 <p className="hint" style={{ marginTop: 0 }}>
                   Referred by{' '}
@@ -9216,7 +9268,7 @@ function RequestsView({ session }) {
                   );
                 })()}
                 {r.notes && <div className="d">Notes: {r.notes}</div>}
-                {r.referred_by && <div className="d">Referred by: {r.referred_by}</div>}
+                {r.referred_by && <div className="d">Referred by: {r.referred_by}{r.referred_by_customer_id && <> &middot; matched to a {terms.customerLower}</>}</div>}
                 {r.status === 'declined' && r.declined_reason && (
                   <div className="d" style={{ fontStyle: 'italic' }}>Decline note: {r.declined_reason}</div>
                 )}
@@ -11848,7 +11900,7 @@ function splitProspectName(name) {
   return { first: parts[0], last: parts.slice(1).join(' '), business: '' };
 }
 
-function PromoteForm({ quote, onSubmit, onCancel, busy }) {
+function PromoteForm({ quote, onSubmit, onCancel, busy, customers = [] }) {
   const terms = useTerms();
   const split = splitProspectName(quote.prospect_name);
   const [first_name, setFirst] = useState(split.first);
@@ -11858,10 +11910,18 @@ function PromoteForm({ quote, onSubmit, onCancel, busy }) {
   const [email, setEmail] = useState(quote.prospect_email || '');
   const [address, setAddress] = useState(quote.prospect_address || '');
   const [notes, setNotes] = useState('');
+  // Already filled in when the request came through a referral link, or named
+  // a customer exactly.
+  const [referredBy, setReferredBy] = useState(quote.referred_by_customer_id || '');
+  const referrers = useMemo(() => customers
+    .map((c) => ({ id: c.id, name: customerDisplayName(c) }))
+    .sort((a, b) => a.name.localeCompare(b.name)), [customers]);
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ first_name, last_name, business_name, phone, email, address, notes });
+    const values = { first_name, last_name, business_name, phone, email, address, notes };
+    if (referrers.length > 0) values.referred_by_customer_id = referredBy || null;
+    onSubmit(values);
   }
 
   return (
@@ -11899,6 +11959,15 @@ function PromoteForm({ quote, onSubmit, onCancel, busy }) {
           <label>Notes <span className="hint">(optional)</span></label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+        {referrers.length > 0 && (
+          <div className="full">
+            <label>Referred by <span className="hint">(optional)</span></label>
+            <select value={referredBy} onChange={(e) => setReferredBy(e.target.value)}>
+              <option value="">Nobody</option>
+              {referrers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        )}
       </div>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>
@@ -12138,6 +12207,7 @@ function QuotesView({ session, features = { invoices: true } }) {
         <div className="form-card">
           <PromoteForm
             quote={editing}
+            customers={features.referrals ? customers : []}
             onSubmit={promoteToCustomer}
             onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
             busy={busy}
@@ -18963,6 +19033,18 @@ function BookingForm({ slug, config, orgName, jobLabel }) {
   }
   const [notes, setNotes] = useState('');
   const [referredBy, setReferredBy] = useState('');
+  // A referral link: /book/<slug>?ref=<code>. The name is looked up so the
+  // page can say who sent them; an unknown code is simply ignored.
+  const [refCode] = useState(() => (new URLSearchParams(window.location.search).get('ref') || '').trim().slice(0, 16));
+  const [refName, setRefName] = useState('');
+  useEffect(() => {
+    if (!refCode) return undefined;
+    let cancelled = false;
+    apiRequest(`/api/public/referrer/${slug}/${encodeURIComponent(refCode)}`)
+      .then((r) => { if (!cancelled && r && r.name) setRefName(r.name); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [slug, refCode]);
   const [website, setWebsite] = useState(''); // honeypot
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -18992,6 +19074,7 @@ function BookingForm({ slug, config, orgName, jobLabel }) {
           preferred_slots: visibleSlots,
           notes,
           referred_by: referredBy,
+          ref: refName ? refCode : '',
           website,
         },
       });
@@ -19014,6 +19097,11 @@ function BookingForm({ slug, config, orgName, jobLabel }) {
 
   return (
     <form onSubmit={submit}>
+      {refName && (
+        <p className="booking-ref">
+          You were referred by <strong>{refName}</strong>.
+        </p>
+      )}
       <label>Your name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} required />
 
@@ -19069,7 +19157,7 @@ function BookingForm({ slug, config, orgName, jobLabel }) {
         </>
       )}
 
-      {showReferredBy && (
+      {showReferredBy && !refName && (
         <>
           <label>Referred by <span className="hint">(optional)</span></label>
           <input value={referredBy} onChange={(e) => setReferredBy(e.target.value)} placeholder="How did you hear about us?" />

@@ -2,6 +2,7 @@ const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { round2 } = require('../utils/credits');
+const { ensureReferralCode } = require('../utils/referrals');
 
 const router = express.Router();
 
@@ -307,7 +308,8 @@ router.get('/:id/referrals', async (req, res, next) => {
       [req.params.id, req.organization.id]
     );
     const earned = referred.reduce((s, r) => s + parseFloat(r.earned), 0);
-    res.json({ referred_by: me.rows[0] || null, referred, earned: round2(earned) });
+    const referral_code = await ensureReferralCode({ query }, req.organization.id, req.params.id);
+    res.json({ referred_by: me.rows[0] || null, referred, earned: round2(earned), referral_code });
   } catch (err) { next(err); }
 });
 

@@ -5,6 +5,7 @@ const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const { resolveReferrer, displayName: referrerName } = require('../utils/referrals');
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
@@ -212,6 +213,21 @@ router.get('/landing/:slug', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Who a referral link belongs to, so the booking page can say "Bob sent you".
+// First name only (or the business name): the visitor already knows Bob, and
+// nobody else learns anything about him from a guessed code.
+router.get('/referrer/:slug/:code', async (req, res, next) => {
+  const slug = (req.params.slug || '').toLowerCase();
+  if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const org = await query('SELECT id FROM organizations WHERE slug = $1 AND deleted_at IS NULL LIMIT 1', [slug]);
+    if (org.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const r = await resolveReferrer({ query }, org.rows[0].id, { code: req.params.code });
+    if (!r) return res.status(404).json({ error: 'Not found' });
+    res.json({ name: r.first_name || r.business_name || 'A friend' });
+  } catch (err) { next(err); }
+});
+
 router.post('/book/:slug', async (req, res, next) => {
   const slug = (req.params.slug || '').toLowerCase();
   if (!SLUG_RE.test(slug)) return res.status(404).json({ error: 'Not found' });
@@ -240,7 +256,8 @@ router.post('/book/:slug', async (req, res, next) => {
   const preferred_date = preferred_slots[0] ? preferred_slots[0].date : null;
   const preferred_time_window = preferred_slots[0] ? preferred_slots[0].window : 'anytime';
   const notes = (b.notes || '').trim() || null;
-  const referred_by = (b.referred_by || '').trim().slice(0, 200) || null;
+  let referred_by = (b.referred_by || '').trim().slice(0, 200) || null;
+  const ref_code = typeof b.ref === 'string' ? b.ref.trim().slice(0, 16) : '';
 
   if (!requester_name) return res.status(400).json({ error: 'Name is required' });
   if (!requester_email && !requester_phone) {
@@ -261,14 +278,20 @@ router.post('/book/:slug', async (req, res, next) => {
     if (orgRow.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     const org = orgRow.rows[0];
 
+    // A referral link, or a typed name that matches exactly one customer.
+    const referrer = await resolveReferrer({ query }, org.id, { code: ref_code, name: referred_by });
+    if (referrer && !referred_by) referred_by = referrerName(referrer);
+
     const inserted = await query(
       `INSERT INTO booking_requests
         (organization_id, requester_name, requester_email, requester_phone, requester_address,
-         service_description, preferred_date, preferred_time_window, notes, preferred_slots, referred_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
+         service_description, preferred_date, preferred_time_window, notes, preferred_slots, referred_by,
+         referred_by_customer_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12)
        RETURNING id, created_at`,
       [org.id, requester_name, requester_email, requester_phone, requester_address,
-       service_description, preferred_date, preferred_time_window, notes, JSON.stringify(preferred_slots), referred_by]
+       service_description, preferred_date, preferred_time_window, notes, JSON.stringify(preferred_slots), referred_by,
+       referrer ? referrer.id : null]
     );
 
     let notifyTo = org.settings_email;
