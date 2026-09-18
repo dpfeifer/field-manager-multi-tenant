@@ -5,7 +5,7 @@ const { round2 } = require('../utils/credits');
 
 const router = express.Router();
 
-const FIELDS = ['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes', 'auto_invoice_excluded'];
+const FIELDS = ['first_name', 'last_name', 'business_name', 'phone', 'email', 'address', 'notes', 'auto_invoice_excluded', 'referred_by_customer_id'];
 
 function pickFields(body) {
   const out = {};
@@ -15,6 +15,23 @@ function pickFields(body) {
     }
   }
   return out;
+}
+
+// The referrer has to be a real, live customer of this org, and not the
+// customer themselves. Returns an error string, or null when it is fine.
+async function referrerProblem(orgId, referrerId, selfId) {
+  if (referrerId == null) return null;
+  if (typeof referrerId !== 'string' || !/^[0-9a-f-]{36}$/i.test(referrerId)) return 'Pick a customer from the list';
+  if (selfId && referrerId === selfId) return 'A customer cannot refer themselves';
+  const { rows } = await query(
+    `SELECT referred_by_customer_id FROM customers
+     WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1`,
+    [referrerId, orgId]
+  );
+  if (rows.length === 0) return 'That referring customer was not found';
+  // Two customers crediting each other for the same work is never intended.
+  if (selfId && rows[0].referred_by_customer_id === selfId) return 'Those two customers cannot refer each other';
+  return null;
 }
 
 const NAME_FIELDS = ['first_name', 'last_name', 'business_name'];
@@ -29,7 +46,7 @@ router.get('/', async (req, res, next) => {
       `SELECT
          c.id, c.first_name, c.last_name, c.business_name,
          c.phone, c.email, c.address, c.notes,
-         c.auto_invoice_excluded,
+         c.auto_invoice_excluded, c.referred_by_customer_id,
          c.created_at, c.updated_at,
          COALESCE((
            SELECT SUM(
@@ -72,7 +89,7 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT id, first_name, last_name, business_name, phone, email, address, notes,
-              auto_invoice_excluded, created_at, updated_at
+              auto_invoice_excluded, referred_by_customer_id, created_at, updated_at
        FROM customers
        WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
        LIMIT 1`,
@@ -93,12 +110,14 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
 
   try {
     const fields = pickFields(body);
+    const refErr = await referrerProblem(req.organization.id, fields.referred_by_customer_id ?? null, null);
+    if (refErr) return res.status(400).json({ error: refErr });
     const { rows } = await query(
       `INSERT INTO customers
-         (organization_id, first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, FALSE))
+         (organization_id, first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded, referred_by_customer_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, FALSE), $10)
        RETURNING id, first_name, last_name, business_name, phone, email, address, notes,
-                 auto_invoice_excluded, created_at, updated_at`,
+                 auto_invoice_excluded, referred_by_customer_id, created_at, updated_at`,
       [
         req.organization.id,
         fields.first_name ?? null,
@@ -109,6 +128,7 @@ router.post('/', requireRole('admin', 'lead'), async (req, res, next) => {
         fields.address ?? null,
         fields.notes ?? null,
         fields.auto_invoice_excluded ?? null,
+        fields.referred_by_customer_id ?? null,
       ]
     );
     res.status(201).json(rows[0]);
@@ -134,6 +154,10 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
   const assignments = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
 
   try {
+    if (keys.includes('referred_by_customer_id')) {
+      const refErr = await referrerProblem(req.organization.id, fields.referred_by_customer_id, req.params.id);
+      if (refErr) return res.status(400).json({ error: refErr });
+    }
     // Clearing now works, which makes it possible to erase every name and
     // leave a customer that renders as blank everywhere. Check the merged
     // result rather than the patch, since a request may only touch one name.
@@ -155,7 +179,7 @@ router.put('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
       `UPDATE customers SET ${assignments}, updated_at = NOW()
        WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
        RETURNING id, first_name, last_name, business_name, phone, email, address, notes,
-                 auto_invoice_excluded, created_at, updated_at`,
+                 auto_invoice_excluded, referred_by_customer_id, created_at, updated_at`,
       [req.params.id, req.organization.id, ...keys.map((k) => fields[k])]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
@@ -220,13 +244,42 @@ router.delete('/:id', requireRole('admin', 'lead'), async (req, res, next) => {
 });
 
 // Customer notes timeline
+// ---- Referrals ----
+
+// Both directions for one customer: who sent them, and who they have sent —
+// with what each of those has earned them so far.
+router.get('/:id/referrals', async (req, res, next) => {
+  try {
+    const me = await query(
+      `SELECT r.id, r.first_name, r.last_name, r.business_name
+       FROM customers c
+       JOIN customers r ON r.id = c.referred_by_customer_id AND r.deleted_at IS NULL
+       WHERE c.id = $1 AND c.organization_id = $2 AND c.deleted_at IS NULL LIMIT 1`,
+      [req.params.id, req.organization.id]
+    );
+    const { rows: referred } = await query(
+      `SELECT c.id, c.first_name, c.last_name, c.business_name,
+              COALESCE(SUM(cc.amount), 0) AS earned, COUNT(cc.id)::int AS rewards
+       FROM customers c
+       LEFT JOIN customer_credits cc
+              ON cc.source_customer_id = c.id AND cc.customer_id = $1 AND cc.deleted_at IS NULL
+       WHERE c.referred_by_customer_id = $1 AND c.organization_id = $2 AND c.deleted_at IS NULL
+       GROUP BY c.id
+       ORDER BY c.created_at`,
+      [req.params.id, req.organization.id]
+    );
+    const earned = referred.reduce((s, r) => s + parseFloat(r.earned), 0);
+    res.json({ referred_by: me.rows[0] || null, referred, earned: round2(earned) });
+  } catch (err) { next(err); }
+});
+
 // ---- Prepaid credit (ledger) ----
 
 // Balance + full history. Negative rows are applications against an invoice.
 router.get('/:id/credits', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT cc.id, cc.amount, cc.note, cc.invoice_id, cc.created_at,
+      `SELECT cc.id, cc.amount, cc.note, cc.invoice_id, cc.created_at, cc.source_job_id,
               u.name AS created_by_name, u.email AS created_by_email,
               i.invoice_number
        FROM customer_credits cc

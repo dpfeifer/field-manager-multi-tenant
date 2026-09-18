@@ -5870,7 +5870,7 @@
 <div id="root"></div>
 
 <script type="text/babel" data-presets="react-classic">
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
 const ICONS = {
   dashboard: 'M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.5H9V21H4a1 1 0 0 1-1-1z',
@@ -7807,6 +7807,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
   const [creditAmount, setCreditAmount] = useState('');
   const [creditNote, setCreditNote] = useState('');
   const [creditBusy, setCreditBusy] = useState(false);
+  const [referrals, setReferrals] = useState({ referred_by: null, referred: [], earned: 0 });
 
   const refreshCredits = useCallback(async () => {
     const c = await apiRequest(`/api/customers/${customer.id}/credits`, { slug: session.slug, token: session.token });
@@ -7826,6 +7827,9 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
           apiRequest(`/api/customers/${customer.id}/credits`, { slug: session.slug, token: session.token }),
         ]);
         if (cancelled) return;
+        // Not part of the load-or-fail set: the page is whole without it.
+        apiRequest(`/api/customers/${customer.id}/referrals`, { slug: session.slug, token: session.token })
+          .then((r) => { if (!cancelled) setReferrals(r); }).catch(() => {});
         const cid = customer.id;
         setJobs(j.filter((x) => x.customer_id === cid));
         setInvoices(i.filter((x) => x.customer_id === cid));
@@ -7977,6 +7981,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
         <CustomerCard
           customer={customer}
           creditBalance={credit.balance}
+          referredBy={referrals.referred_by ? customerDisplayName(referrals.referred_by) : null}
           onEdit={canMutate ? () => onEdit(customer) : null}
         />
       </div>
@@ -8159,6 +8164,29 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                 )}
               </div>
 
+              {referrals.referred.length > 0 && (
+                <>
+                  <div className="section-heading">
+                    Referrals · {formatPrice(referrals.earned)} earned
+                  </div>
+                  <div className="list">
+                    {referrals.referred.map((r) => (
+                      <div key={r.id} className="row">
+                        <div className="info">
+                          <div className="name">{customerDisplayName(r)}</div>
+                          <div className="meta">
+                            {r.rewards === 0 ? 'No rewards yet' : `${r.rewards} ${r.rewards === 1 ? 'reward' : 'rewards'}`}
+                          </div>
+                        </div>
+                        <div className="actions" style={{ fontWeight: 600, color: 'var(--success)' }}>
+                          {parseFloat(r.earned) > 0 ? `+${formatPrice(parseFloat(r.earned))}` : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <div className="section-heading">History</div>
               <div className="list">
                 {credit.entries.length === 0 ? (
@@ -8174,6 +8202,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
                             {isApplied ? '−' : '+'}{formatPrice(Math.abs(amt))}
                           </span>
                           {isApplied && c.invoice_number != null && <> · Invoice #{c.invoice_number}</>}
+                          {c.source_job_id && <> · Referral</>}
                         </div>
                         <div className="meta">
                           {formatNoteTime(c.created_at)}
@@ -8246,7 +8275,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate }) {
 // The record's identity card. Above a phone it rides in a sticky header, so a
 // number or a gate code is still on screen while you read an invoice further
 // down — that was the only reason contact used to sit in a column of its own.
-function CustomerCard({ customer, creditBalance = 0, onEdit }) {
+function CustomerCard({ customer, creditBalance = 0, referredBy = null, onEdit }) {
   const name = customerDisplayName(customer);
   // When a business has a person on file, that person is the subtitle rather
   // than another chip — it is who you ask for, not a way to reach them.
@@ -8273,6 +8302,7 @@ function CustomerCard({ customer, creditBalance = 0, onEdit }) {
         <div className="reccard-id">
           <h2 className="reccard-name">{name}</h2>
           {person && <div className="reccard-sub">{person}</div>}
+          {referredBy && <div className="reccard-sub">Referred by {referredBy}</div>}
         </div>
         {/* What they owe and what they have on credit lead the screen. They
             used to be two rows in a card below, which is where you look last. */}
@@ -8412,7 +8442,7 @@ function CsvImportView({ session, onDone, onCancel }) {
   );
 }
 
-function CustomerForm({ initial, onSubmit, onCancel, busy }) {
+function CustomerForm({ initial, onSubmit, onCancel, busy, customers = [] }) {
   const terms = useTerms();
   const [first_name, setFirst] = useState(initial?.first_name || '');
   const [last_name, setLast] = useState(initial?.last_name || '');
@@ -8422,10 +8452,16 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
   const [address, setAddress] = useState(initial?.address || '');
   const [notes, setNotes] = useState(initial?.notes || '');
   const [autoInvoiceExcluded, setAutoInvoiceExcluded] = useState(!!initial?.auto_invoice_excluded);
+  const [referredBy, setReferredBy] = useState(initial?.referred_by_customer_id || '');
+  // Anyone but themselves, by name — the list arrives newest first.
+  const referrers = useMemo(() => customers
+    .filter((c) => !initial || c.id !== initial.id)
+    .map((c) => ({ id: c.id, name: customerDisplayName(c) }))
+    .sort((a, b) => a.name.localeCompare(b.name)), [customers, initial]);
 
   function submit(e) {
     e.preventDefault();
-    onSubmit({ first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded: autoInvoiceExcluded });
+    onSubmit({ first_name, last_name, business_name, phone, email, address, notes, auto_invoice_excluded: autoInvoiceExcluded, referred_by_customer_id: referredBy || null });
   }
 
   return (
@@ -8459,6 +8495,18 @@ function CustomerForm({ initial, onSubmit, onCancel, busy }) {
           <label>Notes</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+        {referrers.length > 0 && (
+          <div className="full">
+            <label>Referred by <span className="hint">(optional)</span></label>
+            <select value={referredBy} onChange={(e) => setReferredBy(e.target.value)}>
+              <option value="">Nobody</option>
+              {referrers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              With referral rewards on, this {terms.customerLower} earns credit each time you complete a {terms.jobLower} here.
+            </span>
+          </div>
+        )}
         <div className="full">
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <input
@@ -8562,7 +8610,7 @@ function CustomersView({ session, planContext }) {
         <div className="page-header"><h2>New {terms.customerLower}</h2></div>
         <PlanError error={error} session={session} />
         <div className="form-card">
-          <CustomerForm onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+          <CustomerForm customers={customers} onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
         </div>
       </div>
     );
@@ -8577,6 +8625,7 @@ function CustomersView({ session, planContext }) {
         <div className="form-card">
           <CustomerForm
             initial={editing}
+            customers={customers}
             onSubmit={updateCustomer}
             onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
             busy={busy}
@@ -12232,6 +12281,68 @@ function QuotesView({ session, features = { invoices: true } }) {
   );
 }
 
+// Its own tab rather than a corner of Auto-invoice: it is a thing an owner
+// goes looking for by name.
+function ReferralPanel({ form, setField, isAdmin, busy, saved, error, submit }) {
+  const terms = useTerms();
+  return (
+    <>
+      {error && <div className="error">{error}</div>}
+      {saved && (
+        <div className="error" style={{ background: '#e8f1ec', color: '#1f6f4a' }}>Saved.</div>
+      )}
+      <form onSubmit={submit} className="form-card">
+        <div className="section-heading" style={{ marginTop: 0 }}>Referral rewards</div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, fontWeight: 'normal' }}>
+          <input
+            type="checkbox"
+            checked={!!form.referral_enabled}
+            disabled={!isAdmin}
+            onChange={(e) => setField('referral_enabled', e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            Reward {terms.customersLower} who refer someone.
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              Set who referred a {terms.customerLower} on their record. Each time you complete a {terms.jobLower} for them, the person who sent them earns a share of its price as credit on their own account. Undoing the completion takes it back.
+            </span>
+          </span>
+        </label>
+        {form.referral_enabled && (
+          <div className="form-grid">
+            <div>
+              <label>Reward <span className="hint">(% of each {terms.jobLower})</span></label>
+              <input
+                type="number" min="0" max="100" step="0.5"
+                value={form.referral_percent ?? ''}
+                disabled={!isAdmin}
+                onChange={(e) => setField('referral_percent', e.target.value)}
+              />
+            </div>
+            <div>
+              <label>Limit <span className="hint">({terms.jobsLower} per referred {terms.customerLower})</span></label>
+              <input
+                type="number" min="1" step="1"
+                value={form.referral_cap_jobs ?? ''}
+                placeholder="No limit"
+                disabled={!isAdmin}
+                onChange={(e) => setField('referral_cap_jobs', e.target.value)}
+              />
+              <span className="hint" style={{ display: 'block', marginTop: 4 }}>Leave empty to reward every {terms.jobLower}, forever.</span>
+            </div>
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={busy}>{busy ? 'Saving...' : 'Save'}</button>
+          </div>
+        )}
+      </form>
+    </>
+  );
+}
+
 function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error, submit }) {
   const terms = useTerms();
   const [running, setRunning] = useState(false);
@@ -12734,6 +12845,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     : path === '/settings/quick-text' ? 'quick-text'
     : path === '/settings/dashboard' ? 'dashboard'
     : path === '/settings/auto-invoice' ? 'auto-invoice'
+    : path === '/settings/referrals' ? 'referrals'
     : path === '/settings/booking-form' ? 'booking-form'
     : path === '/settings/payments' ? 'payments'
     : path === '/settings/landing' ? 'landing'
@@ -12838,6 +12950,9 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
         auto_append_to_draft: !!data.auto_append_to_draft,
+        referral_enabled: !!data.referral_enabled,
+        referral_percent: data.referral_percent != null ? parseFloat(data.referral_percent) : 10,
+        referral_cap_jobs: data.referral_cap_jobs != null ? data.referral_cap_jobs : (data.updated_at ? '' : 5),
         booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')
           ? {
               show_phone: data.booking_form_config.show_phone !== false,
@@ -12930,7 +13045,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
     if (subView === 'dashboard') navigate('/dashboard');
   }, [subView]);
 
-  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'links' || subView === 'auto-invoice' || subView === 'booking-form' || subView === 'landing')) {
+  if (loading && (subView === 'company' || subView === 'payments' || subView === 'terminology' || subView === 'quick-text' || subView === 'links' || subView === 'auto-invoice' || subView === 'referrals' || subView === 'booking-form' || subView === 'landing')) {
     return (
       <div>
         <div className="page-header"><h2>Settings</h2></div>
@@ -12957,6 +13072,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           { key: 'company', label: 'Business', icon: 'storefront', group: 'Your business' },
           { key: 'payments', label: 'Payments', icon: 'receipt', group: 'Getting paid' },
           isAdmin && { key: 'auto-invoice', label: 'Auto-invoice', icon: 'repeat', group: 'Getting paid' },
+          isAdmin && { key: 'referrals', label: 'Referrals', icon: 'customers', group: 'Getting paid' },
           { key: 'links', label: 'Share links', icon: 'link', group: 'What customers see' },
           isAdmin && features.requests
             && { key: 'booking-form', label: 'Booking form', icon: 'clipboard', group: 'What customers see' },
@@ -13084,6 +13200,10 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
           error={error}
           submit={submit}
         />
+      )}
+
+      {subView === 'referrals' && isAdmin && (
+        <ReferralPanel form={form} setField={setField} isAdmin={isAdmin} busy={busy} saved={saved} error={error} submit={submit} />
       )}
 
       {subView === 'booking-form' && isAdmin && (
@@ -13394,6 +13514,7 @@ const SETTINGS_ROUTES = {
   links: '/settings/links',
   payments: '/settings/payments',
   'auto-invoice': '/settings/auto-invoice',
+  referrals: '/settings/referrals',
   'booking-form': '/settings/booking-form',
   landing: '/settings/landing',
   modules: '/settings/modules',
@@ -13423,6 +13544,7 @@ const APP_ROUTES = {
   '/settings/quick-text': 'settings',
   '/settings/dashboard': 'settings',
   '/settings/auto-invoice': 'settings',
+  '/settings/referrals': 'settings',
   '/settings/booking-form': 'settings',
   '/settings/payments': 'settings',
   '/settings/landing': 'settings',

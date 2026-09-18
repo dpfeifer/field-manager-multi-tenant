@@ -24,6 +24,7 @@ const FIELDS = [
   'auto_invoice_schedule', 'auto_invoice_day_of_month', 'auto_invoice_day_of_week',
   'auto_append_to_draft',
   'booking_form_config',
+  'referral_enabled', 'referral_percent', 'referral_cap_jobs',
 ];
 
 const SELECT = `
@@ -35,6 +36,7 @@ const SELECT = `
          auto_invoice_day_of_week, auto_invoice_last_run_at,
          auto_append_to_draft,
          booking_form_config, landing_page_config,
+         referral_enabled, referral_percent, referral_cap_jobs,
          updated_at
   FROM organization_settings WHERE organization_id = $1 LIMIT 1
 `;
@@ -222,6 +224,17 @@ router.put('/', requireRole('admin'), async (req, res, next) => {
       if (TERMINOLOGY_FIELDS.has(f)) v = normalizeLabel(v);
       // One line, and the invoice header is the tightest place it prints.
       if (f === 'tagline') v = typeof v === 'string' ? (v.trim().slice(0, 80) || null) : null;
+      if (f === 'referral_enabled') v = !!v;
+      // A share of the job, so 0–100; two decimals is what the column holds.
+      if (f === 'referral_percent') {
+        const n = parseFloat(v);
+        v = Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n * 100) / 100)) : 10;
+      }
+      // Visits per referred customer that pay out. Empty lifts the cap.
+      if (f === 'referral_cap_jobs') {
+        const n = parseInt(v, 10);
+        v = Number.isInteger(n) && n > 0 ? Math.min(n, 100000) : null;
+      }
       if (f === 'sms_templates') v = JSON.stringify(normalizeSmsTemplates(v));
       if (f === 'dashboard_widgets') v = JSON.stringify(normalizeDashboardWidgets(v));
       if (f === 'booking_form_config') v = JSON.stringify(normalizeBookingFormConfig(v));

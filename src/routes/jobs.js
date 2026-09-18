@@ -6,6 +6,7 @@ const {
   removeCompletionFromDraft,
   isAutoAppendEnabled,
 } = require('../utils/draftAppend');
+const { awardReferralCredit, reverseReferralCredit } = require('../utils/referrals');
 
 const router = express.Router();
 
@@ -405,6 +406,8 @@ router.post('/:id/complete', async (req, res, next) => {
         ]
       );
 
+      await awardReferralCredit(client, { orgId: req.organization.id, job, date, userId: req.user.sub });
+
       const { rows } = await client.query(
         `${BASE_SELECT} WHERE j.id = $1 LIMIT 1`,
         [req.params.id]
@@ -502,6 +505,7 @@ router.delete('/:id/completions/:index', requireRole('admin', 'lead'), async (re
         if (removeResult.removed) {
           billedDates = billedDates.filter((d) => d !== removed.date);
         }
+        await reverseReferralCredit(client, { orgId: req.organization.id, jobId: job.id, date: removed.date });
       }
 
       await client.query(
@@ -605,6 +609,7 @@ router.delete('/:id/completions/by-date/:date', requireRole('admin', 'lead'), as
       if (removeResult.removed) {
         billedDates = billedDates.filter((d) => d !== date);
       }
+      await reverseReferralCredit(client, { orgId: req.organization.id, jobId: job.id, date });
 
       await client.query(
         `UPDATE jobs SET
