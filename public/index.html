@@ -1026,6 +1026,15 @@
       background: var(--tinted); padding: 2px 7px; border-radius: 999px;
     }
     .rectab.active b { color: var(--text); }
+    /* More tabs than fit: fade whichever edge has more behind it, so a label
+       is never chopped mid-word and the strip reads as scrollable. */
+    .rectabs.more-left { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px); mask-image: linear-gradient(to right, transparent, #000 36px); }
+    .rectabs.more-right { -webkit-mask-image: linear-gradient(to left, transparent, #000 36px); mask-image: linear-gradient(to left, transparent, #000 36px); }
+    .rectabs.more-left.more-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+    @media (max-width: 560px) {
+      .rectabs { gap: 0; scroll-padding-inline: 36px; }
+      .rectab { padding: 10px 11px; gap: 6px; }
+    }
 
     @media (max-width: 680px) {
       /* A phone cannot give 100px to a header. Labels go, values stay on one
@@ -7890,6 +7899,21 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
   const [creditBusy, setCreditBusy] = useState(false);
   const [referrals, setReferrals] = useState({ referred_by: null, referred: [], earned: 0 });
   const [inviteState, setInviteState] = useState(null); // null | 'sending' | { ok, text }
+  // Which edges of the tab strip have tabs scrolled out of sight.
+  const tabsRef = useRef(null);
+  const [tabsMore, setTabsMore] = useState({ left: false, right: false });
+  const measureTabs = useCallback(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setTabsMore((cur) => (cur.left === left && cur.right === right ? cur : { left, right }));
+  }, []);
+  useEffect(() => {
+    measureTabs();
+    window.addEventListener('resize', measureTabs);
+    return () => window.removeEventListener('resize', measureTabs);
+  }, [measureTabs, loading, showReferrals]);
   async function resetReferralPage() {
     if (!confirm(`Reset ${customerDisplayName(customer)}'s referral page link? The link they have now stops working, so you will need to send them the new one. Their referral link, credit and history are not affected.`)) return;
     try {
@@ -8089,7 +8113,11 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
 
       {error && <div className="error">{error}</div>}
 
-      <div className="rectabs" role="tablist" aria-label={`${customerDisplayName(customer)} sections`}>
+      <div
+        className={`rectabs${tabsMore.left ? ' more-left' : ''}${tabsMore.right ? ' more-right' : ''}`}
+        role="tablist" aria-label={`${customerDisplayName(customer)} sections`}
+        ref={tabsRef} onScroll={measureTabs}
+      >
         {[
           { key: 'jobs', label: terms.jobs, count: loading ? '' : jobs.length },
           { key: 'invoices', label: 'Invoices', count: loading ? '' : invoices.length },
@@ -8112,7 +8140,7 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
             }}
           >
             <span>{sec.label}</span>
-            {sec.count !== '' && sec.count != null && <b>{sec.count}</b>}
+            {sec.count !== '' && sec.count != null && sec.count !== 0 && sec.count !== formatPrice(0) && <b>{sec.count}</b>}
           </button>
         ))}
       </div>
