@@ -1820,6 +1820,18 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    /* A dialog you type into sits high on a phone: centred, the keyboard
+       covers its lower half, buttons included. */
+    @media (max-width: 560px) { .modal-overlay.modal-overlay--typing { align-items: flex-start; padding-top: max(72px, 10vh); } }
+    .ref-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .ref-actions-links { display: inline-flex; align-items: center; gap: 6px; }
+    .ref-actions-links .link-btn { font-weight: 500; font-size: 13px; padding: 10px 6px; }
+    .ref-actions > .hint { flex: 1 1 100%; }
+    @media (max-width: 560px) {
+      /* One button to a row, and the two text links centred under them. */
+      .ref-actions > button { flex: 1 1 100%; justify-content: center; }
+      .ref-actions-links { flex: 1 1 100%; justify-content: center; gap: 18px; }
+    }
     .invoice-credit-note { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: #e8f1ec; color: #1f6f4a; font-size: 14px; text-align: center; }
     .refpage-head { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
     .refpage-head img { height: 52px; width: auto; max-width: 140px; object-fit: contain; flex: none; }
@@ -8092,7 +8104,12 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
             role="tab"
             aria-selected={tab === sec.key}
             className={`rectab${tab === sec.key ? ' active' : ''}`}
-            onClick={() => setTab(sec.key)}
+            onClick={(e) => {
+              setTab(sec.key);
+              // Six tabs do not fit a phone; bring the chosen one into view
+              // instead of leaving it half off the edge of the strip.
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+            }}
           >
             <span>{sec.label}</span>
             {sec.count !== '' && sec.count != null && <b>{sec.count}</b>}
@@ -8230,23 +8247,25 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <input
                       readOnly onFocus={(e) => e.target.select()}
-                      style={{ flex: '1 1 260px', minWidth: 0 }}
+                      style={{ flex: '1 1 170px', minWidth: 0 }}
                       value={`${window.location.origin}/book/${session.slug}?ref=${referrals.referral_code}`}
                     />
                     <CopyButton text={`${window.location.origin}/book/${session.slug}?ref=${referrals.referral_code}`} label="Copy link" />
                   </div>
                   {referrals.referral_page_token && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                    <div className="ref-actions">
                       {canMutate && (
                         <button type="button" className="secondary" onClick={emailReferralLink} disabled={inviteState === 'sending' || !customer.email}>
                           {inviteState === 'sending' ? 'Sending...' : 'Email them their link'}
                         </button>
                       )}
                       <CopyButton text={`${window.location.origin}/r/${referrals.referral_page_token}`} label="Copy their referral page" />
-                      <a className="link-btn" style={{ fontWeight: 500, fontSize: 13 }} href={`/r/${referrals.referral_page_token}`} target="_blank" rel="noopener noreferrer">Preview</a>
-                      {canMutate && (
-                        <button type="button" className="link-btn" style={{ fontWeight: 500, fontSize: 13, color: 'var(--text-muted)' }} onClick={resetReferralPage}>Reset link</button>
-                      )}
+                      <span className="ref-actions-links">
+                        <a className="link-btn" href={`/r/${referrals.referral_page_token}`} target="_blank" rel="noopener noreferrer">Preview</a>
+                        {canMutate && (
+                          <button type="button" className="link-btn" style={{ color: 'var(--text-muted)' }} onClick={resetReferralPage}>Reset link</button>
+                        )}
+                      </span>
                       {inviteState && inviteState !== 'sending' && (
                         <span className="hint" role="status" style={{ color: inviteState.ok ? 'var(--success)' : 'var(--danger)' }}>{inviteState.text}</span>
                       )}
@@ -8698,7 +8717,7 @@ function DeleteCustomerDialog({ customer, onConfirm, onCancel }) {
     await onConfirm();
   }
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay modal-overlay--typing" onClick={onCancel}>
       <form className="modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="modal-head" style={{ marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>Delete {name}?</h3>
@@ -16039,7 +16058,7 @@ function ReferralsView({ session }) {
   const earnedTotal = referrers.reduce((n, r) => n + (parseFloat(r.earned) || 0), 0);
   const terms_ = program
     ? `${parseFloat(program.referral_percent)}% of each ${terms.jobLower}${program.referral_cap_jobs != null ? `, first ${program.referral_cap_jobs} per referred ${terms.customerLower}` : ''}`
-    : 'Reward settings';
+    : '';
 
   return (
     <div>
@@ -16052,9 +16071,10 @@ function ReferralsView({ session }) {
         </span>
         <span className="tb-gap"></span>
         <span className="tb-actions">
-          <button className="secondary" onClick={() => navigate('/settings/referrals')}>{terms_}</button>
+          <button className="secondary" onClick={() => navigate('/settings/referrals')}>Reward settings</button>
         </span>
       </div>
+      {program && <p className="hint" style={{ margin: '0 0 12px' }}>Referrers earn {terms_}.</p>}
       {error && <div className="error">{error}</div>}
       <div className="list">
         {!data && !error ? (
@@ -16076,9 +16096,9 @@ function ReferralsView({ session }) {
                 {parseFloat(r.credit_balance) > 0 && <> &middot; {formatPrice(parseFloat(r.credit_balance))} credit available</>}
               </div>
             </div>
-            <div className="actions" style={{ fontWeight: 600, color: parseFloat(r.earned) > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
-              {parseFloat(r.earned) > 0 ? `+${formatPrice(parseFloat(r.earned))}` : 'No rewards yet'}
-            </div>
+            {parseFloat(r.earned) > 0
+              ? <div className="actions" style={{ fontWeight: 600, color: 'var(--success)' }}>+{formatPrice(parseFloat(r.earned))}</div>
+              : <div className="actions hint" style={{ margin: 0 }}>No rewards yet</div>}
           </div>
         ))}
       </div>
