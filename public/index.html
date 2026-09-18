@@ -4094,6 +4094,9 @@
     .pd-c { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; } .pd-c b { color: var(--text); font-weight: 600; }
     .pd-acts { display: flex; gap: 8px; }
     .pd-sec { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin: 18px 0 9px; }
+    .pd-req { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; margin-bottom: 10px; background: linear-gradient(to right, var(--tinted), #fff); border: 1px solid var(--accent); border-radius: 14px; font-size: 13.5px; }
+    .pd-req strong { font-family: var(--serif); font-size: 21px; font-weight: 600; margin-right: 5px; }
+    .pd-req-btn { flex: 0 0 auto; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; padding: 8px 15px; border-radius: 999px; }
     .pd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .pd-stat { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
     .pd-l { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
@@ -6846,6 +6849,7 @@ function PdToday() {
   return (
     <>
       <div className="pd-tb"><div><h5>Good morning, Sam.</h5><div className="pd-c">Tue, Sep 15 · <b>3 jobs</b> today</div></div><PdActions /></div>
+      <div className="pd-req"><div><strong>2</strong> pending booking requests</div><span className="pd-req-btn">Review</span></div>
       <div className="pd-two">
         <div className="pd-stat"><div className="pd-l">Outstanding</div><div className="pd-n">$1,100</div><div className="pd-s">2 invoices</div></div>
         <div className="pd-stat"><div className="pd-l">Next 7 days</div><div className="pd-n">$695</div><div className="pd-s">projected</div></div>
