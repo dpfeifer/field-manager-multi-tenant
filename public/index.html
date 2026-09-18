@@ -1820,6 +1820,35 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    .invoice-credit-note { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: #e8f1ec; color: #1f6f4a; font-size: 14px; text-align: center; }
+    .refpage-head { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .refpage-head img { height: 52px; width: auto; max-width: 140px; object-fit: contain; flex: none; }
+    .refpage-head h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(22px, 4vw, 28px); line-height: 1.15; letter-spacing: -0.02em; margin: 2px 0 0; text-wrap: balance; }
+    .refpage-co { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .refpage-stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .refpage-stats > div { padding: 18px 14px; text-align: center; border-left: 1px solid var(--border); }
+    .refpage-stats > div:first-child { border-left: 0; background: #e8f1ec; }
+    .refpage-stats .k { font-family: var(--serif); font-weight: 600; font-size: 26px; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .refpage-stats > div:first-child .k { color: #1f6f4a; }
+    .refpage-stats .l { margin-top: 6px; font-size: 12.5px; color: var(--text-muted); }
+    .refpage-h { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin: 32px 0 10px; }
+    .refpage-link { display: flex; gap: 8px; flex-wrap: wrap; }
+    .refpage-link input { flex: 1 1 240px; min-width: 0; }
+    .refpage-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .refpage-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-top: 1px solid var(--border); }
+    .refpage-row:first-child { border-top: 0; }
+    .refpage-row .n { font-weight: 600; } .refpage-row .m { font-size: 13px; color: var(--text-muted); margin-top: 1px; }
+    .refpage-row .a { font-weight: 600; color: #1f6f4a; font-variant-numeric: tabular-nums; }
+    .refpage-foot { margin: 28px 0 0; font-size: 13px; color: var(--text-muted); }
+    .refpage-foot a { color: inherit; }
+    @media (max-width: 560px) {
+      .refpage .invoice-doc { padding: 24px 18px; }
+      .refpage-stats { grid-template-columns: 1fr; }
+      .refpage-stats > div { border-left: 0; border-top: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; text-align: left; padding: 14px 16px; }
+      .refpage-stats > div:first-child { border-top: 0; }
+      .refpage-stats .l { margin-top: 0; order: -1; }
+      .refpage-stats .k { font-size: 22px; }
+    }
     .booking-ref { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--tinted); font-size: 14px; }
     .row-link:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .link-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
@@ -7848,6 +7877,16 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
   const [creditNote, setCreditNote] = useState('');
   const [creditBusy, setCreditBusy] = useState(false);
   const [referrals, setReferrals] = useState({ referred_by: null, referred: [], earned: 0 });
+  const [inviteState, setInviteState] = useState(null); // null | 'sending' | { ok, text }
+  async function emailReferralLink() {
+    setInviteState('sending');
+    try {
+      const r = await apiRequest(`/api/customers/${customer.id}/referrals/send-link`, {
+        method: 'POST', slug: session.slug, token: session.token,
+      });
+      setInviteState({ ok: true, text: `Sent to ${r.to}.` });
+    } catch (err) { setInviteState({ ok: false, text: err.message }); }
+  }
 
   const refreshCredits = useCallback(async () => {
     const c = await apiRequest(`/api/customers/${customer.id}/credits`, { slug: session.slug, token: session.token });
@@ -8186,6 +8225,24 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
                     />
                     <CopyButton text={`${window.location.origin}/book/${session.slug}?ref=${referrals.referral_code}`} label="Copy link" />
                   </div>
+                  {referrals.referral_page_token && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                      {canMutate && (
+                        <button type="button" className="secondary" onClick={emailReferralLink} disabled={inviteState === 'sending' || !customer.email}>
+                          {inviteState === 'sending' ? 'Sending...' : 'Email them their link'}
+                        </button>
+                      )}
+                      <CopyButton text={`${window.location.origin}/r/${referrals.referral_page_token}`} label="Copy their referral page" />
+                      <a className="link-btn" style={{ fontWeight: 500, fontSize: 13 }} href={`/r/${referrals.referral_page_token}`} target="_blank" rel="noopener noreferrer">Preview</a>
+                      {inviteState && inviteState !== 'sending' && (
+                        <span className="hint" role="status" style={{ color: inviteState.ok ? 'var(--success)' : 'var(--danger)' }}>{inviteState.text}</span>
+                      )}
+                      {!customer.email && <span className="hint">No email on file.</span>}
+                    </div>
+                  )}
+                  <p className="hint" style={{ marginBottom: 0 }}>
+                    Their referral page is private to them: their credit, who booked through their link, and the link itself.
+                  </p>
                 </div>
               )}
               {referrals.referred_by && (
@@ -18771,6 +18828,13 @@ function PublicInvoiceView({ id }) {
             {math.creditApplied > 0 ? 'Balance due ' : 'Total '}
             {formatPrice(math.creditApplied > 0 ? math.balanceDue : math.total)}
           </div>
+          {/* Credit is applied by the business, not automatically — so an
+              unpaid invoice says it is there, and who to ask. */}
+          {invoice.status === 'sent' && parseFloat(invoice.credit_available) > 0 && math.balanceDue > 0 && (
+            <p className="invoice-credit-note no-print">
+              You have <strong>{formatPrice(parseFloat(invoice.credit_available))}</strong> in credit with {invoice.company_name || invoice.organization_name}. Ask them to apply it to this invoice.
+            </p>
+          )}
         </div>
 
         {invoice.status === 'sent' && invoice.payment_link_url && (
@@ -18811,6 +18875,98 @@ function PublicInvoiceView({ id }) {
         <div className="invoice-actions no-print">
           <button className="secondary" onClick={() => window.print()}>Print or save as PDF</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// A customer's own referral page, at /r/<private token>.
+function PublicReferralView({ token }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/public/referral-page/${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) { setError(res.status === 404 ? 'This link is not active.' : `Error ${res.status}`); return; }
+        const d = await res.json();
+        if (cancelled) return;
+        setData(d);
+        document.title = `Your referrals — ${d.company_name}`;
+      })
+      .catch((err) => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (error) {
+    return (
+      <div className="public-shell"><div className="invoice-doc">
+        <h1 style={{ marginTop: 0 }}>Page unavailable</h1>
+        <p className="subtitle">{error}</p>
+      </div></div>
+    );
+  }
+  if (!data) return <div className="public-shell"><div className="invoice-doc"><p className="subtitle">Loading...</p></div></div>;
+
+  const link = `${window.location.origin}/book/${data.slug}?ref=${data.referral_code}`;
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  async function copy() {
+    try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch (e) { /* the field is selectable */ }
+  }
+  function share() {
+    navigator.share({ title: data.company_name, text: `I use ${data.company_name} — book through my link:`, url: link }).catch(() => {});
+  }
+
+  return (
+    <div className="public-shell refpage">
+      <div className="invoice-doc">
+        <div className="refpage-head">
+          {data.logo_url && <img src={data.logo_url} alt="" />}
+          <div>
+            <div className="refpage-co">{data.company_name}</div>
+            <h1>{data.name ? `${data.name}, here are your referrals` : 'Your referrals'}</h1>
+          </div>
+        </div>
+
+        <div className="refpage-stats">
+          <div><div className="k">{formatPrice(data.credit_balance)}</div><div className="l">Credit available</div></div>
+          <div><div className="k">{formatPrice(data.earned)}</div><div className="l">Earned from referrals</div></div>
+          <div><div className="k">{data.referred.length}</div><div className="l">{data.referred.length === 1 ? 'Person referred' : 'People referred'}</div></div>
+        </div>
+
+        <h2 className="refpage-h">Your link</h2>
+        <p className="subtitle" style={{ marginTop: 0 }}>
+          Anyone who books through it is marked as your referral. You earn <strong style={{ color: 'var(--text)' }}>{data.percent}%</strong> of {data.cap_jobs != null ? `their first ${data.cap_jobs} jobs` : 'every job we do for them'}, as credit on your account.
+        </p>
+        <div className="refpage-link">
+          <input id="refpage-link" readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Your referral link" />
+          <button type="button" className="primary" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+          {canShare && <button type="button" className="secondary" onClick={share}>Share</button>}
+        </div>
+
+        <h2 className="refpage-h">Who you&apos;ve referred</h2>
+        {data.referred.length === 0 ? (
+          <p className="subtitle" style={{ marginTop: 0 }}>Nobody yet. Send your link to a neighbor or a friend.</p>
+        ) : (
+          <div className="refpage-list">
+            {data.referred.map((r, i) => (
+              <div key={i} className="refpage-row">
+                <div>
+                  <div className="n">{r.name}</div>
+                  <div className="m">{r.rewards === 0 ? 'No jobs completed yet' : `${r.rewards} ${r.rewards === 1 ? 'reward' : 'rewards'}`}</div>
+                </div>
+                {r.earned > 0 && <div className="a">+{formatPrice(r.earned)}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="refpage-foot">
+          Credit comes off a future invoice. Questions? {data.company_phone && <a href={`tel:${data.company_phone.replace(/[^\d+]/g, '')}`}>{data.company_phone}</a>}{data.company_phone && data.company_email && ' · '}{data.company_email && <a href={`mailto:${data.company_email}`}>{data.company_email}</a>}
+        </p>
       </div>
     </div>
   );
@@ -19989,6 +20145,8 @@ function App() {
 
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
+  const referralPageMatch = path.match(/^\/r\/([^/]+)/);
+  if (referralPageMatch) return <PublicReferralView token={referralPageMatch[1]} />;
   const quoteMatch = path.match(/^\/q\/([^/]+)/);
   if (quoteMatch) return <PublicQuoteView id={quoteMatch[1]} />;
   const bookMatch = path.match(/^\/book\/([^/]+)/);

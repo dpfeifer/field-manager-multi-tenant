@@ -76,7 +76,7 @@ async function notifyReferralCredit(orgId, award) {
     const { referralCreditTemplate } = require('./emailTemplates');
     const { rows } = await query(
       `SELECT r.email, r.first_name, r.business_name,
-              o.name AS organization_name,
+              o.name AS organization_name, o.slug,
               s.company_name, s.email AS company_email, s.phone AS company_phone,
               COALESCE(s.referral_email_enabled, TRUE) AS email_enabled,
               (SELECT COALESCE(SUM(amount), 0) FROM customer_credits
@@ -89,7 +89,9 @@ async function notifyReferralCredit(orgId, award) {
     );
     const r = rows[0];
     if (!r || !r.email || !r.email_enabled) return;
+    const token = await ensureReferralPageToken({ query }, orgId, award.customer_id);
     const tpl = referralCreditTemplate({
+      pageUrl: token ? `${publicBase()}/r/${token}` : null,
       companyName: r.company_name || r.organization_name,
       companyEmail: r.company_email, companyPhone: r.company_phone,
       recipientName: r.first_name || r.business_name,
@@ -140,6 +142,23 @@ async function ensureReferralCode(db, orgId, customerId) {
   return null;
 }
 
+// The secret behind a customer's private referral page. 32 url-safe
+// characters; made on first need, like the code.
+async function ensureReferralPageToken(db, orgId, customerId) {
+  const token = require('crypto').randomBytes(24).toString('base64url');
+  const { rows } = await db.query(
+    `UPDATE customers SET referral_page_token = COALESCE(referral_page_token, $3)
+     WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+     RETURNING referral_page_token`,
+    [customerId, orgId, token]
+  );
+  return rows[0] ? rows[0].referral_page_token : null;
+}
+
+function publicBase() {
+  return (process.env.APP_URL || 'https://fieldmgr.com').replace(/\/+$/, '');
+}
+
 // Who a referral link belongs to. Only a code counts: what a visitor types
 // into "Referred by" is shown to the owner, who picks the customer themselves
 // when promoting the prospect — a name is not an identity, and this decides
@@ -162,4 +181,4 @@ async function resolveReferrer(db, orgId, { code }) {
   return null;
 }
 
-module.exports = { awardReferralCredit, reverseReferralCredit, notifyReferralCredit, ensureReferralCode, resolveReferrer, displayName };
+module.exports = { ensureReferralPageToken, publicBase, awardReferralCredit, reverseReferralCredit, notifyReferralCredit, ensureReferralCode, resolveReferrer, displayName };

@@ -171,20 +171,39 @@ function passwordResetTemplate({ user, orgSlug, resetUrl }) {
 
 // Editable template renderer (uses templateStore + substitution).
 // Wraps the customizable intro in the standard shell with a CTA button.
+// To a customer, from the owner: here is your link, here is what it earns you.
+function referralInviteTemplate({ companyName, companyEmail, companyPhone, recipientName, percent, linkUrl, pageUrl }) {
+  const pct = parseFloat(percent);
+  const bodyHtml = `
+    <p style="margin:0 0 20px; color:#6d6a64; font-size:14px;">From ${escapeHtml(companyName)}</p>
+    <p style="margin:0 0 16px;">Hi ${escapeHtml(recipientName || 'there')},</p>
+    <p style="margin:0 0 16px;">Know someone who could use us? Send them your personal booking link. When they book through it, you earn <strong>${pct}%</strong> of each job we do for them, as credit on your own account.</p>
+    <p style="margin:0 0 20px; padding:14px 16px; background:#f3efe6; border-radius:8px; word-break:break-all;"><a href="${linkUrl}" style="color:#2c3e57; font-weight:600;">${escapeHtml(linkUrl)}</a></p>
+    <div style="margin:0 0 20px;"><a href="${pageUrl}" style="display:inline-block; background:#2c3e57; color:#ffffff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:600; font-size:14px;">See your referrals</a></div>
+    <p style="margin:0; color:#6d6a64; font-size:14px;">That page is private to you: it shows who has booked through your link and the credit you have earned. Questions? Just reply to this email.</p>
+  `;
+  const footerHtml = `${escapeHtml(companyName)}<br/>${companyPhone ? escapeHtml(companyPhone) + ' · ' : ''}${companyEmail ? escapeHtml(companyEmail) : ''}`;
+  const subject = `Your referral link for ${companyName}`;
+  const html = shellHTML({ heading: 'Your referral link', bodyHtml, footerHtml });
+  const text = `Hi ${recipientName || 'there'},\n\nKnow someone who could use us? Send them your personal booking link. When they book through it, you earn ${pct}% of each job we do for them, as credit on your own account.\n\n${linkUrl}\n\nSee your referrals: ${pageUrl}\n\n${companyName}\n`;
+  return { subject, html, text };
+}
+
 // To a customer whose referral just earned them credit.
-function referralCreditTemplate({ companyName, companyEmail, companyPhone, recipientName, referredName, amount, balance }) {
+function referralCreditTemplate({ companyName, companyEmail, companyPhone, recipientName, referredName, amount, balance, pageUrl }) {
   const who = referredName || 'someone you referred';
   const bodyHtml = `
     <p style="margin:0 0 20px; color:#6d6a64; font-size:14px;">From ${escapeHtml(companyName)}</p>
     <p style="margin:0 0 16px;">Hi ${escapeHtml(recipientName || 'there')},</p>
     <p style="margin:0 0 16px;">We just finished a job for ${escapeHtml(who)}, who you sent our way &mdash; so <strong>${moneyUSD(amount)}</strong> has been added to your account as credit. Thank you for the referral.</p>
     <p style="margin:0 0 16px; padding:14px 16px; background:#f3efe6; border-radius:8px;">Your credit balance: <strong>${moneyUSD(balance)}</strong></p>
+    ${pageUrl ? `<div style="margin:0 0 20px;"><a href="${pageUrl}" style="display:inline-block; background:#2c3e57; color:#ffffff; text-decoration:none; padding:11px 18px; border-radius:8px; font-weight:600; font-size:14px;">See your referrals</a></div>` : ''}
     <p style="margin:0; color:#6d6a64; font-size:14px;">We&#39;ll take it off an upcoming invoice. Questions? Just reply to this email.</p>
   `;
   const footerHtml = `${escapeHtml(companyName)}<br/>${companyPhone ? escapeHtml(companyPhone) + ' · ' : ''}${companyEmail ? escapeHtml(companyEmail) : ''}`;
   const subject = `You earned ${moneyUSD(amount)} in credit with ${companyName}`;
   const html = shellHTML({ heading: `You earned ${moneyUSD(amount)} in credit`, bodyHtml, footerHtml });
-  const text = `Hi ${recipientName || 'there'},\n\nWe just finished a job for ${who}, who you sent our way, so ${moneyUSD(amount)} has been added to your account as credit. Thank you for the referral.\n\nYour credit balance: ${moneyUSD(balance)}\nWe'll take it off an upcoming invoice.\n\n${companyName}\n`;
+  const text = `Hi ${recipientName || 'there'},\n\nWe just finished a job for ${who}, who you sent our way, so ${moneyUSD(amount)} has been added to your account as credit. Thank you for the referral.\n\nYour credit balance: ${moneyUSD(balance)}\nWe'll take it off an upcoming invoice.${pageUrl ? `\n\nSee your referrals: ${pageUrl}` : ''}\n\n${companyName}\n`;
   return { subject, html, text };
 }
 
@@ -202,4 +221,4 @@ function renderEditableTemplate(template, vars, { ctaLabel, ctaUrl, heading }) {
   return { subject, html, text: introText };
 }
 
-module.exports = { referralCreditTemplate, invoiceTemplate, quoteTemplate, passwordResetTemplate, teamInviteTemplate, renderEditableTemplate };
+module.exports = { referralInviteTemplate, referralCreditTemplate, invoiceTemplate, quoteTemplate, passwordResetTemplate, teamInviteTemplate, renderEditableTemplate };

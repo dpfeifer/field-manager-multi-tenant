@@ -2,7 +2,9 @@ const express = require('express');
 const { query, withTransaction } = require('../config/db');
 const { requireRole } = require('../middleware/auth');
 const { round2 } = require('../utils/credits');
-const { ensureReferralCode } = require('../utils/referrals');
+const { ensureReferralCode, ensureReferralPageToken, publicBase } = require('../utils/referrals');
+const { sendEmail } = require('../utils/email');
+const { referralInviteTemplate } = require('../utils/emailTemplates');
 
 const router = express.Router();
 
@@ -309,7 +311,44 @@ router.get('/:id/referrals', async (req, res, next) => {
     );
     const earned = referred.reduce((s, r) => s + parseFloat(r.earned), 0);
     const referral_code = await ensureReferralCode({ query }, req.organization.id, req.params.id);
-    res.json({ referred_by: me.rows[0] || null, referred, earned: round2(earned), referral_code });
+    const referral_page_token = await ensureReferralPageToken({ query }, req.organization.id, req.params.id);
+    res.json({ referred_by: me.rows[0] || null, referred, earned: round2(earned), referral_code, referral_page_token });
+  } catch (err) { next(err); }
+});
+
+// Email a customer their referral link and their private page.
+router.post('/:id/referrals/send-link', requireRole('admin', 'lead'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT c.email, c.first_name, c.business_name, o.slug, o.name AS organization_name,
+              (o.features->>'referrals') = 'true' AS enabled,
+              s.company_name, s.email AS company_email, s.phone AS company_phone,
+              COALESCE(s.referral_percent, 10) AS referral_percent
+       FROM customers c
+       JOIN organizations o ON o.id = c.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE c.id = $1 AND c.organization_id = $2 AND c.deleted_at IS NULL LIMIT 1`,
+      [req.params.id, req.organization.id]
+    );
+    const c = rows[0];
+    if (!c) return res.status(404).json({ error: 'Not found' });
+    if (!c.enabled) return res.status(400).json({ error: 'Referrals are switched off in Settings → Sections' });
+    if (!c.email) return res.status(400).json({ error: 'This customer has no email address on file' });
+    const code = await ensureReferralCode({ query }, req.organization.id, req.params.id);
+    const token = await ensureReferralPageToken({ query }, req.organization.id, req.params.id);
+    const tpl = referralInviteTemplate({
+      companyName: c.company_name || c.organization_name,
+      companyEmail: c.company_email, companyPhone: c.company_phone,
+      recipientName: c.first_name || c.business_name,
+      percent: c.referral_percent,
+      linkUrl: `${publicBase()}/book/${c.slug}?ref=${code}`,
+      pageUrl: `${publicBase()}/r/${token}`,
+    });
+    const result = await sendEmail({ to: c.email, subject: tpl.subject, html: tpl.html, text: tpl.text, replyTo: c.company_email || undefined });
+    if (!result.sent) {
+      return res.status(502).json({ error: result.reason === 'not_configured' ? 'Email is not set up on this server' : 'The email could not be sent. Try again in a minute.' });
+    }
+    res.json({ ok: true, to: c.email });
   } catch (err) { next(err); }
 });
 

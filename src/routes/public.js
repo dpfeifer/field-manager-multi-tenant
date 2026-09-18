@@ -5,7 +5,7 @@ const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const { resolveReferrer, displayName: referrerName } = require('../utils/referrals');
+const { resolveReferrer, ensureReferralCode, displayName: referrerName } = require('../utils/referrals');
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
@@ -346,6 +346,53 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// A customer's private referral page. The token is the only key; what comes
+// back is theirs alone, and the people they referred appear by first name.
+router.get('/referral-page/:token', async (req, res, next) => {
+  const token = req.params.token || '';
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows } = await query(
+      `SELECT c.id, c.organization_id, c.first_name, c.business_name, c.referral_code,
+              o.slug, o.name AS organization_name,
+              (o.features->>'referrals') = 'true' AS enabled,
+              s.company_name, s.logo_url, s.phone AS company_phone, s.email AS company_email,
+              COALESCE(s.referral_percent, 10) AS referral_percent,
+              CASE WHEN s.organization_id IS NULL THEN 5 ELSE s.referral_cap_jobs END AS referral_cap_jobs,
+              COALESCE((SELECT SUM(amount) FROM customer_credits
+                        WHERE customer_id = c.id AND deleted_at IS NULL), 0) AS credit_balance
+       FROM customers c
+       JOIN organizations o ON o.id = c.organization_id AND o.deleted_at IS NULL
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE c.referral_page_token = $1 AND c.deleted_at IS NULL LIMIT 1`,
+      [token]
+    );
+    const c = rows[0];
+    if (!c || !c.enabled) return res.status(404).json({ error: 'Not found' });
+    const code = c.referral_code || await ensureReferralCode({ query }, c.organization_id, c.id);
+    const { rows: referred } = await query(
+      `SELECT COALESCE(NULLIF(x.first_name, ''), x.business_name, 'Someone') AS name,
+              COALESCE(SUM(cc.amount), 0) AS earned, COUNT(cc.id)::int AS rewards
+       FROM customers x
+       LEFT JOIN customer_credits cc
+              ON cc.source_customer_id = x.id AND cc.customer_id = $1 AND cc.deleted_at IS NULL
+       WHERE x.referred_by_customer_id = $1 AND x.deleted_at IS NULL
+       GROUP BY x.id ORDER BY x.created_at`,
+      [c.id]
+    );
+    res.json({
+      name: c.first_name || c.business_name || '',
+      company_name: c.company_name || c.organization_name,
+      logo_url: c.logo_url, company_phone: c.company_phone, company_email: c.company_email,
+      slug: c.slug, referral_code: code,
+      percent: parseFloat(c.referral_percent), cap_jobs: c.referral_cap_jobs,
+      credit_balance: parseFloat(c.credit_balance),
+      earned: referred.reduce((n, r) => n + parseFloat(r.earned), 0),
+      referred: referred.map((r) => ({ name: r.name, earned: parseFloat(r.earned), rewards: r.rewards })),
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/invoices/:id', async (req, res, next) => {
   const id = req.params.id;
   if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Not found' });
@@ -369,7 +416,11 @@ router.get('/invoices/:id', async (req, res, next) => {
          s.email AS company_email,
          s.venmo_handle,
          s.payment_link_url,
-         s.tagline
+         s.tagline,
+         -- Unspent credit on the customer's account, so an unpaid invoice can
+         -- say it is there to be used.
+         GREATEST(COALESCE((SELECT SUM(cc.amount) FROM customer_credits cc
+                   WHERE cc.customer_id = i.customer_id AND cc.deleted_at IS NULL), 0), 0) AS credit_available
        FROM invoices i
        JOIN customers c ON c.id = i.customer_id
        JOIN organizations o ON o.id = i.organization_id
