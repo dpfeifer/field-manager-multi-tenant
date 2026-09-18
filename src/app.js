@@ -299,6 +299,31 @@ async function bookingMetaForPath(pathname) {
   }
 }
 
+// /r/<token> — a customer's private referral page. Same treatment as an
+// invoice link: the business's name, no image, and nothing about the
+// customer — the preview is what a chat app shows to anyone in the thread.
+async function referralPageMetaForPath(pathname) {
+  const m = pathname.match(/^\/r\/([A-Za-z0-9_-]{20,64})$/);
+  if (!m) return null;
+  const fallback = { title: 'Your referrals', description: 'Your referral link and the credit it has earned you.' };
+  try {
+    const { rows } = await query(
+      `SELECT o.name AS organization_name, s.company_name
+       FROM customers c
+       JOIN organizations o ON o.id = c.organization_id AND o.deleted_at IS NULL
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE c.referral_page_token = $1 AND c.deleted_at IS NULL LIMIT 1`,
+      [m[1]]
+    );
+    if (rows.length === 0) return fallback;
+    const company = rows[0].company_name || rows[0].organization_name;
+    return {
+      title: `Your referrals — ${company}`,
+      description: `Your referral link for ${company}, and the credit it has earned you.`,
+    };
+  } catch (err) { return fallback; }
+}
+
 // /<slug> — the hosted per-tenant landing page. Unlike invoices/quotes, here
 // we WANT a rich preview: inject the tenant's hero (or first gallery) image so
 // a shared landing-page link shows their photo instead of the Field Manager
@@ -385,8 +410,11 @@ async function serveIndex(req, res) {
   const social = (await invoiceMetaForPath(req.path))
     || (await quoteMetaForPath(req.path))
     || (await bookingMetaForPath(req.path))
+    || (await referralPageMetaForPath(req.path))
     || (await landingMetaForPath(req.path));
   if (social) html = applySocialMeta(html, social);
+  // A private page has no business in a search index.
+  if (/^\/r\//.test(req.path)) res.set('X-Robots-Tag', 'noindex, nofollow');
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.send(html);

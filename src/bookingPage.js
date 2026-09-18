@@ -95,7 +95,7 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(heading)}</title>
 <meta name="robots" content="noindex">
-<meta property="og:title" content="${esc(`Book a service with ${company}`)}">
+<meta property="og:title" content="${esc(referrer ? `${referrer.name} recommends ${company}` : `Book a service with ${company}`)}">
 <meta property="og:description" content="${esc(sub)}">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
