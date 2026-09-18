@@ -6645,7 +6645,7 @@ function CyclingHeadline() {
   );
 }
 
-function LandingPage() {
+function LandingPage({ signedIn }) {
   const founder = useFounderStatus();
   const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   // Honor an inbound #hash (e.g. the static pages' "Pricing" link → /#pricing).
@@ -6709,8 +6709,14 @@ function LandingPage() {
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
           >Pricing</button>
-          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
-          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+          {signedIn ? (
+            <button className="ed-nav-cta" onClick={() => navigate('/dashboard')}>Open app →</button>
+          ) : (
+            <>
+              <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+              <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -6878,7 +6884,7 @@ function LandingPage() {
 
 // Sales-focused alternate landing at /start. Aggressive copy, urgency,
 // pain → solution arc, multiple CTAs. Editorial /  stays where it is.
-function SalesLandingPage() {
+function SalesLandingPage({ signedIn }) {
   const founder = useFounderStatus();
   const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
   const founderPrice = founder ? Math.round(founder.founder_price) : 19;
@@ -6919,8 +6925,14 @@ function SalesLandingPage() {
       <nav className="ed-nav">
         <div className="ed-brand"><img src="/favicon.svg" alt="" className="ed-brand-icon" />Field Manager</div>
         <div className="ed-nav-actions">
-          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
-          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+          {signedIn ? (
+            <button className="ed-nav-cta" onClick={() => navigate('/dashboard')}>Open app →</button>
+          ) : (
+            <>
+              <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+              <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -7138,8 +7150,14 @@ function LegalShell({ title, eyebrow, updated, children }) {
       <nav className="ed-nav">
         <button className="ed-brand" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}><img src="/favicon.svg" alt="" className="ed-brand-icon" />Field Manager</button>
         <div className="ed-nav-actions">
-          <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
-          <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+          {loadSession() ? (
+            <button className="ed-nav-cta" onClick={() => navigate('/dashboard')}>Open app →</button>
+          ) : (
+            <>
+              <button className="ed-nav-link" onClick={() => navigate('/signin')}>Sign in</button>
+              <button className="ed-nav-cta" onClick={() => navigate('/signup')}>Start free</button>
+            </>
+          )}
         </div>
       </nav>
       <article className="legal-page">
@@ -19155,6 +19173,21 @@ function App() {
   const path = useLocation();
   const [session, setSession] = useState(loadSession);
 
+  // Signed in, there is nothing to sign in to — and from an installed app,
+  // nothing to be sold (see the marketing routes below). Both go to the app.
+  // This lives in App's own effect, after useLocation's: effects run child
+  // before parent, so a redirect fired from a child component on first load
+  // dispatched its popstate before the listener above existed, and the page
+  // sat blank on a path nothing would ever re-read.
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  const isMarketing = path === '/' || path === '/start';
+  const redirectToApp = !!session
+    && ((isMarketing && standalone) || path === '/signin' || path === '/signup');
+  useEffect(() => {
+    if (redirectToApp) navigate('/dashboard', { replace: true });
+  }, [redirectToApp]);
+
   const publicMatch = path.match(/^\/i\/([^/]+)/);
   if (publicMatch) return <PublicInvoiceView id={publicMatch[1]} />;
   const quoteMatch = path.match(/^\/q\/([^/]+)/);
@@ -19197,17 +19230,32 @@ function App() {
   function handleSessionUpdate(next) { saveSession(next); setSession(next); }
   function handleAuthSuccess(next) { saveSession(next); setSession(next); navigate('/dashboard'); }
 
+  // The marketing pages and the app are separate places. `/` used to be both
+  // — the sales page signed out, the dashboard signed in — so the page that
+  // sells the product vanished for anyone who had bought it, including its
+  // owner trying to look at it. Now `/` and `/start` are the marketing pages
+  // for everyone, and the app lives at its own URLs.
+  //
+  // One exception: an installed app. Its manifest pointed at `/` when it was
+  // installed, and iOS keeps the manifest it installed with — so a signed-in
+  // launch from the home screen still arrives here, and belongs in the app.
+  if (isMarketing && !(session && standalone)) {
+    return path === '/start'
+      ? <SalesLandingPage signedIn={!!session} />
+      : <LandingPage signedIn={!!session} />;
+  }
+
   if (session) {
+    // The effect at the top is already sending this to /dashboard.
+    if (redirectToApp) return null;
     return <AppShell session={session} onLogout={handleLogout} onSessionUpdate={handleSessionUpdate} />;
   }
 
-  if (path === '/signin' || path === '/signup') {
-    return <AuthShell onSession={handleAuthSuccess} />;
-  }
-
-  if (path === '/start') return <SalesLandingPage />;
-  return <LandingPage />;
+  // Signed out: the sign-in screen, at its own URLs and at any app URL — a
+  // bookmarked /invoices used to fall through to the sales page.
+  return <AuthShell onSession={handleAuthSuccess} />;
 }
+
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <>

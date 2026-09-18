@@ -2,7 +2,7 @@
   "name": "Field Manager",
   "short_name": "Field Manager",
   "description": "Customers, schedules, quotes, and invoices for small service businesses.",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
