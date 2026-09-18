@@ -20,8 +20,32 @@ async function appliedSet(client) {
   return new Set(rows.map((r) => r.filename));
 }
 
+// A fresh container on Railway cannot resolve the private-network host in
+// DATABASE_URL for its first few seconds, and the pre-deploy step runs this
+// the instant the container starts. One attempt made the whole deploy depend
+// on winning that race: it usually did, and then one day it did not, with a
+// commit that contained no migration at all. So: a handful of attempts with
+// a growing pause, each with its own deadline so a connect that never
+// returns cannot hang the deploy either. About forty seconds in the worst
+// case, and the last error is the one reported.
+async function connectWithRetry(attempts = 8) {
+  for (let i = 1; ; i += 1) {
+    try {
+      return await Promise.race([
+        pool.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('connect timed out after 10s')), 10000)),
+      ]);
+    } catch (err) {
+      if (i >= attempts) throw err;
+      const wait = Math.min(1000 * i, 5000);
+      console.log(`Database not reachable yet (${err.code || err.message}); attempt ${i} of ${attempts}, retrying in ${wait}ms`);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
+}
+
 async function run() {
-  const client = await pool.connect();
+  const client = await connectWithRetry();
   try {
     await ensureMigrationsTable(client);
     const applied = await appliedSet(client);
