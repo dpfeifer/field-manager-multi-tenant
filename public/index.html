@@ -3958,6 +3958,190 @@
     @media (max-width: 600px) {
       .ed-chapters { padding: 24px 20px 56px; }
     }
+    /* ---- the sales page takes the app's identity ----
+       The terracotta and the black pills made the page that sells the product
+       look like a different company from the product. Scoped to the landing
+       pages: the app's own --accent is untouched. */
+    .landing-editorial { --accent: var(--primary); }
+    .landing-editorial .sales-cta, .landing-editorial .ed-nav-cta { background: var(--primary); color: #fff; }
+    .landing-editorial .sales-cta:hover { box-shadow: 0 14px 32px -10px rgba(44, 62, 87, 0.55); }
+
+    /* The hero: words on the left, the product on the right. */
+    .ed-hero.ed-hero--split {
+      display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      gap: 40px; align-items: center; padding: 40px 32px 88px;
+    }
+    .ed-hero--split .ed-hero-text { max-width: none; margin: 0; text-align: left; }
+    .ed-hero--split .ed-hero-headline { font-size: clamp(38px, 4.7vw, 62px); font-weight: 600; text-wrap: balance; }
+    .ed-hero--split .ed-hero-headline em { white-space: normal; }
+    .ed-hero--split .ed-hero-lede { margin: 0 0 32px; max-width: 30em; }
+    .ed-hero--split .ed-hero-lede b { color: var(--text); font-weight: 600; }
+    .ed-hero--split .ed-hero-actions { align-items: flex-start; }
+    /* The two buttons are one height: the same type size, and 17px of padding
+       plus the 1px border against the loud one's 18. Stretching the row was
+       not enough on its own — on a phone they wrap onto two rows, each row
+       sizes itself, and a button with no padding of its own collapsed. */
+    /* Every button row on the sales page, not only the hero's: the closing
+       banner uses the same pair and had the same mismatch. */
+    .landing-editorial .sales-hero-actions { align-items: stretch; gap: 12px; }
+    .ed-hero--split .sales-hero-actions { justify-content: flex-start; }
+    .landing-editorial .sales-cta-secondary {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 17px 28px; font-size: 17px;
+      background: #fff; border-color: var(--border);
+    }
+    /* The pricing buttons are the hero's pair again, not a third style: the
+       Free plan's is the quiet white pill, Pro's the navy one — same radius,
+       same height, same type size. They were small square-cornered outlines,
+       and the last black on a navy page. */
+    .landing-editorial .ed-plan-cta {
+      border-radius: 999px; padding: 17px 28px; font-size: 17px; font-weight: 600;
+      background: #fff; border: 1px solid var(--border); color: var(--text);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s;
+    }
+    .landing-editorial .ed-plan-cta:hover { background: var(--tinted); color: var(--text); transform: translateY(-1px); }
+    .landing-editorial .ed-plan-cta-pro { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .landing-editorial .ed-plan-cta-pro:hover {
+      background: var(--primary); color: #fff; opacity: 1;
+      transform: translateY(-2px); box-shadow: 0 14px 32px -10px rgba(44, 62, 87, 0.55);
+    }
+    /* Chapters alternate sides. Every shot is the same phone frame, so it is
+       the side-to-side rhythm that says "new section"; four in a row on one
+       side read as a single long column. From 901px up only — below that they
+       stack, words first, and an order swap would put the phone on top. */
+    @media (min-width: 901px) {
+      .ed-chapter:nth-child(even) { grid-template-columns: minmax(0, 380px) minmax(0, 460px); }
+      .ed-chapter:nth-child(even) .ed-chapter-body-col { order: 2; }
+    }
+    .ed-hero-kicker {
+      display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--primary);
+    }
+    .ed-hero-kicker::before { content: ''; width: 22px; height: 1.5px; background: var(--primary); }
+    /* The phone floats in its column with room under it — flush on the strip
+       below, it read as standing on a shelf. */
+    .ed-hero-stage { display: grid; place-items: center; }
+    .ed-hero-stage .pd-phone { --pd-w: 300; }
+
+    /* Four equal facts, centred, each a number, a label and one short line. */
+    .ed-strip {
+      display: grid; grid-template-columns: repeat(4, 1fr); text-align: center;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+    .ed-strip > div { padding: 28px 20px 26px; border-left: 1px solid var(--border); }
+    .ed-strip > div:first-child { border-left: 0; }
+    .ed-strip-k { font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1; letter-spacing: -0.02em; }
+    .ed-strip-k small { font-family: inherit; font: 500 15px/1 'Inter', sans-serif; color: var(--text-muted); letter-spacing: 0; }
+    .ed-strip-l { margin-top: 10px; font-size: 14px; font-weight: 600; }
+    .ed-strip-v { margin-top: 3px; font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+    @media (max-width: 860px) {
+      .ed-hero.ed-hero--split { grid-template-columns: 1fr; gap: 34px; padding: 24px 20px 52px; }
+      .ed-hero--split .ed-hero-text { margin: 0; }
+      .ed-hero-stage .pd-phone { --pd-w: 268; }
+      /* Stacked and full width: two thumbs' worth of button, one over the other. */
+      .landing-editorial .sales-hero-actions { width: 100%; }
+      .landing-editorial .sales-hero-actions > * { flex: 1 1 100%; justify-content: center; }
+      .ed-chapter-mock .pd-phone { --pd-w: 256; }
+      .ed-strip { grid-template-columns: 1fr 1fr; }
+      .ed-strip > div { padding: 22px 14px 20px; }
+      .ed-strip > div:nth-child(odd) { border-left: 0; }
+      .ed-strip > div:nth-child(n+3) { border-top: 1px solid var(--border); }
+      .ed-strip-k { font-size: 28px; }
+    }
+
+    /* ---- the phone ---- */
+    .pd-phone {
+      --pd-w: 280;
+      width: calc(var(--pd-w) * 1px); max-width: 100%; aspect-ratio: 300 / 614; position: relative;
+      border-radius: 46px; background: #14171c; padding: 9px; flex: none;
+      box-shadow: 0 0 0 1px #2a2e36 inset, 0 2px 4px rgba(0, 0, 0, 0.2), 0 40px 70px -30px rgba(25, 23, 15, 0.55);
+    }
+    .pd-phone::after {
+      content: ''; position: absolute; top: 18px; left: 50%; translate: -50% 0;
+      width: 84px; height: 24px; border-radius: 99px; background: #0b0d10; z-index: 9;
+    }
+    /* clip-path, not just overflow. A rounded overflow:hidden does not reliably
+       clip children that are transformed or carry backdrop-filter — they sit on
+       their own compositor layer and poke past the corners. A clip-path clips
+       layers too, and makes the screen the glass's backdrop root, so the blur
+       only ever samples what is inside the phone. */
+    .pd-scr {
+      position: relative; width: 100%; height: 100%; border-radius: 38px;
+      overflow: hidden; clip-path: inset(0 round 38px); background: var(--bg);
+    }
+    /* Laid out at the app's real 375px and scaled to the screen. The width is a
+       bare number so the scale is plain arithmetic: dividing one length by
+       another inside calc() is newer than the browsers this page has to reach. */
+    .pd-app {
+      position: absolute; left: 0; top: 0; width: 375px; height: 794px;
+      transform-origin: 0 0; transform: scale(calc((var(--pd-w) - 18) / 375));
+      color: var(--text); text-align: left; font-size: 14px; line-height: 1.4;
+    }
+    .pd-top {
+      position: absolute; left: 0; right: 0; top: 0; z-index: 4; padding: 52px 16px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pd-top b { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .pd-av { width: 40px; height: 40px; border-radius: 99px; border: 1px solid var(--border); background: #fff; display: grid; place-items: center; }
+    .pd-av i { width: 28px; height: 28px; border-radius: 99px; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: #fff; font: 600 12px/28px 'Inter', sans-serif; text-align: center; font-style: normal; }
+    .pd-view { position: absolute; inset: 0; padding: 122px 16px 0; opacity: 0; transform: translateY(8px); transition: opacity 0.45s ease, transform 0.45s ease; }
+    .pd-view.on { opacity: 1; transform: none; }
+    .pd-view--page { padding: 64px 22px 0; background: var(--bg); }
+    .pd-tb { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .pd-tb h5 { font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.1; letter-spacing: -0.02em; margin: 0; }
+    .pd-c { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; } .pd-c b { color: var(--text); font-weight: 600; }
+    .pd-acts { display: flex; gap: 8px; }
+    .pd-sec { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin: 18px 0 9px; }
+    .pd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pd-stat { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+    .pd-l { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .pd-n { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; line-height: 1.15; } .pd-s { font-size: 12.5px; color: var(--text-muted); }
+    .pd-lst { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .pd-ro { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-top: 1px solid var(--border); }
+    .pd-ro:first-child { border-top: 0; }
+    .pd-chip { width: 46px; flex: none; border-radius: 9px; background: var(--primary); color: #fff; text-align: center; padding: 5px 0 6px; }
+    .pd-chip small { display: block; font-size: 8.5px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.85; line-height: 1; }
+    .pd-chip span { display: block; font-size: 17px; font-weight: 600; line-height: 1.1; margin-top: 2px; }
+    .pd-fill { flex: 1 1 auto; min-width: 0; }
+    .pd-nm { font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; } .pd-mt { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; }
+    .pd-amt { font-size: 13.5px; font-weight: 600; color: var(--danger); }
+    .pd-mc { font-size: 12.5px; font-weight: 600; line-height: 1; background: var(--primary); color: #fff; border-radius: 9px; padding: 9px 11px; white-space: nowrap; }
+    .pd-mc--quiet { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .pd-dots { width: 34px; height: 34px; flex: none; border-radius: 9px; border: 1px solid var(--border); background: #fff; display: grid; place-items: center; font-size: 15px; letter-spacing: 1px; }
+    .pd-search { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: #a39d8c; margin-bottom: 12px; }
+    .pd-seg { display: inline-flex; background: var(--tinted); border-radius: 11px; padding: 3px; gap: 2px; margin-bottom: 12px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); }
+    .pd-seg span { padding: 8px 12px; border-radius: 8px; } .pd-seg .on { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(25, 23, 15, 0.1); }
+    .pd-bdg { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; line-height: 1; }
+    .pd-bdg.sent { background: #e3e8f1; color: #3a4c69; } .pd-bdg.draft { background: #ebe6d6; color: #6b6555; }
+    .pd-inv { font-size: 15px; font-weight: 600; width: 58px; flex: none; }
+    .pd-book { text-align: left; }
+    .pd-book-logo { width: 52px; height: 52px; border-radius: 14px; background: #557a52; color: #fff; display: grid; place-items: center; font-family: var(--serif); font-size: 21px; margin-bottom: 16px; }
+    .pd-book h5 { font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.12; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .pd-book p { margin: 0 0 18px; font-size: 14px; color: var(--text-muted); }
+    .pd-book label { display: block; font-size: 12.5px; font-weight: 600; margin: 12px 0 5px; }
+    .pd-field { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 11px 12px; font-size: 14px; }
+    .pd-field--tall { min-height: 62px; }
+    .pd-submit { margin-top: 20px; background: var(--primary); color: #fff; border-radius: 11px; padding: 14px; text-align: center; font-size: 15px; font-weight: 600; }
+    /* the app's own two-layer glass */
+    .pd-glass { position: relative; }
+    .pd-glass::before, .pd-glass::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+    .pd-glass > * { position: relative; z-index: 1; }
+    .pd-glass::before { background: rgba(255, 255, 255, var(--pd-a, 0.16)); -webkit-backdrop-filter: blur(var(--pd-bl, 7px)) brightness(1.16) saturate(135%); backdrop-filter: blur(var(--pd-bl, 7px)) brightness(1.16) saturate(135%); }
+    .pd-glass::after { padding: 1.5px; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62); }
+    .pd-top.pd-glass { --pd-a: 0.55; --pd-bl: 14px; position: absolute; }
+    .pd-top.pd-glass::after { -webkit-mask: none; mask: none; padding: 0; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55); }
+    .pd-gc { width: 40px; height: 40px; border-radius: 99px; display: grid; place-items: center; --pd-a: 0.3; --pd-bl: 8px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05), 0 6px 16px -8px rgba(0, 0, 0, 0.35); font-size: 18px; font-weight: 600; }
+    .pd-bar { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 5; border-radius: 30px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05), 0 10px 28px -12px rgba(0, 0, 0, 0.35); }
+    .pd-bar.pd-glass { position: absolute; }
+    .pd-in { display: flex; padding: 5px; position: relative; }
+    .pd-t { flex: 1 1 0; height: 50px; display: grid; place-items: center; color: var(--text); position: relative; }
+    .pd-t .icon { font-size: 26px; stroke-width: 1.8; vertical-align: 0; }
+    .pd-pill { position: absolute; left: 5px; top: 5px; height: 50px; width: calc((100% - 10px) / 5); transform: translateX(calc(var(--pd-i, 0) * 100%)); transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
+    .pd-pill::before { content: ''; position: absolute; inset: -2px -4px; border-radius: 27px; background: rgba(138, 138, 144, 0.34); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 4px rgba(0, 0, 0, 0.07); }
+    @media (prefers-reduced-motion: reduce) { .pd-view, .pd-pill { transition-duration: 0.01ms; } }
+
     .ed-chapter {
       display: grid;
       grid-template-columns: minmax(0, 460px) minmax(0, 380px);
@@ -6645,9 +6829,132 @@ function CyclingHeadline() {
   );
 }
 
+// The sales page's product shot: the app's real layout at its true 375px,
+// scaled into a phone frame. Not a screenshot — so it is crisp at any density,
+// costs no image bytes, moves, and cannot drift out of date. Every class is
+// prefixed pd-, because the sales page and the app share one stylesheet and
+// the app already owns names like .bar, .view and .row.
+const PD_TABS = { today: 0, customers: 2, invoices: 3 };
+
+function PdActions() {
+  return (
+    <div className="pd-acts"><span className="pd-gc pd-glass"><span>+</span></span><span className="pd-gc pd-glass"><span>···</span></span></div>
+  );
+}
+function PdToday() {
+  const jobs = [['Weekly mowing', 'Bob Henderson · 8:00 AM'], ['Grounds + hedges', 'St. Mary’s Church · 10:30 AM'], ['Storm cleanup', 'Patricia Crowley · 1:00 PM']];
+  return (
+    <>
+      <div className="pd-tb"><div><h5>Good morning, Sam.</h5><div className="pd-c">Tue, Sep 15 · <b>3 jobs</b> today</div></div><PdActions /></div>
+      <div className="pd-two">
+        <div className="pd-stat"><div className="pd-l">Outstanding</div><div className="pd-n">$1,100</div><div className="pd-s">2 invoices</div></div>
+        <div className="pd-stat"><div className="pd-l">Next 7 days</div><div className="pd-n">$695</div><div className="pd-s">projected</div></div>
+      </div>
+      <div className="pd-sec">Today</div>
+      <div className="pd-lst">
+        {jobs.map(([t, m]) => (
+          <div className="pd-ro" key={t}><div className="pd-chip"><small>TUE SEP</small><span>15</span></div><div className="pd-fill"><div className="pd-nm">{t}</div><div className="pd-mt">{m}</div></div><span className="pd-mc">Mark complete</span></div>
+        ))}
+      </div>
+    </>
+  );
+}
+function PdCustomers({ term }) {
+  const rows = [['Acme Office Park', '555-118-4044', ''], ['Patricia Crowley', '555-217-8841', ''], ['Tiffany Ernest', '555-771-0044', ''], ['Bob Henderson', '555-302-1108', ''], ['Pine Street Apartments', '555-660-2299', '$960.00'], ['St. Mary’s Church', '555-441-8800', ''], ['Marisol Vega', '555-889-2210', '']];
+  return (
+    <>
+      <div className="pd-tb"><div><h5>{term}</h5><div className="pd-c">42 total · <b>$1,100</b> owed</div></div><PdActions /></div>
+      <div className="pd-search">Search name, phone, email…</div>
+      <div className="pd-lst">
+        {rows.map(([n, ph, amt]) => (
+          <div className="pd-ro" key={n}><div className="pd-fill"><div className="pd-nm">{n}</div><div className="pd-mt">{ph}</div></div>{amt && <span className="pd-amt">{amt}</span>}<span className="pd-dots">···</span></div>
+        ))}
+      </div>
+    </>
+  );
+}
+function PdInvoices() {
+  const rows = [['#1005', 'Pine Street Apartments', '$960.00', 'sent', 'Mark paid'], ['#1007', 'Dalida Islas', '$165.00', 'draft', 'Mark sent'], ['#1006', 'Henry Wells', '$140.00', 'sent', 'Mark paid'], ['#1008', 'St. Mary’s Church', '$270.00', 'draft', 'Mark sent']];
+  return (
+    <>
+      <div className="pd-tb"><div><h5>Invoices</h5><div className="pd-c">8 total · <b>$1,535</b> outstanding</div></div><PdActions /></div>
+      <div className="pd-seg"><span>All 8</span><span className="on">Unpaid 4</span><span>Draft 2</span><span>Paid 4</span></div>
+      <div className="pd-lst">
+        {rows.map(([n, who, amt, st, act]) => (
+          <div className="pd-ro" key={n}><span className="pd-inv">{n}</span><div className="pd-fill"><div className="pd-nm">{who}</div><div className="pd-mt"><span className={`pd-bdg ${st}`}>{st}</span> {amt}</div></div><span className="pd-mc pd-mc--quiet">{act}</span></div>
+        ))}
+      </div>
+    </>
+  );
+}
+function PdBooking() {
+  return (
+    <div className="pd-book">
+      <div className="pd-book-logo">AL</div>
+      <h5>Book with Acme Lawn &amp; Landscape</h5>
+      <p>Tell us what you need and when. We’ll confirm by text.</p>
+      <label>Your name</label><div className="pd-field">Nina Alvarez</div>
+      <label>Phone</label><div className="pd-field">555-664-2211</div>
+      <label>What do you need?</label><div className="pd-field pd-field--tall">Weekly mowing for a corner lot</div>
+      <label>Preferred date</label><div className="pd-field">Fri, Sep 18</div>
+      <div className="pd-submit">Request a booking</div>
+    </div>
+  );
+}
+
+function PhoneDemo({ views, term = 'Customers' }) {
+  const [i, setI] = useState(0);
+  const hold = useRef(false);
+  // A screen every 3.4 seconds when there is more than one to show. Held while
+  // the pointer is on it or the tab is hidden, and not at all for anyone who
+  // has asked for reduced motion.
+  useEffect(() => {
+    if (views.length < 2) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const t = setInterval(() => {
+      if (!hold.current && !document.hidden) setI((n) => (n + 1) % views.length);
+    }, 3400);
+    return () => clearInterval(t);
+  }, [views.length]);
+  const key = views[i] || views[0];
+  const chrome = key !== 'booking';
+  return (
+    <div
+      className="pd-phone" role="img"
+      aria-label="Field Manager running on a phone"
+      onPointerEnter={() => { hold.current = true; }}
+      onPointerLeave={() => { hold.current = false; }}
+    >
+      <div className="pd-scr"><div className="pd-app" aria-hidden="true">
+        {chrome && <div className="pd-top pd-glass"><b>Acme Lawn &amp; Landscape</b><span className="pd-av"><i>S</i></span></div>}
+        {views.map((v, k) => (
+          <div key={v} className={`pd-view${k === i ? ' on' : ''}${v === 'booking' ? ' pd-view--page' : ''}`}>
+            {v === 'today' && <PdToday />}
+            {v === 'customers' && <PdCustomers term={term} />}
+            {v === 'invoices' && <PdInvoices />}
+            {v === 'booking' && <PdBooking />}
+          </div>
+        ))}
+        {chrome && (
+          <div className="pd-bar pd-glass"><div className="pd-in" style={{ '--pd-i': PD_TABS[key] }}>
+            <span className="pd-pill" />
+            <span className="pd-t"><Icon name="dashboard" /></span><span className="pd-t"><Icon name="jobs" /></span>
+            <span className="pd-t"><Icon name="customers" /></span><span className="pd-t"><Icon name="invoices" /></span>
+            <span className="pd-t"><svg className="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
+          </div></div>
+        )}
+      </div></div>
+    </div>
+  );
+}
+
 function LandingPage({ signedIn }) {
   const founder = useFounderStatus();
   const founderActive = !!(founder && founder.active && founder.seats_remaining > 0);
+  // One source for the price, so the hero, the strip and the pricing section
+  // can never disagree — including while a founder offer is running.
+  const listedPrice = Math.round((founder && founder.listed_price) || 29);
+  const price = founderActive ? Math.round((founder && founder.founder_price) || 19) : listedPrice;
   // Honor an inbound #hash (e.g. the static pages' "Pricing" link → /#pricing).
   // The browser's native jump fires before React has rendered the section, so
   // scroll once the target exists.
@@ -6720,21 +7027,24 @@ function LandingPage({ signedIn }) {
         </div>
       </nav>
 
-      <header className="ed-hero">
+      <header className="ed-hero ed-hero--split">
         <div className="ed-hero-text">
           {founderActive && (
             <div className="sales-hero-badge fade-in">
               ⏰ Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life
             </div>
           )}
+          <p className="ed-hero-kicker fade-in">For small service businesses</p>
           <h1 className="ed-hero-headline fade-in-delay-1">
-            Stop running your business<br />from <em>spreadsheets</em>.
+            Stop running your business from <em>spreadsheets.</em>
           </h1>
           <p className="ed-hero-lede fade-in-delay-2">
-            Field Manager is the calendar, customer book, and invoice tool for small service operators — built by one. All at an introductory price of{' '}
-            {founderActive
-              ? <><span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, marginRight: 4 }}>${Math.round((founder && founder.listed_price) || 29)}</span>${Math.round((founder && founder.founder_price) || 19)}/mo</>
-              : <>${Math.round((founder && founder.listed_price) || 29)}/mo</>}.
+            The calendar, customer book and invoicing for the person who answers their own phone.{' '}
+            <b>
+              {founderActive
+                ? <><span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, marginRight: 4, fontWeight: 400 }}>${listedPrice}</span>${price}</>
+                : <>${listedPrice}</>} a month, flat
+            </b> — no per-user fees, no sales call.
           </p>
           <div className="ed-hero-actions fade-in-delay-3">
             <div className="sales-hero-actions" style={{ marginBottom: 12 }}>
@@ -6746,22 +7056,27 @@ function LandingPage({ signedIn }) {
               </button>
             </div>
             <p className="sales-hero-trust" style={{ margin: 0 }}>
-              No credit card · Set up in under 2 minutes · Cancel anytime
+              Free for your first five customers · Set up in under two minutes · Cancel anytime
             </p>
           </div>
         </div>
-        <div className="ed-collage" aria-hidden="true">
-          <div className="ed-tile ed-tile-1" />
-          <div className="ed-tile ed-tile-2" />
-          <div className="ed-tile ed-tile-3" />
-          <div className="ed-tile ed-tile-4" />
-          <div className="ed-tile ed-tile-5" />
-          <div className="ed-tile ed-tile-6" />
-          <div className="ed-tile ed-tile-7" />
-          <div className="ed-tile ed-tile-8" />
-          <div className="ed-tile ed-tile-9" />
+        {/* The product, not a photograph of somebody mowing. It is the app's own
+            layout at its real 375px, scaled into a frame and cycling through
+            three screens — so it moves, weighs almost nothing, and cannot go
+            out of date the way a screenshot does. */}
+        <div className="ed-hero-stage fade-in-delay-2">
+          <PhoneDemo views={['today', 'customers', 'invoices']} />
         </div>
       </header>
+
+      {/* The price argument, moved up from the bottom of the page. Four equal
+          facts, each built the same way: a number, a label, one short line. */}
+      <section className="ed-strip">
+        <div><div className="ed-strip-k">${price}<small>/mo</small></div><div className="ed-strip-l">Flat price</div><div className="ed-strip-v">Others start at $69 and up.</div></div>
+        <div><div className="ed-strip-k">$0</div><div className="ed-strip-l">To start</div><div className="ed-strip-v">Five customers free, no card.</div></div>
+        <div><div className="ed-strip-k">0</div><div className="ed-strip-l">Per-user fees</div><div className="ed-strip-v">Add your crew, same bill.</div></div>
+        <div><div className="ed-strip-k">2 min</div><div className="ed-strip-l">To set up</div><div className="ed-strip-v">Import from a spreadsheet.</div></div>
+      </section>
 
       <section className="sales-section sales-story" data-reveal>
         <p className="sales-eyebrow">Built by an operator</p>
@@ -6780,7 +7095,7 @@ function LandingPage({ signedIn }) {
             </p>
           </div>
           <div className="ed-chapter-mock">
-            <ChapterMock kind="calendar" />
+            <PhoneDemo views={['today']} />
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
@@ -6792,7 +7107,7 @@ function LandingPage({ signedIn }) {
             </p>
           </div>
           <div className="ed-chapter-mock">
-            <ChapterMock kind="invoices" />
+            <PhoneDemo views={['invoices']} />
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
@@ -6804,7 +7119,7 @@ function LandingPage({ signedIn }) {
             </p>
           </div>
           <div className="ed-chapter-mock">
-            <ChapterMock kind="terms" />
+            <PhoneDemo views={['customers']} term="Members" />
           </div>
         </article>
         <article className="ed-chapter" data-reveal>
@@ -6816,7 +7131,7 @@ function LandingPage({ signedIn }) {
             </p>
           </div>
           <div className="ed-chapter-mock">
-            <ChapterMock kind="booking" />
+            <PhoneDemo views={['booking']} />
           </div>
         </article>
       </section>
