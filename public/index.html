@@ -4019,6 +4019,11 @@
       color: var(--primary);
     }
     .ed-hero-kicker::before { content: ''; width: 22px; height: 1.5px; background: var(--primary); }
+    /* With the offer pill above it, the kicker takes its own line and drops the
+       rule — side by side, the rule read as a dash joining the two. */
+    .ed-hero-text .sales-hero-badge { display: block; width: fit-content; margin-bottom: 22px; }
+    .ed-hero-text .sales-hero-badge + .ed-hero-kicker { display: flex; }
+    .ed-hero-text .sales-hero-badge + .ed-hero-kicker::before { display: none; }
     /* The phone floats in its column with room under it — flush on the strip
        below, it read as standing on a shelf. */
     .ed-hero-stage { display: grid; place-items: center; }
@@ -4037,18 +4042,28 @@
     .ed-strip-l { margin-top: 10px; font-size: 14px; font-weight: 600; }
     .ed-strip-v { margin-top: 3px; font-size: 13px; color: var(--text-muted); line-height: 1.45; }
     @media (max-width: 860px) {
-      .ed-hero.ed-hero--split { grid-template-columns: 1fr; gap: 34px; padding: 24px 20px 52px; }
-      .ed-hero--split .ed-hero-text { margin: 0; }
+      /* Stacked, the phone sits on the centre line — so the words above it do
+         too. Left-aligned copy over a centred phone read as two layouts. */
+      .ed-hero.ed-hero--split { grid-template-columns: 1fr; gap: 40px; padding: 28px 32px 56px; }
+      .ed-hero--split .ed-hero-text { margin: 0 auto; max-width: 600px; text-align: center; }
+      .ed-hero--split .ed-hero-lede { margin-inline: auto; }
+      .ed-hero--split .sales-hero-trust, .ed-hero--split .ed-hero-lede { text-wrap: balance; }
+      .ed-hero--split .sales-hero-actions { justify-content: center; }
+      .ed-hero-text .sales-hero-badge { margin-inline: auto; }
+      .ed-hero-text .sales-hero-badge + .ed-hero-kicker { justify-content: center; }
       .ed-hero-stage .pd-phone { --pd-w: 268; }
-      /* Stacked and full width: two thumbs' worth of button, one over the other. */
-      .landing-editorial .sales-hero-actions { width: 100%; }
-      .landing-editorial .sales-hero-actions > * { flex: 1 1 100%; justify-content: center; }
       .ed-chapter-mock .pd-phone { --pd-w: 256; }
       .ed-strip { grid-template-columns: 1fr 1fr; }
       .ed-strip > div { padding: 22px 14px 20px; }
       .ed-strip > div:nth-child(odd) { border-left: 0; }
       .ed-strip > div:nth-child(n+3) { border-top: 1px solid var(--border); }
       .ed-strip-k { font-size: 28px; }
+    }
+    @media (max-width: 600px) {
+      .ed-hero.ed-hero--split { gap: 34px; padding: 24px 20px 52px; }
+      /* Stacked and full width: two thumbs' worth of button, one over the other. */
+      .landing-editorial .sales-hero-actions { width: 100%; }
+      .landing-editorial .sales-hero-actions > * { flex: 1 1 100%; justify-content: center; }
     }
 
     /* ---- the phone ---- */
@@ -4193,9 +4208,11 @@
     @media (max-width: 900px) {
       .ed-chapter {
         grid-template-columns: 1fr;
-        gap: 28px; padding: 48px 0;
+        gap: 32px; padding: 52px 0;
         align-items: start;
       }
+      .ed-chapter-body-col { max-width: 540px; margin: 0 auto; text-align: center; }
+      .ed-chapter-title { text-wrap: balance; }
     }
     @media (max-width: 600px) {
       .ed-chapter {
