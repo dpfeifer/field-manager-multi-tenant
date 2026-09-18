@@ -8142,8 +8142,17 @@ function CustomerDetailView({ session, customer, onBack, onEdit, canMutate, onOp
             onClick={(e) => {
               setTab(sec.key);
               // Six tabs do not fit a phone; bring the chosen one into view
-              // instead of leaving it half off the edge of the strip.
-              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+              // instead of leaving it half off the edge of the strip. Only the
+              // strip is scrolled, by hand: scrollIntoView also nudges the
+              // page, and on iOS that detached the fixed tab bar, which then
+              // travelled with the page.
+              const strip = tabsRef.current;
+              if (strip) {
+                const t = e.currentTarget.getBoundingClientRect();
+                const box = strip.getBoundingClientRect();
+                const left = strip.scrollLeft + (t.left - box.left) - (box.width - t.width) / 2;
+                strip.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+              }
             }}
           >
             <span>{sec.label}</span>
