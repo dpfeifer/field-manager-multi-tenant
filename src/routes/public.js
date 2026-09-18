@@ -278,8 +278,8 @@ router.post('/book/:slug', async (req, res, next) => {
     if (orgRow.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     const org = orgRow.rows[0];
 
-    // A referral link, or a typed name that matches exactly one customer.
-    const referrer = await resolveReferrer({ query }, org.id, { code: ref_code, name: referred_by });
+    // Only a referral link identifies a referrer; a typed name is left for the owner to read.
+    const referrer = await resolveReferrer({ query }, org.id, { code: ref_code });
     if (referrer && !referred_by) referred_by = referrerName(referrer);
 
     const inserted = await query(

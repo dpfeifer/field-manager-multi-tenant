@@ -58,10 +58,48 @@ async function awardReferralCredit(client, { orgId, job, date, userId }) {
      ON CONFLICT (source_job_id, source_date)
        WHERE deleted_at IS NULL AND source_job_id IS NOT NULL
      DO NOTHING
-     RETURNING id, amount`,
+     RETURNING id, amount, customer_id`,
     [orgId, c[0].referrer_id, amount, note.slice(0, 500), userId || null, job.id, date, job.customer_id]
   );
-  return rows[0] || null;
+  if (!rows[0]) return null;
+  return { ...rows[0], referred_first_name: c[0].first_name || c[0].business_name || null };
+}
+
+// After the completion has committed: tell the referrer what they earned.
+// Never awaited by the request and never allowed to fail it — the credit is
+// already theirs whether or not the email goes out.
+async function notifyReferralCredit(orgId, award) {
+  try {
+    if (!award) return;
+    const { query } = require('../config/db');
+    const { sendEmail } = require('./email');
+    const { referralCreditTemplate } = require('./emailTemplates');
+    const { rows } = await query(
+      `SELECT r.email, r.first_name, r.business_name,
+              o.name AS organization_name,
+              s.company_name, s.email AS company_email, s.phone AS company_phone,
+              COALESCE(s.referral_email_enabled, TRUE) AS email_enabled,
+              (SELECT COALESCE(SUM(amount), 0) FROM customer_credits
+               WHERE customer_id = r.id AND deleted_at IS NULL) AS balance
+       FROM customers r
+       JOIN organizations o ON o.id = r.organization_id
+       LEFT JOIN organization_settings s ON s.organization_id = o.id
+       WHERE r.id = $1 AND r.organization_id = $2 AND r.deleted_at IS NULL LIMIT 1`,
+      [award.customer_id, orgId]
+    );
+    const r = rows[0];
+    if (!r || !r.email || !r.email_enabled) return;
+    const tpl = referralCreditTemplate({
+      companyName: r.company_name || r.organization_name,
+      companyEmail: r.company_email, companyPhone: r.company_phone,
+      recipientName: r.first_name || r.business_name,
+      referredName: award.referred_first_name,
+      amount: award.amount, balance: r.balance,
+    });
+    await sendEmail({ to: r.email, subject: tpl.subject, html: tpl.html, text: tpl.text, replyTo: r.company_email || undefined });
+  } catch (err) {
+    console.error('referral credit email failed', err);
+  }
 }
 
 // The visit was undone — take the reward back. If the referrer has already
@@ -102,11 +140,11 @@ async function ensureReferralCode(db, orgId, customerId) {
   return null;
 }
 
-// Who sent a booking request. A code from a referral link wins; failing that,
-// the name typed into "Referred by" counts only when it matches exactly one
-// customer — a guess between two Bobs would pay the wrong one. Returns a
-// customer row or null, and always null while the Referrals section is off.
-async function resolveReferrer(db, orgId, { code, name }) {
+// Who a referral link belongs to. Only a code counts: what a visitor types
+// into "Referred by" is shown to the owner, who picks the customer themselves
+// when promoting the prospect — a name is not an identity, and this decides
+// who gets paid. Always null while the Referrals section is off.
+async function resolveReferrer(db, orgId, { code }) {
   const { rows: on } = await db.query(
     `SELECT 1 FROM organizations WHERE id = $1 AND (features->>'referrals') = 'true'`,
     [orgId]
@@ -121,18 +159,7 @@ async function resolveReferrer(db, orgId, { code, name }) {
     );
     if (rows[0]) return rows[0];
   }
-  const typed = String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
-  if (typed.length >= 3) {
-    const { rows } = await db.query(
-      `SELECT ${cols} FROM customers
-       WHERE organization_id = $1 AND deleted_at IS NULL
-         AND (LOWER(BTRIM(CONCAT_WS(' ', first_name, last_name))) = $2 OR LOWER(BTRIM(business_name)) = $2)
-       LIMIT 2`,
-      [orgId, typed]
-    );
-    if (rows.length === 1) return rows[0];
-  }
   return null;
 }
 
-module.exports = { awardReferralCredit, reverseReferralCredit, ensureReferralCode, resolveReferrer, displayName };
+module.exports = { awardReferralCredit, reverseReferralCredit, notifyReferralCredit, ensureReferralCode, resolveReferrer, displayName };

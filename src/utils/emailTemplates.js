@@ -171,6 +171,23 @@ function passwordResetTemplate({ user, orgSlug, resetUrl }) {
 
 // Editable template renderer (uses templateStore + substitution).
 // Wraps the customizable intro in the standard shell with a CTA button.
+// To a customer whose referral just earned them credit.
+function referralCreditTemplate({ companyName, companyEmail, companyPhone, recipientName, referredName, amount, balance }) {
+  const who = referredName || 'someone you referred';
+  const bodyHtml = `
+    <p style="margin:0 0 20px; color:#6d6a64; font-size:14px;">From ${escapeHtml(companyName)}</p>
+    <p style="margin:0 0 16px;">Hi ${escapeHtml(recipientName || 'there')},</p>
+    <p style="margin:0 0 16px;">We just finished a job for ${escapeHtml(who)}, who you sent our way &mdash; so <strong>${moneyUSD(amount)}</strong> has been added to your account as credit. Thank you for the referral.</p>
+    <p style="margin:0 0 16px; padding:14px 16px; background:#f3efe6; border-radius:8px;">Your credit balance: <strong>${moneyUSD(balance)}</strong></p>
+    <p style="margin:0; color:#6d6a64; font-size:14px;">We&#39;ll take it off an upcoming invoice. Questions? Just reply to this email.</p>
+  `;
+  const footerHtml = `${escapeHtml(companyName)}<br/>${companyPhone ? escapeHtml(companyPhone) + ' · ' : ''}${companyEmail ? escapeHtml(companyEmail) : ''}`;
+  const subject = `You earned ${moneyUSD(amount)} in credit with ${companyName}`;
+  const html = shellHTML({ heading: `You earned ${moneyUSD(amount)} in credit`, bodyHtml, footerHtml });
+  const text = `Hi ${recipientName || 'there'},\n\nWe just finished a job for ${who}, who you sent our way, so ${moneyUSD(amount)} has been added to your account as credit. Thank you for the referral.\n\nYour credit balance: ${moneyUSD(balance)}\nWe'll take it off an upcoming invoice.\n\n${companyName}\n`;
+  return { subject, html, text };
+}
+
 function renderEditableTemplate(template, vars, { ctaLabel, ctaUrl, heading }) {
   const subject = (require('./templateStore').substitute(template.subject, vars));
   const introHtml = require('./templateStore').substitute(template.intro_html, vars);
@@ -185,4 +202,4 @@ function renderEditableTemplate(template, vars, { ctaLabel, ctaUrl, heading }) {
   return { subject, html, text: introText };
 }
 
-module.exports = { invoiceTemplate, quoteTemplate, passwordResetTemplate, teamInviteTemplate, renderEditableTemplate };
+module.exports = { referralCreditTemplate, invoiceTemplate, quoteTemplate, passwordResetTemplate, teamInviteTemplate, renderEditableTemplate };

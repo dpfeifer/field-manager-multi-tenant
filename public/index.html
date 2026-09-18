@@ -9268,7 +9268,7 @@ function RequestsView({ session }) {
                   );
                 })()}
                 {r.notes && <div className="d">Notes: {r.notes}</div>}
-                {r.referred_by && <div className="d">Referred by: {r.referred_by}{r.referred_by_customer_id && <> &middot; matched to a {terms.customerLower}</>}</div>}
+                {r.referred_by && <div className="d">Referred by: {r.referred_by}{r.referred_by_customer_id && <> &middot; came through their referral link</>}</div>}
                 {r.status === 'declined' && r.declined_reason && (
                   <div className="d" style={{ fontStyle: 'italic' }}>Decline note: {r.declined_reason}</div>
                 )}
@@ -12430,6 +12430,21 @@ function ReferralPanel({ form, setField, isAdmin, busy, saved, error, submit }) 
             <span className="hint" style={{ display: 'block', marginTop: 4 }}>Leave empty to reward every {terms.jobLower}, forever.</span>
           </div>
         </div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 16, fontWeight: 'normal' }}>
+          <input
+            type="checkbox"
+            checked={form.referral_email_enabled !== false}
+            disabled={!isAdmin}
+            onChange={(e) => setField('referral_email_enabled', e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            Email the referrer when they earn credit.
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              A short thank-you from your business with the amount and their new balance. Replies come to your business email. Skipped for anyone without an email on file.
+            </span>
+          </span>
+        </label>
 
         {isAdmin && (
           <div className="form-actions">
@@ -13052,6 +13067,7 @@ function SettingsView({ session, features = { invoices: true, quotes: true, repo
         auto_invoice_day_of_week: data.auto_invoice_day_of_week != null ? data.auto_invoice_day_of_week : 1,
         auto_invoice_last_run_at: data.auto_invoice_last_run_at || null,
         auto_append_to_draft: !!data.auto_append_to_draft,
+        referral_email_enabled: data.referral_email_enabled !== false,
         referral_percent: data.referral_percent != null ? parseFloat(data.referral_percent) : 10,
         referral_cap_jobs: data.referral_cap_jobs != null ? data.referral_cap_jobs : (data.updated_at ? '' : 5),
         booking_form_config: (data.booking_form_config && typeof data.booking_form_config === 'object')

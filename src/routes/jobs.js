@@ -6,7 +6,7 @@ const {
   removeCompletionFromDraft,
   isAutoAppendEnabled,
 } = require('../utils/draftAppend');
-const { awardReferralCredit, reverseReferralCredit } = require('../utils/referrals');
+const { awardReferralCredit, reverseReferralCredit, notifyReferralCredit } = require('../utils/referrals');
 
 const router = express.Router();
 
@@ -332,6 +332,7 @@ router.post('/:id/complete', async (req, res, next) => {
   }
 
   try {
+    let referralAward = null;
     const result = await withTransaction(async (client) => {
       const { rows: existing } = await client.query(
         'SELECT * FROM jobs WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL LIMIT 1',
@@ -406,7 +407,7 @@ router.post('/:id/complete', async (req, res, next) => {
         ]
       );
 
-      await awardReferralCredit(client, { orgId: req.organization.id, job, date, userId: req.user.sub });
+      referralAward = await awardReferralCredit(client, { orgId: req.organization.id, job, date, userId: req.user.sub });
 
       const { rows } = await client.query(
         `${BASE_SELECT} WHERE j.id = $1 LIMIT 1`,
@@ -414,6 +415,8 @@ router.post('/:id/complete', async (req, res, next) => {
       );
       return rows[0];
     });
+    // Once it has committed, and without holding up the response.
+    if (referralAward) notifyReferralCredit(req.organization.id, referralAward);
     res.json(result);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
