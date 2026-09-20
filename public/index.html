@@ -16789,12 +16789,12 @@ const ONBOARDING_TRADES = [
     words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests', 'reports'] },
 ];
 const ONBOARDING_SECTIONS = [
-  ['invoices', 'Invoices', 'Bill for completed work and get paid.'],
-  ['quotes', 'Quotes', 'Send an estimate; turn it into a job.'],
-  ['requests', 'Requests', 'A booking link, and an inbox for what comes in.'],
-  ['reports', 'Reports', 'Revenue, projections, who your best accounts are.'],
-  ['team', 'Team', "Invite employees. Skip if it's just you."],
-  ['referrals', 'Referrals', 'Credit for people who send you new business.'],
+  ['invoices', 'Invoices', 'Create and send invoices. Record payments.'],
+  ['quotes', 'Quotes', 'Send estimates. Convert them to jobs.'],
+  ['requests', 'Requests', 'A booking link, and a list of the requests it brings in.'],
+  ['reports', 'Reports', 'Revenue and projected income.'],
+  ['team', 'Team', 'Invite employees to your account.'],
+  ['referrals', 'Referrals', 'Give credit to people who refer new business.'],
 ];
 
 // Which set of install steps to show. iPadOS reports itself as a Mac, hence
@@ -16838,15 +16838,15 @@ function OnboardingInstall() {
   );
   const desktop = (
     <p className="ob-note" style={{ margin: 0 }}>
-      On a computer, bookmark this page — or use the install icon at the end of the address bar. Then open <strong>fieldmgr.com</strong> on your phone and sign in: same account, same data.
+      On a computer, bookmark this page. To use it on your phone, open <strong>fieldmgr.com</strong> there and sign in.
     </p>
   );
   return (
     <>
       <p className="subtitle">
-        Nothing to download, and it&apos;s always up to date. Add it to your home screen and it opens full screen, like any other app.
+        There is nothing to download. Adding it to your home screen makes it open full screen, like an app.
       </p>
-      {(device === 'installed' || installed) && <div className="ob-panel"><strong>Already on your home screen.</strong> Nothing more to do.</div>}
+      {(device === 'installed' || installed) && <div className="ob-panel"><strong>Already on your home screen.</strong> No action needed.</div>}
       {device !== 'installed' && !installed && (
         <div className="ob-panel">
           {canPrompt
@@ -16855,7 +16855,7 @@ function OnboardingInstall() {
         </div>
       )}
       {!showAll
-        ? <button type="button" className="link-btn ob-more" onClick={() => setShowAll(true)}>Using a different device?</button>
+        ? <button type="button" className="link-btn ob-more" onClick={() => setShowAll(true)}>Show steps for other devices</button>
         : (
           <div className="ob-alldevices">
             {device !== 'ios' && <div className="ob-panel"><div className="ob-panel-h">iPhone &middot; Safari</div>{ios}</div>}
@@ -16911,7 +16911,7 @@ function OnboardingPage({ session, onDone }) {
           body: {
             category: 'Question', context: 'onboarding',
             subject: `Please load my ${lower(words[1])} for me`,
-            message: `I picked "send you my list" during setup. Please reply and tell me where to send my ${lower(words[0])} list — a spreadsheet, an export from another app, or photos of a notebook.`,
+            message: `I picked "Send us your list" during setup. Please reply and tell me where to send my ${lower(words[0])} list — a spreadsheet, an export from another app, or photos of a notebook.`,
           },
         }).catch(() => {});
       }
@@ -16942,7 +16942,7 @@ function OnboardingPage({ session, onDone }) {
       <div className="card ob-card">
         {step === 'trade' && (
           <>
-            {head(`Welcome to ${session.organization.name}.`, "What kind of work do you do? We'll set things up to match.")}
+            {head('What kind of work do you do?', 'This sets up the app for your business. You can change it later.')}
             <div className="ob-tiles" role="radiogroup" aria-label="Kind of work">
               {ONBOARDING_TRADES.map((t) => (
                 <button key={t.key} type="button" role="radio" aria-checked={trade === t.key}
@@ -16958,8 +16958,8 @@ function OnboardingPage({ session, onDone }) {
 
         {step === 'setup' && (
           <>
-            {head(trade === 'other' ? 'Here is what we set up.' : `Set up for ${lower(tradeLabel)}.`,
-              "Untick anything you won't use. It's all in Settings if you change your mind.")}
+            {head('Choose your sections',
+              `${trade === 'other' ? 'These are turned on to start.' : `These are turned on for ${lower(tradeLabel)}.`} Untick any you do not need. You can change this in Settings.`)}
             <div className="ob-sections">
               {ONBOARDING_SECTIONS.map(([key, label, desc]) => (
                 <label key={key} className={`ob-section${features[key] ? ' on' : ''}`}>
@@ -16972,12 +16972,12 @@ function OnboardingPage({ session, onDone }) {
             <div className="ob-words">
               {!editWords ? (
                 <p>
-                  We&apos;ll call them <strong>{lower(words[1])}</strong> and <strong>{lower(words[3])}</strong>.{' '}
-                  <button type="button" className="link-btn" onClick={() => setEditWords(true)}>Change the wording</button>
+                  The app will say <strong>{lower(words[1])}</strong> and <strong>{lower(words[3])}</strong>.{' '}
+                  <button type="button" className="link-btn" onClick={() => setEditWords(true)}>Change</button>
                 </p>
               ) : (
                 <div className="ob-words-grid">
-                  {['One customer', 'Several', 'One job', 'Several'].map((l, i) => (
+                  {['Customer (singular)', 'Customer (plural)', 'Job (singular)', 'Job (plural)'].map((l, i) => (
                     <div key={i}>
                       <label htmlFor={`ob-word-${i}`}>{l}</label>
                       <input id={`ob-word-${i}`} value={words[i]} maxLength={30} onChange={(e) => setWord(i, e.target.value)} />
@@ -16992,13 +16992,13 @@ function OnboardingPage({ session, onDone }) {
 
         {step === 'customers' && (
           <>
-            {head(`Get your ${lower(words[1])} in.`, "Pick a way to start. You'll land there when setup finishes.")}
+            {head(`Add your ${lower(words[1])}`, 'Choose how to start. Setup finishes on that screen.')}
             <div className="ob-choices" role="radiogroup" aria-label="How to start">
               {[
-                ['add', `Add my first ${lower(words[0])}`, 'A name and a number. One minute.'],
-                ['import', 'Import a spreadsheet', 'A CSV from Excel, Google Sheets or another app.'],
-                ['send', 'Send you my list — free', 'A spreadsheet, an export, photos of a notebook. We load it, usually same day.'],
-                ['later', "I'll do it later", 'Look around first.'],
+                ['add', `Add one ${lower(words[0])}`, 'Enter a name and a phone number.'],
+                ['import', 'Import a CSV file', 'From Excel, Google Sheets or another app.'],
+                ['send', 'Send us your list', `We add your ${lower(words[1])} for you at no charge, usually the same day.`],
+                ['later', 'Skip for now', 'Go to the dashboard.'],
               ].map(([key, label, desc]) => (
                 <button key={key} type="button" role="radio" aria-checked={start === key}
                   className={`ob-choice${start === key ? ' on' : ''}`} onClick={() => setStart(key)}>
@@ -17013,7 +17013,7 @@ function OnboardingPage({ session, onDone }) {
 
         {step === 'install' && (
           <>
-            {head('Put it on your home screen.')}
+            {head('Add Field Manager to your home screen')}
             <OnboardingInstall />
             {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
             {foot(<button type="button" className="primary" disabled={busy} onClick={finish}>{busy ? 'Finishing...' : 'Finish setup'}</button>)}
