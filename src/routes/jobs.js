@@ -361,6 +361,9 @@ router.post('/:id/complete', async (req, res, next) => {
 
       const completionEntry = {
         date,
+        // The price on the day. Invoicing reads this, so raising a rate later
+        // does not reprice visits already done.
+        price: job.default_price != null ? Number(job.default_price) : null,
         note: note || null,
         completedBy: req.user.sub,
         completedByName,

@@ -12838,7 +12838,8 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
 
         <div className="section-heading">Scheduled rollup</div>
         <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-          Roll up unbilled completions into draft invoices on a schedule. We never auto-send — drafts land in your Invoices tab for review. Per-{terms.customerLower} opt-out lives on the {terms.customerLower} record.
+          Roll up unbilled completions into draft invoices on a schedule. We never auto-send — drafts land in your Invoices tab for review. Per-{terms.customerLower} opt-out lives on the {terms.customerLower} record.{' '}
+          Each visit is billed at the price it had on the day it was completed. If a run is missed, or the schedule was off for a while, the next run also picks up unbilled visits from up to three months back (four weeks on the weekly schedule).
         </p>
 
         <div className="auto-invoice-options">
@@ -12945,8 +12946,13 @@ function AutoInvoicePanel({ session, form, setField, isAdmin, busy, saved, error
             <>
               <div className="section-heading" style={{ marginTop: 0 }}>Run summary</div>
               <p className="hint" style={{ marginTop: 0 }}>
-                Period: <strong style={{ color: 'var(--text)' }}>{runResult.period.start} → {runResult.period.end}</strong>
+                Period: <strong style={{ color: 'var(--text)' }}>{runResult.caught_up_from || runResult.period.start} → {runResult.period.end}</strong>
               </p>
+              {runResult.caught_up_from && (
+                <p className="hint" style={{ marginTop: 0 }}>
+                  This run reached back before the usual period to pick up completed visits that an earlier run never saw. Those invoices say so in their description. Check them before sending.
+                </p>
+              )}
               {runResult.drafted.length === 0 ? (
                 <p>No new completions to bill. Nothing was drafted.</p>
               ) : (
