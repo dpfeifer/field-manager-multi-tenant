@@ -45,13 +45,16 @@ router.post('/complete', requireRole('admin'), async (req, res, next) => {
     const hasBookingConfig = req.body && req.body.booking_form_config && features.requests;
     const bookingConfig = hasBookingConfig ? normalizeBookingFormConfig(req.body.booking_form_config) : null;
 
+    const TRADES = new Set(['lawn', 'cleaning', 'barber', 'detailing', 'handyman', 'other']);
+    const trade = TRADES.has(req.body && req.body.trade) ? req.body.trade : null;
     await query(
       `UPDATE organizations
        SET features = $2::jsonb,
+           trade = COALESCE($3, trade),
            onboarding_completed_at = NOW(),
            updated_at = NOW()
        WHERE id = $1`,
-      [req.organization.id, JSON.stringify(features)]
+      [req.organization.id, JSON.stringify(features), trade]
     );
 
     if (hasTerminology || hasBookingConfig) {

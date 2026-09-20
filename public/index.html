@@ -1831,6 +1831,53 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    /* ---- onboarding ---- */
+    .ob-shell { max-width: 620px; }
+    .ob-progress { display: flex; gap: 6px; margin-bottom: 22px; }
+    .ob-progress span { flex: 1 1 0; height: 4px; border-radius: 99px; background: var(--border); transition: background 0.3s ease; }
+    .ob-progress span.on { background: var(--primary); }
+    .ob-title { font-size: clamp(24px, 5vw, 30px); line-height: 1.12; margin: 0 0 8px; text-wrap: balance; }
+    .ob-sub { margin: 0 0 20px; }
+    .ob-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; }
+    .ob-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ob-tile, .ob-choice {
+      font: inherit; text-align: left; cursor: pointer; color: var(--text);
+      background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .ob-tile { display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; min-height: 72px; justify-content: center; }
+    .ob-tile:hover, .ob-choice:hover { border-color: var(--primary); }
+    .ob-tile.on, .ob-choice.on { border-color: var(--primary); background: var(--tinted); box-shadow: inset 0 0 0 1px var(--primary); }
+    .ob-tile-l, .ob-choice-l { font-weight: 600; font-size: 15px; line-height: 1.25; }
+    .ob-tile-h, .ob-choice-d { font-size: 12.5px; color: var(--text-muted); line-height: 1.35; }
+    .ob-sections { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .ob-section {
+      display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center;
+      padding: 11px 14px; margin: 0; cursor: pointer; font-weight: normal;
+      border-top: 1px solid var(--border);
+    }
+    .ob-section:first-child { border-top: 0; }
+    .ob-section input { grid-row: 1 / span 2; width: 18px; height: 18px; margin: 0; }
+    .ob-section-l { font-weight: 600; font-size: 14.5px; line-height: 1.2; }
+    .ob-section-d { font-size: 12.5px; color: var(--text-muted); line-height: 1.35; }
+    .ob-section:not(.on) .ob-section-l { color: var(--text-muted); }
+    .ob-words { margin-top: 14px; font-size: 14px; color: var(--text-muted); }
+    .ob-words p { margin: 0; } .ob-words strong { color: var(--text); }
+    .ob-words-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    .ob-words-grid label { font-size: 12.5px; margin: 0 0 4px; }
+    .ob-choices { display: flex; flex-direction: column; gap: 10px; }
+    .ob-choice { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+    .ob-choice-l, .ob-choice-d { display: block; }
+    .ob-choice-d { margin-top: 2px; }
+    .ob-choice-dot { flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--card); }
+    .ob-choice.on .ob-choice-dot { border-color: var(--primary); background: radial-gradient(circle, var(--primary) 0 45%, var(--card) 50%); }
+    .ob-panel { background: var(--tinted); border-radius: 12px; padding: 16px 18px; margin-top: 16px; font-size: 14.5px; }
+    .ob-panel-h { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .ob-steps { margin: 0; padding-left: 20px; line-height: 1.75; }
+    .ob-note { font-size: 14px; color: var(--text-muted); } .ob-note strong { color: var(--text); }
+    .ob-more { display: inline-block; margin-top: 14px; font-size: 13.5px; font-weight: 500; color: var(--text-muted); }
+    .ob-tile:focus-visible, .ob-choice:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    @media (max-width: 420px) { .ob-tile { padding: 12px 13px; } .ob-tile-l { font-size: 14px; } }
     .invoice-referral { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
     .invoice-referral p { margin: 0 0 10px; font-size: 13.5px; color: var(--text-muted); }
     .invoice-referral p strong { color: var(--text); }
@@ -5939,6 +5986,10 @@
 <script type="text/babel" data-presets="react-classic">
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
+// Chrome's one-tap installer arrives as an event, once, soon after load — long
+// before onboarding's last step mounts. Hold on to it.
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__fmInstallPrompt = e; });
+
 const ICONS = {
   dashboard: 'M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.5H9V21H4a1 1 0 0 1-1-1z',
   jobs: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
@@ -8833,6 +8884,14 @@ function CustomersView({ session, planContext, features = {} }) {
     setError(null); setViewing(c); setMode('detail');
     window.scrollTo(0, 0);
   }, [customers]);
+  // Onboarding hands off to /customers?new=1 or ?import=1.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const want = q.get('new') ? 'create' : q.get('import') ? 'import' : null;
+    if (!want) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    setError(null); setMode(want);
+  }, []);
   useEffect(() => {
     if (customers.length === 0) return;
     const id = new URLSearchParams(window.location.search).get('open');
@@ -16389,223 +16448,254 @@ function InstallInstructions() {
   );
 }
 
+// Onboarding asks what the business does and sets the app up to match, rather
+// than handing a new owner six unticked boxes. Presets are a starting point:
+// every one of them can be changed on the next step, and again in Settings.
+const ONBOARDING_TRADES = [
+  { key: 'lawn', label: 'Lawn & landscape', hint: 'Mowing, cleanups, snow',
+    words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests', 'reports'] },
+  { key: 'cleaning', label: 'Cleaning', hint: 'Homes, offices, turnovers',
+    words: ['Client', 'Clients', 'Visit', 'Visits'], on: ['invoices', 'requests', 'reports'] },
+  { key: 'barber', label: 'Barber or salon', hint: 'Cuts, color, chair rental',
+    words: ['Client', 'Clients', 'Appointment', 'Appointments'], on: ['requests', 'reports'] },
+  { key: 'detailing', label: 'Auto detailing', hint: 'Mobile or in the shop',
+    words: ['Customer', 'Customers', 'Appointment', 'Appointments'], on: ['invoices', 'quotes', 'requests'] },
+  { key: 'handyman', label: 'Handyman & repair', hint: 'Estimates, one-off jobs',
+    words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests'] },
+  { key: 'other', label: 'Something else', hint: 'Any service you schedule',
+    words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests', 'reports'] },
+];
+const ONBOARDING_SECTIONS = [
+  ['invoices', 'Invoices', 'Bill for completed work and get paid.'],
+  ['quotes', 'Quotes', 'Send an estimate; turn it into a job.'],
+  ['requests', 'Requests', 'A booking link, and an inbox for what comes in.'],
+  ['reports', 'Reports', 'Revenue, projections, who your best accounts are.'],
+  ['team', 'Team', 'Invite employees. Skip if it is just you.'],
+  ['referrals', 'Referrals', 'Credit for people who send you new business.'],
+];
+
+// Which set of install steps to show. iPadOS reports itself as a Mac, hence
+// the touch-points check.
+function installDevice() {
+  const ua = navigator.userAgent || '';
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return 'installed';
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
+function OnboardingInstall() {
+  const [device] = useState(installDevice);
+  const [showAll, setShowAll] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  // Chrome hands over a one-tap installer when it judges the page installable;
+  // index.html catches the event at boot, because it fires once and early.
+  const canPrompt = !!window.__fmInstallPrompt && !installed;
+  async function promptInstall() {
+    const ev = window.__fmInstallPrompt;
+    if (!ev) return;
+    ev.prompt();
+    const choice = await ev.userChoice.catch(() => null);
+    window.__fmInstallPrompt = null;
+    if (choice && choice.outcome === 'accepted') setInstalled(true);
+  }
+  const ios = (
+    <ol className="ob-steps">
+      <li>Tap the <strong>Share</strong> button in Safari</li>
+      <li>Scroll to <strong>Add to Home Screen</strong></li>
+      <li>Tap <strong>Add</strong></li>
+    </ol>
+  );
+  const android = (
+    <ol className="ob-steps">
+      <li>Tap the <strong>three-dot menu</strong> in Chrome</li>
+      <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+      <li>Tap <strong>Add</strong></li>
+    </ol>
+  );
+  const desktop = (
+    <p className="ob-note" style={{ margin: 0 }}>
+      On a computer, bookmark this page — or use the install icon at the end of the address bar. Then open <strong>fieldmgr.com</strong> on your phone and sign in: same account, same data.
+    </p>
+  );
+  return (
+    <>
+      <p className="subtitle">
+        There is nothing to download. It runs in the browser on your phone, your tablet and the laptop in the truck, and it is always up to date. On a phone, put it on your home screen and it opens full screen, like any other app.
+      </p>
+      {(device === 'installed' || installed) && <div className="ob-panel"><strong>You are already running it from your home screen.</strong> Nothing more to do.</div>}
+      {device !== 'installed' && !installed && (
+        <div className="ob-panel">
+          {canPrompt
+            ? <button type="button" className="primary" onClick={promptInstall}>Install Field Manager</button>
+            : (device === 'ios' ? ios : device === 'android' ? android : desktop)}
+        </div>
+      )}
+      {!showAll
+        ? <button type="button" className="link-btn ob-more" onClick={() => setShowAll(true)}>Using a different device?</button>
+        : (
+          <div className="ob-alldevices">
+            {device !== 'ios' && <div className="ob-panel"><div className="ob-panel-h">iPhone &middot; Safari</div>{ios}</div>}
+            {device !== 'android' && <div className="ob-panel"><div className="ob-panel-h">Android &middot; Chrome</div>{android}</div>}
+            {device !== 'desktop' && <div className="ob-panel"><div className="ob-panel-h">Computer</div>{desktop}</div>}
+          </div>
+        )}
+    </>
+  );
+}
+
 function OnboardingPage({ session, onDone }) {
-  const terms = useTerms();
-  const [step, setStep] = useState('modules');
-  const [features, setFeatures] = useState({ invoices: false, quotes: false, reports: false, team: false, requests: false, referrals: false });
-  const [terminology, setTerminology] = useState({
-    customer_label: 'Customer',
-    customer_label_plural: 'Customers',
-    job_label: 'Job',
-    job_label_plural: 'Jobs',
-  });
-  const [bookingFormConfig, setBookingFormConfig] = useState({
-    show_phone: true,
-    show_address: true,
-    show_notes: true,
-    show_referred_by: false,
-    preferred_dates_mode: 'one',
-    title: '',
-    subtitle: '',
-    service_placeholder: '',
-    notes_placeholder: '',
-  });
+  const STEPS = ['trade', 'setup', 'customers', 'install'];
+  const [step, setStep] = useState('trade');
+  const [trade, setTrade] = useState(null);
+  const [features, setFeatures] = useState({ invoices: true, quotes: true, reports: true, team: false, requests: true, referrals: false });
+  const [words, setWords] = useState(['Customer', 'Customers', 'Job', 'Jobs']);
+  const [editWords, setEditWords] = useState(false);
+  const [start, setStart] = useState('add');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  // Dynamic step order — booking-form only appears if requests is enabled.
-  const stepOrder = ['modules', 'terminology'];
-  if (features.requests) stepOrder.push('booking-form');
-  stepOrder.push('install');
-  const stepIndex = stepOrder.indexOf(step);
-  const totalSteps = stepOrder.length;
-  const stepNum = stepIndex === -1 ? 1 : stepIndex + 1;
-  function goNext() {
-    const next = stepOrder[stepIndex + 1];
-    if (next) setStep(next);
+  const stepIndex = STEPS.indexOf(step);
+  function go(delta) {
+    const next = STEPS[stepIndex + delta];
+    if (next) { setError(null); setStep(next); window.scrollTo(0, 0); }
   }
-  function goBack() {
-    const prev = stepOrder[stepIndex - 1];
-    if (prev) setStep(prev);
+  function pickTrade(t) {
+    setTrade(t.key);
+    setWords(t.words);
+    setFeatures({ invoices: false, quotes: false, reports: false, team: false, requests: false, referrals: false,
+      ...Object.fromEntries(t.on.map((k) => [k, true])) });
   }
+  const setWord = (i, v) => setWords((w) => w.map((x, k) => (k === i ? v : x)));
+  const tradeLabel = (ONBOARDING_TRADES.find((t) => t.key === trade) || {}).label;
+  const lower = (s) => (s || '').toLowerCase();
 
-  function toggle(key) {
-    setFeatures((f) => ({ ...f, [key]: !f[key] }));
-  }
-
-  function setTermField(key, value) {
-    setTerminology((t) => ({ ...t, [key]: value }));
-  }
-
-  function setBookingCfg(key, value) {
-    setBookingFormConfig((c) => ({ ...c, [key]: value }));
-  }
-
-  async function submit() {
+  async function finish() {
     setBusy(true); setError(null);
     try {
       await apiRequest('/api/onboarding/complete', {
         method: 'POST', slug: session.slug, token: session.token,
         body: {
-          features,
-          terminology,
-          booking_form_config: features.requests ? bookingFormConfig : undefined,
+          trade, features,
+          terminology: { customer_label: words[0], customer_label_plural: words[1], job_label: words[2], job_label_plural: words[3] },
         },
       });
+      if (start === 'send') {
+        // Through the support inbox, so it reaches a person with the account
+        // attached. A failure here must not strand them in the wizard.
+        await apiRequest('/api/support', {
+          method: 'POST', slug: session.slug, token: session.token,
+          body: {
+            category: 'Question', context: 'onboarding',
+            subject: `Please load my ${lower(words[1])} for me`,
+            message: `I picked "send you my list" during setup. Please reply and tell me where to send my ${lower(words[0])} list — a spreadsheet, an export from another app, or photos of a notebook.`,
+          },
+        }).catch(() => {});
+      }
       await onDone();
+      if (start === 'add') navigate('/customers?new=1');
+      else if (start === 'import') navigate('/customers?import=1');
     } catch (err) { setError(err.message); setBusy(false); }
   }
 
-  if (step === 'install') {
-    return (
-      <div className="auth-shell" style={{ maxWidth: 720 }}>
-        <div className="card">
-          <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Step {stepNum} of {totalSteps}
-          </p>
-          <h1>Field Manager isn't an app.</h1>
-          <InstallInstructions />
-
-          {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
-
-          <div className="form-actions" style={{ marginTop: 24, justifyContent: 'space-between' }}>
-            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
-            <button className="primary" disabled={busy} onClick={submit}>
-              {busy ? 'Saving...' : 'Finish setup'}
-            </button>
-          </div>
-        </div>
+  const head = (title, sub) => (
+    <>
+      <div className="ob-progress" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={stepIndex + 1} aria-label={`Step ${stepIndex + 1} of ${STEPS.length}`}>
+        {STEPS.map((s, i) => <span key={s} className={i <= stepIndex ? 'on' : ''} />)}
       </div>
-    );
-  }
-
-  if (step === 'booking-form') {
-    return (
-      <div className="auth-shell" style={{ maxWidth: 640 }}>
-        <div className="card">
-          <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Step {stepNum} of {totalSteps}
-          </p>
-          <h1>Tune your booking form</h1>
-          <p className="subtitle" style={{ marginBottom: 20 }}>
-            Since you turned on Requests, you have a public booking page at <strong style={{ color: 'var(--text)' }}>/book/{session.organization.slug}</strong> where prospects can ask for service. Pick what they need to tell you. You can adjust this any time in Settings &rarr; Booking form.
-          </p>
-
-          <BookingFormFields cfg={bookingFormConfig} setCfg={setBookingCfg} namespace="onboarding" />
-
-          {error && <div className="error">{error}</div>}
-
-          <div className="form-actions" style={{ marginTop: 8, justifyContent: 'space-between' }}>
-            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
-            <button className="primary" disabled={busy} onClick={goNext}>
-              Continue →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'terminology') {
-    return (
-      <div className="auth-shell" style={{ maxWidth: 640 }}>
-        <div className="card">
-          <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Step {stepNum} of {totalSteps}
-          </p>
-          <h1>What do you call your work?</h1>
-          <p className="subtitle" style={{ marginBottom: 20 }}>
-            Every business is different. Tell us what you call jobs and customers and we'll use those words throughout the app. You can change this later in Settings → Terminology.
-          </p>
-
-          <div className="form-grid">
-            <div>
-              <label>What do you call a customer?</label>
-              <input value={terminology.customer_label} onChange={(e) => setTermField('customer_label', e.target.value)} placeholder="Customer" />
-            </div>
-            <div>
-              <label>Plural</label>
-              <input value={terminology.customer_label_plural} onChange={(e) => setTermField('customer_label_plural', e.target.value)} placeholder="Customers" />
-            </div>
-            <div>
-              <label>What do you call a job?</label>
-              <input value={terminology.job_label} onChange={(e) => setTermField('job_label', e.target.value)} placeholder="Job" />
-            </div>
-            <div>
-              <label>Plural</label>
-              <input value={terminology.job_label_plural} onChange={(e) => setTermField('job_label_plural', e.target.value)} placeholder="Jobs" />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 18, padding: 14, background: 'var(--tinted)', borderRadius: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            Preview: Your sidebar will say <strong style={{ color: 'var(--text)' }}>{terminology.customer_label_plural || 'Customers'}</strong> and <strong style={{ color: 'var(--text)' }}>{terminology.job_label_plural || 'Jobs'}</strong>.
-          </div>
-
-          {error && <div className="error">{error}</div>}
-
-          <div className="form-actions" style={{ marginTop: 24, justifyContent: 'space-between' }}>
-            <button className="secondary" disabled={busy} onClick={goBack}>← Back</button>
-            <button className="primary" disabled={busy} onClick={goNext}>
-              Continue →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      <h1 className="ob-title">{title}</h1>
+      {sub && <p className="subtitle ob-sub">{sub}</p>}
+    </>
+  );
+  const foot = (primary) => (
+    <div className="ob-foot">
+      {stepIndex > 0 ? <button type="button" className="secondary" disabled={busy} onClick={() => go(-1)}>&larr; Back</button> : <span />}
+      {primary}
+    </div>
+  );
 
   return (
-    <div className="auth-shell" style={{ maxWidth: 640 }}>
-      <div className="card">
-        <p className="hint" style={{ marginTop: 0, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-          Step {stepNum} of {totalSteps}
-        </p>
-        <h1>Welcome to {session.organization.name}!</h1>
-        <p className="subtitle" style={{ marginBottom: 16 }}>
-          You're already set up with the basics: a <strong style={{ color: 'var(--text)' }}>Dashboard</strong>, <strong style={{ color: 'var(--text)' }}>{terms.customers}</strong>, and <strong style={{ color: 'var(--text)' }}>{terms.jobs}</strong>. These are always on — they're the core of Field Manager.
-        </p>
-        <p className="subtitle">
-          Click below to add anything else you need. You can change this later in Settings → Modules.
-        </p>
+    <div className="auth-shell ob-shell">
+      <div className="card ob-card">
+        {step === 'trade' && (
+          <>
+            {head(`Welcome to ${session.organization.name}.`, 'What kind of work do you do? We will set the app up to match — you can change any of it.')}
+            <div className="ob-tiles" role="radiogroup" aria-label="Kind of work">
+              {ONBOARDING_TRADES.map((t) => (
+                <button key={t.key} type="button" role="radio" aria-checked={trade === t.key}
+                  className={`ob-tile${trade === t.key ? ' on' : ''}`} onClick={() => pickTrade(t)}>
+                  <span className="ob-tile-l">{t.label}</span>
+                  <span className="ob-tile-h">{t.hint}</span>
+                </button>
+              ))}
+            </div>
+            {foot(<button type="button" className="primary" disabled={!trade} onClick={() => go(1)}>Continue &rarr;</button>)}
+          </>
+        )}
 
-        <div className="section-heading" style={{ marginTop: 24, marginBottom: 12 }}>Optional modules</div>
+        {step === 'setup' && (
+          <>
+            {head(trade === 'other' ? 'Here is what we set up.' : `Set up for ${lower(tradeLabel)}.`,
+              `Your dashboard, calendar and ${lower(words[0])} book are always on. These are the extras — switch off what you will not use, and turn it back on any time in Settings.`)}
+            <div className="ob-sections">
+              {ONBOARDING_SECTIONS.map(([key, label, desc]) => (
+                <label key={key} className={`ob-section${features[key] ? ' on' : ''}`}>
+                  <input type="checkbox" checked={!!features[key]} onChange={() => setFeatures((f) => ({ ...f, [key]: !f[key] }))} />
+                  <span className="ob-section-l">{label}</span>
+                  <span className="ob-section-d">{desc}</span>
+                </label>
+              ))}
+            </div>
+            <div className="ob-words">
+              {!editWords ? (
+                <p>
+                  We will call them <strong>{lower(words[1])}</strong> and <strong>{lower(words[3])}</strong>.{' '}
+                  <button type="button" className="link-btn" onClick={() => setEditWords(true)}>Change the wording</button>
+                </p>
+              ) : (
+                <div className="ob-words-grid">
+                  {['One customer', 'Several', 'One job', 'Several'].map((l, i) => (
+                    <div key={i}>
+                      <label htmlFor={`ob-word-${i}`}>{l}</label>
+                      <input id={`ob-word-${i}`} value={words[i]} maxLength={30} onChange={(e) => setWord(i, e.target.value)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {foot(<button type="button" className="primary" onClick={() => go(1)}>Continue &rarr;</button>)}
+          </>
+        )}
 
-        <FeatureRow
-          enabled={features.invoices} onToggle={() => toggle('invoices')}
-          label="Invoices"
-          description={`Track billable work, send invoices to ${terms.customersLower} (email or shareable link), record payments, tax + discounts, recurring-${terms.jobLower} auto-billing.`}
-        />
-        <FeatureRow
-          enabled={features.quotes} onToggle={() => toggle('quotes')}
-          label="Quotes / Estimates"
-          description={`Send estimates to prospects, convert accepted quotes into ${terms.customersLower}, ${terms.jobsLower}, or invoices in one click.`}
-        />
-        <FeatureRow
-          enabled={features.reports} onToggle={() => toggle('reports')}
-          label="Reports"
-          description={`Revenue dashboard, projected income, top ${terms.customersLower}, monthly trends. Admin-only when on.`}
-        />
-        <FeatureRow
-          enabled={features.team} onToggle={() => toggle('team')}
-          label="Team"
-          description="Invite admins, leads, and employees with role-based access. Skip if you're a solo operator."
-        />
-        <FeatureRow
-          enabled={features.requests} onToggle={() => toggle('requests')}
-          label="Requests"
-          description={`Public booking page where ${terms.customersLower} can request appointments. Adds a Requests tab where you accept or decline them.`}
-        />
-        <FeatureRow
-          enabled={!!features.referrals} onToggle={() => toggle('referrals')}
-          label="Referrals"
-          description={`Give each ${terms.customerLower} a booking link of their own. When someone they send becomes a ${terms.customerLower}, they earn credit on every ${terms.jobLower} you complete — 10% of the first five to start, and you can change both in Settings.`}
-        />
+        {step === 'customers' && (
+          <>
+            {head(`Get your ${lower(words[1])} in.`, 'The app is empty until they are. Pick how you would like to start — this is where you land when setup finishes.')}
+            <div className="ob-choices" role="radiogroup" aria-label="How to start">
+              {[
+                ['add', `Add my first ${lower(words[0])}`, 'Name and a phone number is enough. Takes a minute.'],
+                ['import', 'Import a spreadsheet', 'Paste or upload a CSV from Excel, Google Sheets or another app.'],
+                ['send', 'Send you my list — free', 'A spreadsheet, an export, even photos of a notebook. We load it for you, usually the same day.'],
+                ['later', 'I will do it later', 'Go to the dashboard and look around first.'],
+              ].map(([key, label, desc]) => (
+                <button key={key} type="button" role="radio" aria-checked={start === key}
+                  className={`ob-choice${start === key ? ' on' : ''}`} onClick={() => setStart(key)}>
+                  <span className="ob-choice-dot" aria-hidden="true" />
+                  <span><span className="ob-choice-l">{label}</span><span className="ob-choice-d">{desc}</span></span>
+                </button>
+              ))}
+            </div>
+            {foot(<button type="button" className="primary" onClick={() => go(1)}>Continue &rarr;</button>)}
+          </>
+        )}
 
-        <div className="form-actions" style={{ marginTop: 24 }}>
-          <button className="primary" disabled={busy} onClick={goNext}>
-            Continue →
-          </button>
-        </div>
+        {step === 'install' && (
+          <>
+            {head('Put it on your home screen.')}
+            <OnboardingInstall />
+            {error && <div className="error" style={{ marginTop: 16 }}>{error}</div>}
+            {foot(<button type="button" className="primary" disabled={busy} onClick={finish}>{busy ? 'Finishing...' : 'Finish setup'}</button>)}
+          </>
+        )}
       </div>
     </div>
   );
