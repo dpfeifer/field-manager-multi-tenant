@@ -16028,7 +16028,7 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
               .filter((w) => w.enabled && DASHBOARD_WIDGET_REGISTRY[w.id] && isVisibleForRole(w.id) && w.id !== 'team_notes')
               .map((w) => {
                 const W = DASHBOARD_WIDGET_REGISTRY[w.id].render;
-                return <div className="dash-widget" key={w.id}><W ctx={ctx} /></div>;
+                return <div className="dash-widget" data-widget={w.id} key={w.id}><W ctx={ctx} /></div>;
               })}
           </div>
         </>
@@ -16518,7 +16518,10 @@ function screenTour(view, t) {
   const tours = {
     dashboard: ['Dashboard', [
       [['.dash-pending-requests'], `Someone wants to book. New requests wait here until you tap Review.`],
-      [['.dash-widget .list .row', '.list .row'], `Today's work. Tap Mark complete the moment you finish — add a note if there is a story.`],
+      // By name, not "the first list on the page": the cards can be reordered,
+      // and outstanding invoices is a list too. No jobs today, no stop.
+      [['.dash-widget[data-widget="today"] .list .row'], `Today's work. Tap Mark complete the moment you finish — add a note if there is a story.`],
+      [['.dash-widget[data-widget="outstanding"] .list .row'], `Who owes you. Mark paid when the money lands, or View to see the invoice exactly as they do.`],
       [['.dash-greeting-head .primary'], `This sends a note to your whole team. It shows up on their dashboard and in their inbox.`],
       [['.dash-greeting-head .rowmenu-trigger'], `Too many cards? Open this and choose Edit layout to hide the ones you never look at.`],
       [['.tabbar', '.rail-inner'], `Everything else lives here. Wherever you go, the ? comes with you.`],
