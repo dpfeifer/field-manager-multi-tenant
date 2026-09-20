@@ -1850,14 +1850,33 @@
     @keyframes helpspot-dim { 0% { opacity: 0; } 10%, 84% { opacity: 1; } 100% { opacity: 0; } }
     @keyframes helpspot-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.75); } 100% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); } }
     @media (prefers-reduced-motion: reduce) { .helpspot { animation: none; } .helpspot-btn { animation: none; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.45); } }
-    .helpsheet { max-width: 460px; max-height: min(86vh, 640px); overflow-y: auto; }
-    .helpsheet-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-    .helpsheet-intro { margin: 0 0 16px; font-size: 14.5px; line-height: 1.55; color: var(--text-muted); }
-    .helpsheet-tips { margin: 0; border-top: 1px solid var(--border); }
-    .helpsheet-tips > div { padding: 12px 0; border-bottom: 1px solid var(--border); }
-    .helpsheet-tips dt { font-weight: 600; font-size: 14.5px; margin-bottom: 3px; }
-    .helpsheet-tips dd { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
-    .helpsheet-foot { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+    /* The walk-through. The lit hole is an empty box whose enormous shadow IS
+       the dim, so its corners can be round and it can glide between stops. */
+    .tour { position: fixed; inset: 0; z-index: 1600; }
+    .tour-catch { position: absolute; inset: 0; cursor: pointer; }
+    .tour-dim { position: absolute; inset: 0; background: rgba(20, 16, 10, 0.58); pointer-events: none; animation: tour-in 0.25s ease both; }
+    .tour-hole {
+      position: fixed; border-radius: 14px; pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(20, 16, 10, 0.58), 0 0 0 2px rgba(255, 255, 255, 0.9);
+      transition: top 0.35s cubic-bezier(0.32, 0.72, 0, 1), left 0.35s cubic-bezier(0.32, 0.72, 0, 1), width 0.35s cubic-bezier(0.32, 0.72, 0, 1), height 0.35s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.35s ease;
+      animation: tour-in 0.25s ease both;
+    }
+    .tour-hole.round { border-radius: 999px; }
+    .tour-card {
+      position: fixed; background: var(--card); color: var(--text); border-radius: 16px; padding: 16px 16px 12px;
+      box-shadow: 0 18px 50px -14px rgba(0, 0, 0, 0.55); animation: tour-card-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+    }
+    .tour-text { margin: 0 0 14px; font-size: 15.5px; line-height: 1.5; text-wrap: pretty; }
+    .tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .tour-dots { display: inline-flex; gap: 5px; }
+    .tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); }
+    .tour-dots i.on { background: var(--primary); width: 16px; border-radius: 99px; transition: width 0.25s ease; }
+    .tour-btns { display: inline-flex; align-items: center; gap: 8px; }
+    .tour-btns .primary, .tour-btns .secondary, .tour-foot > .primary { padding: 8px 16px; font-size: 14px; }
+    .tour-skip { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+    @keyframes tour-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes tour-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .tour-hole, .tour-card, .tour-dim, .tour-dots i { transition: none; animation: none; } }
     @media (max-width: 720px) { .helpbtn { width: 36px; height: 36px; font-size: 15px; } }
     /* ---- onboarding ---- */
     .ob-shell { max-width: 620px; }
@@ -16037,11 +16056,28 @@ function GettingStartedChecklist({ session, features, settings, customers, jobs 
   const customerDone = (customers || []).length > 0;
   const jobDone = (jobs || []).length > 0;
 
+  // In the order a new account actually goes: onboarding ends on the first
+  // customer, the next thing is something on the calendar, then the details
+  // that show on what customers see.
   const items = [
     {
+      id: 'customer',
+      label: `Add your first ${terms.customerLower}`,
+      hint: 'Or import a whole spreadsheet at once.',
+      done: customerDone,
+      to: customerDone ? '/customers' : '/customers?new=1',
+    },
+    {
+      id: 'job',
+      label: `Schedule your first ${terms.jobLower}`,
+      hint: 'One-off or repeating. Pick a day and save.',
+      done: jobDone,
+      to: '/jobs',
+    },
+    {
       id: 'company',
-      label: 'Add your company info and logo',
-      hint: 'Shows up on every invoice and your public booking page.',
+      label: 'Add your name and logo',
+      hint: 'They go on every invoice and your booking page.',
       done: companyDone,
       to: '/settings',
     },
@@ -16049,26 +16085,12 @@ function GettingStartedChecklist({ session, features, settings, customers, jobs 
   if (features.invoices) {
     items.push({
       id: 'payments',
-      label: 'Set up how customers pay you',
-      hint: 'Pay-now link (Stripe / PayPal / Square) or Venmo handle.',
+      label: `Tell ${terms.customersLower} how to pay`,
+      hint: 'A pay link or a Venmo handle, shown on every invoice.',
       done: paymentsDone,
       to: '/settings/payments',
     });
   }
-  items.push({
-    id: 'customer',
-    label: `Add your first ${terms.customerLower}`,
-    hint: 'Or import a list from CSV.',
-    done: customerDone,
-    to: '/customers',
-  });
-  items.push({
-    id: 'job',
-    label: `Schedule your first ${terms.jobLower}`,
-    hint: 'One-off or recurring — pick a day, hit save.',
-    done: jobDone,
-    to: '/jobs',
-  });
 
   const allDone = items.every((i) => i.done);
   if (dismissed || allDone) return null;
@@ -16079,8 +16101,8 @@ function GettingStartedChecklist({ session, features, settings, customers, jobs 
     <div className="gs-card">
       <div className="gs-head">
         <div>
-          <div className="gs-title">Get set up</div>
-          <div className="gs-sub">{doneCount} of {items.length} done · {items.length - doneCount} to go</div>
+          <div className="gs-title">{doneCount === 0 ? `${['', 'One', 'Two', 'Three', 'Four', 'Five'][items.length] || 'A few'} quick things` : 'Almost set up'}</div>
+          <div className="gs-sub">{doneCount} of {items.length} done</div>
         </div>
         <button
           className="link-button"
@@ -16477,122 +16499,202 @@ function InstallInstructions() {
   );
 }
 
-// Help for the screen you are on, behind one quiet "?" in the top bar. It is
-// always in the same place and never opens by itself: there when someone is
-// stuck, invisible when they are not. One entry per screen, written in the
-// account's own wording (customers / clients, jobs / appointments).
-function screenHelp(view, t) {
+// Help for the screen you are on, behind one quiet "?" in the top bar. Not a
+// page of instructions: a short walk around the screen itself. Each stop lights
+// up a real control and says one thing about it; a stop whose control is not on
+// screen right now (no requests waiting, an empty list) is simply left out.
+//
+// A stop is [selectors, text]. Selectors are tried in order and the first
+// visible match wins — phone and desktop often draw the same control
+// differently. The text never names the button — the light is on it — and
+// the wording follows the account's (customers / clients…).
+function screenTour(view, t) {
   const C = t.customers, c = t.customerLower, cs = t.customersLower;
   const J = t.jobs, j = t.jobLower, js = t.jobsLower;
-  const pages = {
-    dashboard: {
-      title: 'Dashboard',
-      intro: `Your day on one screen: what is scheduled, who owes you, and anything waiting on you.`,
-      tips: [
-        [`Finish a ${j} from here`, `Tap Mark complete on any of today's ${js}. You can add a note, and choose whether it goes onto that ${c}'s draft invoice.`],
-        ['Banners mean something is waiting', 'New booking requests and draft quotes show at the top until you deal with them. Tap Review to go straight there.'],
-        ['Make it yours', 'Open the ⋯ menu and choose Edit layout to hide cards you do not use or change their order.'],
-      ],
-    },
-    jobs: {
-      title: J,
-      intro: `Everything you have scheduled. Switch between Day, Week, Month and List at the top — Day is the one to work from.`,
-      tips: [
-        [`Add a ${j}`, `Tap +. In the Day view you can also tap an empty time slot to start one at that time.`],
-        ['Make it repeat', `Set a ${j} to weekly, every two weeks or monthly once, and the calendar fills itself in from there.`],
-        ['Skip or move one visit', `Open the ${j} and use Skip or Reschedule on that date. The rest of the schedule is left alone.`],
-        ['Mark complete', `One tap when the work is done. Made a mistake? Open the ${j} and undo that visit.`],
-      ],
-    },
-    customers: {
-      title: C,
-      intro: `Everyone you work for. Tap a name to see their ${js}, invoices, credit and notes in one place.`,
-      tips: [
-        [`Add ${cs}`, `Tap + for one at a time, or open the ⋯ menu and choose Import from CSV to bring in a spreadsheet.`],
-        ['A red amount means they owe you', 'It is the total of their sent, unpaid invoices. A green pill on their page is credit they have with you.'],
-        ['Notes stay with the person', `Gate codes, preferences, the dog's name — add them under Notes and they are there on every visit.`],
-        ['Deleting is deliberate', `Delete is in the ⋯ menu on each row, and asks you to type the name first.`],
-      ],
-    },
-    requests: {
-      title: 'Requests',
-      intro: `What comes in through your booking link. Nothing is scheduled until you say so.`,
-      tips: [
-        ['Accept', `Accepting turns the request into a draft quote for that person, with everything they typed carried over. From Quotes you can make them a ${c} and schedule the ${j}.`],
-        ['Decline', 'You can add a reason for your own records. The request leaves the list.'],
-        ['Get more of them', 'Your booking link and QR code are in Settings → Share links. Put the link in your bio, on a card, or on the truck.'],
-      ],
-    },
-    invoices: {
-      title: 'Invoices',
-      intro: `An invoice is a Draft until you send it, Sent until it is paid. The filters at the top show each group.`,
-      tips: [
-        ['Send one', `Email it from the invoice, or copy its link and text it. Mark sent is for invoices you delivered some other way.`],
-        ['Record a payment', `Tap Mark paid. If the ${c} has credit with you, you can apply it to the invoice first.`],
-        ['Changed your mind?', 'Unsend, in the ⋯ menu, puts a sent invoice back to draft so you can edit it.'],
-        ['Let them build themselves', `Settings → Auto-invoice rolls completed ${js} into draft invoices on a schedule. It never sends anything without you.`],
-      ],
-    },
-    quotes: {
-      title: 'Quotes',
-      intro: `Estimates for work you have not agreed yet — for an existing ${c}, or for someone who is not one yet.`,
-      tips: [
-        ['Send it', 'Email the quote or copy its link. They can accept or decline online, and you will see the answer here.'],
-        [`From prospect to ${c}`, `Open the ⋯ menu and choose Promote to ${c}. Their details come across, and the quote stays attached.`],
-        ['No retyping', `Create ${j} and Create invoice, in the same menu, carry the quote's line items and total with them.`],
-      ],
-    },
-    reports: {
-      title: 'Reports',
-      intro: `What you have earned, what is coming, and who it comes from. Only admins can see this screen.`,
-      tips: [
-        ['Pick the period', 'The chips at the top change the date range for everything below.'],
-        ['Projected income', `Counts the ${js} already on your calendar at their set price — useful for seeing a slow month before you are in it.`],
-      ],
-    },
-    referrals: {
-      title: 'Referrals',
-      intro: `Who has sent you new business, and what it has earned them in credit.`,
-      tips: [
-        ['Mark a referral', `Open the new ${c}, choose Edit, and set Referred by. Anyone who books through a referral link is marked automatically.`],
-        ['Give someone their link', `Open a ${c}, go to their Referrals tab, and copy or email their link from there.`],
-        ['Change the reward', 'Reward settings, at the top, sets the percentage and how many visits it runs for.'],
-      ],
-    },
-    team: {
-      title: 'Team',
-      intro: `The people who can sign in to your account. Teammates are included in your plan — there is no per-person charge.`,
-      tips: [
-        ['Invite someone', 'They get an email with a link to set their own password.'],
-        ['Three roles', `Admins can do everything. Leads can manage ${cs}, ${js} and billing. Employees work the schedule and can only complete ${js} assigned to them.`],
-        ['See what they see', 'From the menu under your initial, top right, you can preview the app as another role.'],
-      ],
-    },
-    settings: {
-      title: 'Settings',
-      intro: `How your business appears to ${cs}, how you get paid, and which parts of the app are switched on.`,
-      tips: [
-        ['Business and Payments first', 'Your name, logo and payment details appear on every invoice and on your booking page.'],
-        ['Sections', 'Turn whole parts of the app on or off — Invoices, Quotes, Requests, Referrals and the rest. Your data is kept either way.'],
-        ['Wording', `Call them ${cs}, clients, members — the whole app follows.`],
-      ],
-    },
-    billing: {
-      title: 'Billing',
-      intro: `Your Field Manager plan. The free plan covers your first five customers; after that it is one flat monthly price.`,
-      tips: [
-        ['No per-person fees', 'Adding teammates never changes the price.'],
-        ['Leaving', 'You can cancel any time, and export your data first.'],
-      ],
-    },
+  const ADD = ['.toolbar .tb-actions .primary', '.page-header .primary'];
+  const MORE = ['.toolbar .tb-actions .rowmenu-trigger'];
+  const ROW = ['.dtable-row.is-clickable', '.dtable-row:not(.dtable-head)', '.list .row'];
+  const ROWMORE = ['.dtable-row:not(.dtable-head) .rowmenu-trigger', '.list .row .rowmenu-trigger'];
+  const tours = {
+    dashboard: ['Dashboard', [
+      [['.dash-pending-requests'], `Someone wants to book. New requests wait here until you tap Review.`],
+      [['.dash-widget .list .row', '.list .row'], `Today's work. Tap Mark complete the moment you finish — add a note if there is a story.`],
+      [['.dash-greeting-head .primary'], `This sends a note to your whole team. It shows up on their dashboard and in their inbox.`],
+      [['.dash-greeting-head .rowmenu-trigger'], `Too many cards? Open this and choose Edit layout to hide the ones you never look at.`],
+      [['.tabbar', '.rail-inner'], `Everything else lives here. Wherever you go, the ? comes with you.`],
+    ]],
+    jobs: [J, [
+      [['.toolbar .segmented', '.segmented'], `Four ways to see your schedule. Day is the one to work from.`],
+      [ADD, `Add a ${j} here. Set it to repeat once — weekly, every two weeks, monthly — and the calendar fills itself in.`],
+      [['.day-grid-body', '.day-grid'], `In a hurry? Tap any empty slot and a ${j} starts at that time.`],
+      [['.day-untimed-complete', '.day-block-complete'], `Done? One tap. It is stamped with who did it and when.`],
+      [MORE, `The extras: import ${js} from a spreadsheet, export them, change the sort.`],
+    ]],
+    customers: [C, [
+      [ADD, `Add a ${c} here. A name and a phone number is plenty to start.`],
+      [MORE, `Got a spreadsheet? Import from CSV is in here, and brings in the whole list at once.`],
+      [['.toolbar input'], `Search by name, phone or email.`],
+      [ROW, `Tap anyone to open their page: ${js}, invoices, credit and notes in one place. A red amount is what they owe you.`],
+      [ROWMORE, `Every row has its own menu — open, edit, or delete. Delete asks you to type the name first.`],
+    ]],
+    requests: ['Requests', [
+      [['.segmented'], `Pending is your to-do list. Accepted and Declined are the record.`],
+      [ROW, `Accept turns a request into a draft quote with everything they typed. Decline just clears it. Nothing is scheduled until you say so.`],
+    ]],
+    invoices: ['Invoices', [
+      [['.segmented'], `Draft until you send it, Sent until it is paid. Tap a group to see just those.`],
+      [ADD, `Start an invoice here. Completed ${js} can land on a draft automatically — Settings has the switch.`],
+      [ROW, `Mark sent, Mark paid — the button on each row is the next step for that invoice.`],
+      [ROWMORE, `The rest is in here: email it, copy its link to text, apply credit, or Unsend to fix a mistake.`],
+    ]],
+    quotes: ['Quotes', [
+      [ADD, `Write an estimate here — for a ${c}, or for someone who is not one yet.`],
+      [ROW, `Send it by email or link. They accept or decline online, and the answer shows up here.`],
+      [ROWMORE, `Accepted? This menu turns it into a ${c}, a ${j} and an invoice. No retyping.`],
+    ]],
+    reports: ['Reports', [
+      [['.reports-range-chips'], `Pick the period. Everything below follows.`],
+      [['.stats-grid'], `What came in, what is still owed, and what your calendar says is coming.`],
+    ]],
+    referrals: ['Referrals', [
+      [['.toolbar .tb-actions .secondary'], `Set the reward here: what share of each ${j}, and for how many.`],
+      [['.list .row'], `Tap a referrer to open their page. Their Referrals tab has their personal link to copy or email.`],
+    ]],
+    team: ['Team', [
+      [['.page-header .primary'], `Invite someone and they get an email to set their own password. Teammates never cost extra.`],
+      [['.role-legend'], `Three roles. Most helpers are Employees: they see the schedule and mark work done.`],
+      [['.list .row .rowmenu-trigger'], `Change a role or remove someone from here.`],
+    ]],
+    settings: ['Settings', [
+      [['.drill-list', '.rail-inner'], `Start with Business and Payments — your name, logo and pay details go on every invoice.`],
+    ]],
+    billing: ['Billing', [
+      [['.billing-hero'], `Your plan. Free covers your first five ${cs}; after that it is one flat price, teammates included.`],
+    ]],
   };
-  return pages[view] || null;
+  const tour = tours[view];
+  if (!tour) return null;
+  return { title: tour[0], stops: tour[1] };
+}
+
+function tourTarget(selectors) {
+  for (const sel of selectors) {
+    const el = [...document.querySelectorAll(sel)].find((x) => {
+      if (x.closest('.tour')) return false;
+      const r = x.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+    if (el) return el;
+  }
+  return null;
+}
+
+function ScreenTour({ tour, onClose }) {
+  // Resolved once, when the tour opens: the stops that exist on this screen now.
+  const [stops] = useState(() => tour.stops.map(([sels, text]) => ({ el: tourTarget(sels), text })).filter((s) => s.el));
+  const [i, setI] = useState(0);
+  const [box, setBox] = useState(null);
+  const last = i >= stops.length; // the closing card has no target
+  const stop = stops[i];
+
+  const measure = useCallback(() => {
+    if (!stop || !stop.el.isConnected) { setBox(null); return; }
+    const r = stop.el.getBoundingClientRect();
+    const H = window.innerHeight, W = window.innerWidth, pad = 6;
+    // A tall target (the calendar grid) is lit only where it shows.
+    const top = Math.max(r.top - pad, 64), bottom = Math.min(r.bottom + pad, H - 8);
+    const left = Math.max(r.left - pad, 4), right = Math.min(r.right + pad, W - 4);
+    const round = r.width < 64 && Math.abs(r.width - r.height) < 6;
+    // A tall target (the side rail, the calendar grid) leaves no room above or
+    // below it. With space beside it the card goes there; without, only the
+    // top of the target is lit and the card sits under that.
+    const cardW = Math.min(340, W - 24);
+    const tall = bottom - top > H * 0.45;
+    const beside = tall && right + 14 + cardW <= W - 12;
+    const litBottom = tall && !beside ? top + H * 0.36 : bottom;
+    setBox({ top, left, width: right - left, height: Math.max(0, litBottom - top), round, beside, below: beside || (top + litBottom) / 2 < H * 0.5, cx: (left + right) / 2 });
+  }, [stop]);
+
+  useEffect(() => {
+    if (stop && stop.el.isConnected) {
+      const r = stop.el.getBoundingClientRect();
+      const fixed = !!stop.el.closest('.tabbar, .rail, .topbar');
+      // Bring it into the upper-middle of the screen. By hand, and instantly:
+      // scrollIntoView is what once shook the fixed tab bar loose on iOS.
+      if (!fixed && (r.top < 90 || r.bottom > window.innerHeight - 220)) {
+        window.scrollTo(0, Math.max(0, window.scrollY + r.top - window.innerHeight * 0.28));
+      }
+    }
+    measure();
+    window.addEventListener('scroll', measure, true);
+    window.addEventListener('resize', measure);
+    return () => { window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
+  }, [measure, stop]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); setI((n) => (n >= stops.length ? n : n + 1)); }
+      else if (e.key === 'ArrowLeft') setI((n) => Math.max(0, n - 1));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, stops.length]);
+
+  const W = window.innerWidth;
+  const cardW = Math.min(340, W - 24);
+  const cardStyle = last || !box
+    ? { left: (W - cardW) / 2, width: cardW, top: '32%' }
+    : {
+      width: cardW,
+      ...(box.beside
+        ? { left: box.left + box.width + 14, top: box.top + 20 }
+        : {
+          left: Math.min(Math.max(12, box.cx - cardW / 2), W - 12 - cardW),
+          ...(box.below ? { top: box.top + box.height + 14 } : { bottom: window.innerHeight - box.top + 14 }),
+        }),
+    };
+
+  return (
+    <div className="tour" role="dialog" aria-modal="true" aria-label={`A quick look around ${tour.title}`}>
+      {/* Catches stray taps so nothing underneath fires mid-tour. */}
+      <div className="tour-catch" onClick={() => (last ? onClose() : setI(i + 1))} />
+      {!last && box && box.height > 0
+        ? <div className={`tour-hole${box.round ? ' round' : ''}`} style={{ top: box.top, left: box.left, width: box.width, height: box.height }} />
+        : <div className="tour-dim" />}
+      <div className="tour-card" style={cardStyle} aria-live="polite">
+        {!last ? (
+          <>
+            <p className="tour-text">{stop.text}</p>
+            <div className="tour-foot">
+              <span className="tour-dots" aria-label={`Step ${i + 1} of ${stops.length}`}>
+                {stops.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}
+              </span>
+              <span className="tour-btns">
+                <button type="button" className="link-btn tour-skip" onClick={onClose}>Skip</button>
+                {i > 0 && <button type="button" className="secondary" onClick={() => setI(i - 1)}>Back</button>}
+                <button type="button" className="primary" autoFocus onClick={() => setI(i + 1)}>{i === stops.length - 1 ? 'Got it' : 'Next'}</button>
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="tour-text"><strong>That is {tour.title}.</strong> Tap the ? any time for this again — it is different on every screen.</p>
+            <div className="tour-foot">
+              <button type="button" className="link-btn tour-skip" onClick={() => { onClose(); navigate('/support'); }}>Still stuck? Ask a person</button>
+              <button type="button" className="primary" autoFocus onClick={onClose}>Done</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ScreenHelp({ view, userId }) {
   const terms = useTerms();
   const [open, setOpen] = useState(false);
-  const help = screenHelp(view, terms);
+  const help = screenTour(view, terms);
   // The one time help announces itself: the first time a person reaches the
   // app, the page dims for a moment and the "?" pulses. Once per person per
   // device, never per screen — after that it is only ever there when asked.
@@ -16621,12 +16723,6 @@ function ScreenHelp({ view, userId }) {
   }, [spot]);
   // A different screen is a different question.
   useEffect(() => { setOpen(false); }, [view]);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
   if (!help) return null;
   return (
     <>
@@ -16643,30 +16739,7 @@ function ScreenHelp({ view, userId }) {
           </div>
         </div>
       )}
-      {open && (
-        <div className="modal-overlay helpsheet-overlay" onClick={() => setOpen(false)}>
-          <div className="modal-card helpsheet" role="dialog" aria-modal="true" aria-label={`Help with ${help.title}`} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head" style={{ marginBottom: 10 }}>
-              <div>
-                <div className="helpsheet-eyebrow">How this screen works</div>
-                <h3 style={{ margin: 0 }}>{help.title}</h3>
-              </div>
-              <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Close">×</button>
-            </div>
-            <p className="helpsheet-intro">{help.intro}</p>
-            <dl className="helpsheet-tips">
-              {help.tips.map(([h, p]) => (
-                <div key={h}><dt>{h}</dt><dd>{p}</dd></div>
-              ))}
-            </dl>
-            <div className="helpsheet-foot">
-              Still stuck?{' '}
-              <button type="button" className="link-btn" onClick={() => { setOpen(false); navigate('/support'); }}>Ask us</button>
-              {' '}— a person answers, usually within a day.
-            </div>
-          </div>
-        </div>
-      )}
+      {open && <ScreenTour tour={help} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -16693,7 +16766,7 @@ const ONBOARDING_SECTIONS = [
   ['quotes', 'Quotes', 'Send an estimate; turn it into a job.'],
   ['requests', 'Requests', 'A booking link, and an inbox for what comes in.'],
   ['reports', 'Reports', 'Revenue, projections, who your best accounts are.'],
-  ['team', 'Team', 'Invite employees. Skip if it is just you.'],
+  ['team', 'Team', "Invite employees. Skip if it's just you."],
   ['referrals', 'Referrals', 'Credit for people who send you new business.'],
 ];
 
@@ -16744,9 +16817,9 @@ function OnboardingInstall() {
   return (
     <>
       <p className="subtitle">
-        There is nothing to download. It runs in the browser on your phone, your tablet and the laptop in the truck, and it is always up to date. On a phone, put it on your home screen and it opens full screen, like any other app.
+        Nothing to download, and it&apos;s always up to date. Add it to your home screen and it opens full screen, like any other app.
       </p>
-      {(device === 'installed' || installed) && <div className="ob-panel"><strong>You are already running it from your home screen.</strong> Nothing more to do.</div>}
+      {(device === 'installed' || installed) && <div className="ob-panel"><strong>Already on your home screen.</strong> Nothing more to do.</div>}
       {device !== 'installed' && !installed && (
         <div className="ob-panel">
           {canPrompt
@@ -16842,7 +16915,7 @@ function OnboardingPage({ session, onDone }) {
       <div className="card ob-card">
         {step === 'trade' && (
           <>
-            {head(`Welcome to ${session.organization.name}.`, 'What kind of work do you do? We will set the app up to match — you can change any of it.')}
+            {head(`Welcome to ${session.organization.name}.`, "What kind of work do you do? We'll set things up to match.")}
             <div className="ob-tiles" role="radiogroup" aria-label="Kind of work">
               {ONBOARDING_TRADES.map((t) => (
                 <button key={t.key} type="button" role="radio" aria-checked={trade === t.key}
@@ -16859,7 +16932,7 @@ function OnboardingPage({ session, onDone }) {
         {step === 'setup' && (
           <>
             {head(trade === 'other' ? 'Here is what we set up.' : `Set up for ${lower(tradeLabel)}.`,
-              `Your dashboard, calendar and ${lower(words[0])} book are always on. These are the extras — switch off what you will not use, and turn it back on any time in Settings.`)}
+              "Untick anything you won't use. It's all in Settings if you change your mind.")}
             <div className="ob-sections">
               {ONBOARDING_SECTIONS.map(([key, label, desc]) => (
                 <label key={key} className={`ob-section${features[key] ? ' on' : ''}`}>
@@ -16872,7 +16945,7 @@ function OnboardingPage({ session, onDone }) {
             <div className="ob-words">
               {!editWords ? (
                 <p>
-                  We will call them <strong>{lower(words[1])}</strong> and <strong>{lower(words[3])}</strong>.{' '}
+                  We&apos;ll call them <strong>{lower(words[1])}</strong> and <strong>{lower(words[3])}</strong>.{' '}
                   <button type="button" className="link-btn" onClick={() => setEditWords(true)}>Change the wording</button>
                 </p>
               ) : (
@@ -16892,13 +16965,13 @@ function OnboardingPage({ session, onDone }) {
 
         {step === 'customers' && (
           <>
-            {head(`Get your ${lower(words[1])} in.`, 'The app is empty until they are. Pick how you would like to start — this is where you land when setup finishes.')}
+            {head(`Get your ${lower(words[1])} in.`, "Pick a way to start. You'll land there when setup finishes.")}
             <div className="ob-choices" role="radiogroup" aria-label="How to start">
               {[
-                ['add', `Add my first ${lower(words[0])}`, 'Name and a phone number is enough. Takes a minute.'],
-                ['import', 'Import a spreadsheet', 'Paste or upload a CSV from Excel, Google Sheets or another app.'],
-                ['send', 'Send you my list — free', 'A spreadsheet, an export, even photos of a notebook. We load it for you, usually the same day.'],
-                ['later', 'I will do it later', 'Go to the dashboard and look around first.'],
+                ['add', `Add my first ${lower(words[0])}`, 'A name and a number. One minute.'],
+                ['import', 'Import a spreadsheet', 'A CSV from Excel, Google Sheets or another app.'],
+                ['send', 'Send you my list — free', 'A spreadsheet, an export, photos of a notebook. We load it, usually same day.'],
+                ['later', "I'll do it later", 'Look around first.'],
               ].map(([key, label, desc]) => (
                 <button key={key} type="button" role="radio" aria-checked={start === key}
                   className={`ob-choice${start === key ? ' on' : ''}`} onClick={() => setStart(key)}>
