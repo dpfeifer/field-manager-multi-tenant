@@ -1852,7 +1852,7 @@
     @media (prefers-reduced-motion: reduce) { .helpspot { animation: none; } .helpspot-btn { animation: none; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.45); } }
     /* The walk-through. The lit hole is an empty box whose enormous shadow IS
        the dim, so its corners can be round and it can glide between stops. */
-    .tour { position: fixed; inset: 0; z-index: 1600; }
+    .tour { position: fixed; inset: 0; z-index: 1600; touch-action: none; overscroll-behavior: contain; }
     .tour-catch { position: absolute; inset: 0; cursor: pointer; }
     .tour-dim { position: absolute; inset: 0; background: rgba(20, 16, 10, 0.58); pointer-events: none; animation: tour-in 0.25s ease both; }
     .tour-hole {
@@ -16519,9 +16519,9 @@ function screenTour(view, t) {
     dashboard: ['Dashboard', [
       [['.dash-pending-requests'], `Someone wants to book. New requests wait here until you tap Review.`],
       // By name, not "the first list on the page": the cards can be reordered,
-      // and outstanding invoices is a list too. No jobs today, no stop.
-      [['.dash-widget[data-widget="today"] .list .row'], `Today's work. Tap Mark complete the moment you finish — add a note if there is a story.`],
-      [['.dash-widget[data-widget="outstanding"] .list .row'], `Who owes you. Mark paid when the money lands, or View to see the invoice exactly as they do.`],
+      // and outstanding invoices is a list too. The whole card, so the stop
+      // still makes sense on a day with nothing scheduled.
+      [['.dash-widget[data-widget="today"]'], `Today's ${js} land here. Finish one and tap Mark complete — add a note if there is a story.`],
       [['.dash-greeting-head .primary'], `This sends a note to your whole team. It shows up on their dashboard and in their inbox.`],
       [['.dash-greeting-head .rowmenu-trigger'], `Too many cards? Open this and choose Edit layout to hide the ones you never look at.`],
       [['.tabbar', '.rail-inner'], `Everything else lives here. Wherever you go, the ? comes with you.`],
@@ -16633,6 +16633,29 @@ function ScreenTour({ tour, onClose }) {
     window.addEventListener('resize', measure);
     return () => { window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
   }, [measure, stop]);
+
+  // The page holds still while something on it is lit. Only the person's own
+  // scrolling is blocked — wheel, touch, and the keys that scroll — so the
+  // tour can still move the page itself between stops. Not body
+  // overflow:hidden: iOS ignores it, and position:fixed on the body is the
+  // kind of thing that shakes the tab bar loose.
+  useEffect(() => {
+    const stopScroll = (e) => { if (!(e.target.closest && e.target.closest('.tour-card'))) e.preventDefault(); };
+    // Space on a focused button presses it — leave that alone.
+    const stopKeys = (e) => {
+      if (e.key === ' ' && e.target.closest && e.target.closest('button')) return;
+      if ([' ', 'PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+    };
+    const opts = { passive: false };
+    window.addEventListener('wheel', stopScroll, opts);
+    window.addEventListener('touchmove', stopScroll, opts);
+    window.addEventListener('keydown', stopKeys);
+    return () => {
+      window.removeEventListener('wheel', stopScroll, opts);
+      window.removeEventListener('touchmove', stopScroll, opts);
+      window.removeEventListener('keydown', stopKeys);
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => {
