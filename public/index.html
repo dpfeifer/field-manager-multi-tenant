@@ -407,7 +407,13 @@
     .tab.active { color: var(--text); border-bottom-color: var(--primary); font-weight: 600; }
     .tab:hover { color: var(--text); }
     label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--text); }
-    .hint { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+    /* Two jobs, one class. Inline beside a label ("Reward (% of each job)") it
+       wants a little air before it; as a line of explanation under a field or a
+       checkbox it must sit flush with what it explains — the same 6px there
+       read as a stray indent on every form in the app. */
+    .hint { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 0; }
+    label > .hint, h2 > .hint, h3 > .hint, .section-heading > .hint { margin-left: 6px; }
+    label > .hint[style*="block"] { margin-left: 0; }
     input, textarea {
       width: 100%; padding: 11px 14px; font-size: 14px;
       border: 1px solid var(--border-strong); border-radius: 8px;
