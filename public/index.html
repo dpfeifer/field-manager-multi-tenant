@@ -16598,15 +16598,20 @@ function ScreenTour({ tour, onClose }) {
   const [stops] = useState(() => tour.stops.map(([sels, text]) => ({ el: tourTarget(sels), text })).filter((s) => s.el));
   const [i, setI] = useState(0);
   const [box, setBox] = useState(null);
-  const last = i >= stops.length; // the closing card has no target
-  const stop = stops[i];
+  const last = i >= stops.length;
+  // The wrap-up is a stop too: it lights the "?" itself, so the tour ends by
+  // pointing at the way back in rather than on a card adrift in a dim page.
+  const stop = last ? { el: document.querySelector('.topbar .helpbtn'), text: '' } : stops[i];
 
   const measure = useCallback(() => {
-    if (!stop || !stop.el.isConnected) { setBox(null); return; }
+    if (!stop || !stop.el || !stop.el.isConnected) { setBox(null); return; }
     const r = stop.el.getBoundingClientRect();
     const H = window.innerHeight, W = window.innerWidth, pad = 6;
     // A tall target (the calendar grid) is lit only where it shows.
-    const top = Math.max(r.top - pad, 64), bottom = Math.min(r.bottom + pad, H - 8);
+    // Page content is never lit underneath the top bar — but the top bar's own
+    // button, the last stop, lives there.
+    const minTop = stop.el.closest('.topbar') ? 2 : 64;
+    const top = Math.max(r.top - pad, minTop), bottom = Math.min(r.bottom + pad, H - 8);
     const left = Math.max(r.left - pad, 4), right = Math.min(r.right + pad, W - 4);
     const round = r.width < 64 && Math.abs(r.width - r.height) < 6;
     // A tall target (the side rail, the calendar grid) leaves no room above or
@@ -16617,10 +16622,10 @@ function ScreenTour({ tour, onClose }) {
     const beside = tall && right + 14 + cardW <= W - 12;
     const litBottom = tall && !beside ? top + H * 0.36 : bottom;
     setBox({ top, left, width: right - left, height: Math.max(0, litBottom - top), round, beside, below: beside || (top + litBottom) / 2 < H * 0.5, cx: (left + right) / 2 });
-  }, [stop]);
+  }, [i, last]);
 
   useEffect(() => {
-    if (stop && stop.el.isConnected) {
+    if (stop && stop.el && stop.el.isConnected) {
       const r = stop.el.getBoundingClientRect();
       const fixed = !!stop.el.closest('.tabbar, .rail, .topbar');
       // Bring it into the upper-middle of the screen. By hand, and instantly:
@@ -16633,7 +16638,7 @@ function ScreenTour({ tour, onClose }) {
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => { window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
-  }, [measure, stop]);
+  }, [measure, i]);
 
   // The page holds still while something on it is lit. Only the person's own
   // scrolling is blocked — wheel, touch, and the keys that scroll — so the
@@ -16670,7 +16675,7 @@ function ScreenTour({ tour, onClose }) {
 
   const W = window.innerWidth;
   const cardW = Math.min(340, W - 24);
-  const cardStyle = last || !box
+  const cardStyle = !box
     ? { left: (W - cardW) / 2, width: cardW, top: '32%' }
     : {
       width: cardW,
@@ -16686,7 +16691,7 @@ function ScreenTour({ tour, onClose }) {
     <div className="tour" role="dialog" aria-modal="true" aria-label={`A quick look around ${tour.title}`}>
       {/* Catches stray taps so nothing underneath fires mid-tour. */}
       <div className="tour-catch" onClick={() => (last ? onClose() : setI(i + 1))} />
-      {!last && box && box.height > 0
+      {box && box.height > 0
         ? <div className={`tour-hole${box.round ? ' round' : ''}`} style={{ top: box.top, left: box.left, width: box.width, height: box.height }} />
         : <div className="tour-dim" />}
       <div className="tour-card" style={cardStyle} aria-live="polite">
@@ -16706,7 +16711,7 @@ function ScreenTour({ tour, onClose }) {
           </>
         ) : (
           <>
-            <p className="tour-text"><strong>End of the {tour.title} guide.</strong> Tap ? on any screen to see its guide.</p>
+            <p className="tour-text"><strong>That is the {tour.title} screen.</strong> Every screen has its own guide. Tap this button to open it.</p>
             <div className="tour-foot">
               <button type="button" className="link-btn tour-skip" onClick={() => { onClose(); navigate('/support'); }}>Contact support</button>
               <button type="button" className="primary" autoFocus onClick={onClose}>Done</button>
