@@ -16515,64 +16515,65 @@ function screenTour(view, t) {
   const MORE = ['.toolbar .tb-actions .rowmenu-trigger'];
   const ROW = ['.dtable-row.is-clickable', '.dtable-row:not(.dtable-head)', '.list .row'];
   const ROWMORE = ['.dtable-row:not(.dtable-head) .rowmenu-trigger', '.list .row .rowmenu-trigger'];
+  // Plain instructions: what the lit control is, and what to tap. No jokes,
+  // no asides — Dustin found the chatty version harder to follow.
   const tours = {
     dashboard: ['Dashboard', [
-      [['.dash-pending-requests'], `Someone wants to book. New requests wait here until you tap Review.`],
+      [['.dash-pending-requests'], `New booking requests. Tap Review to accept or decline them.`],
       // By name, not "the first list on the page": the cards can be reordered,
-      // and outstanding invoices is a list too. The whole card, so the stop
-      // still makes sense on a day with nothing scheduled.
-      [['.dash-widget[data-widget="today"]'], `Today's ${js} land here. Finish one and tap Mark complete — add a note if there is a story.`],
-      [['.dash-greeting-head .primary'], `This sends a note to your whole team. It shows up on their dashboard and in their inbox.`],
-      [['.dash-greeting-head .rowmenu-trigger'], `Too many cards? Open this and choose Edit layout to hide the ones you never look at.`],
-      [['.tabbar', '.rail-inner'], `Everything else lives here. Wherever you go, the ? comes with you.`],
+      // and outstanding invoices is a list too.
+      [['.dash-widget[data-widget="today"]'], `Today's ${js}. Tap Mark complete when a ${j} is done.`],
+      [['.dash-greeting-head .primary'], `Send a note to your team.`],
+      [['.dash-greeting-head .rowmenu-trigger'], `Tap here, then Edit layout, to hide or reorder the dashboard cards.`],
+      [['.tabbar', '.rail-inner'], `Use this menu to move between screens.`],
     ]],
     jobs: [J, [
-      [['.toolbar .segmented', '.segmented'], `Four ways to see your schedule. Day is the one to work from.`],
-      [ADD, `Add a ${j} here. Set it to repeat once — weekly, every two weeks, monthly — and the calendar fills itself in.`],
-      [['.day-grid-body', '.day-grid'], `In a hurry? Tap any empty slot and a ${j} starts at that time.`],
-      [['.day-untimed-complete', '.day-block-complete'], `Done? One tap. It is stamped with who did it and when.`],
-      [MORE, `The extras: import ${js} from a spreadsheet, export them, change the sort.`],
+      [['.toolbar .segmented', '.segmented'], `Change the view: Day, Week, Month or List.`],
+      [ADD, `Add a ${j}. A ${j} can repeat weekly, every two weeks or monthly.`],
+      [['.day-grid-body', '.day-grid'], `Tap an empty time slot to add a ${j} at that time.`],
+      [['.day-untimed-complete', '.day-block-complete'], `Tap Mark complete when the ${j} is done.`],
+      [MORE, `Import ${js} from a CSV file, export them, or change the sort order.`],
     ]],
     customers: [C, [
-      [ADD, `Add a ${c} here. A name and a phone number is plenty to start.`],
-      [MORE, `Got a spreadsheet? Import from CSV is in here, and brings in the whole list at once.`],
+      [ADD, `Add a ${c}.`],
+      [MORE, `Import ${cs} from a CSV file, or export them.`],
       [['.toolbar input'], `Search by name, phone or email.`],
-      [ROW, `Tap anyone to open their page: ${js}, invoices, credit and notes in one place. A red amount is what they owe you.`],
-      [ROWMORE, `Every row has its own menu — open, edit, or delete. Delete asks you to type the name first.`],
+      [ROW, `Tap a ${c} to see their ${js}, invoices, credit and notes. A red amount is what they owe.`],
+      [ROWMORE, `Open, edit or delete this ${c}.`],
     ]],
     requests: ['Requests', [
-      [['.segmented'], `Pending is your to-do list. Accepted and Declined are the record.`],
-      [ROW, `Accept turns a request into a draft quote with everything they typed. Decline just clears it. Nothing is scheduled until you say so.`],
+      [['.segmented'], `Filter requests by status.`],
+      [ROW, `Tap Accept to create a draft quote from the request. Tap Decline to remove it.`],
     ]],
     invoices: ['Invoices', [
-      [['.segmented'], `Draft until you send it, Sent until it is paid. Tap a group to see just those.`],
-      [ADD, `Start an invoice here. Completed ${js} can land on a draft automatically — Settings has the switch.`],
-      [ROW, `Mark sent, Mark paid — the button on each row is the next step for that invoice.`],
-      [ROWMORE, `The rest is in here: email it, copy its link to text, apply credit, or Unsend to fix a mistake.`],
+      [['.segmented'], `Filter invoices by status.`],
+      [ADD, `Create an invoice.`],
+      [ROW, `Use the button on each row to mark the invoice sent or paid.`],
+      [ROWMORE, `More actions: email the invoice, copy its link, apply credit, or unsend it.`],
     ]],
     quotes: ['Quotes', [
-      [ADD, `Write an estimate here — for a ${c}, or for someone who is not one yet.`],
-      [ROW, `Send it by email or link. They accept or decline online, and the answer shows up here.`],
-      [ROWMORE, `Accepted? This menu turns it into a ${c}, a ${j} and an invoice. No retyping.`],
+      [ADD, `Create a quote for a ${c} or a new prospect.`],
+      [ROW, `Send the quote by email or link. Their answer appears here.`],
+      [ROWMORE, `Turn an accepted quote into a ${c}, a ${j} or an invoice.`],
     ]],
     reports: ['Reports', [
-      [['.reports-range-chips'], `Pick the period. Everything below follows.`],
-      [['.stats-grid'], `What came in, what is still owed, and what your calendar says is coming.`],
+      [['.reports-range-chips'], `Choose the date range.`],
+      [['.stats-grid'], `Revenue received, amount outstanding, and projected income for that range.`],
     ]],
     referrals: ['Referrals', [
-      [['.toolbar .tb-actions .secondary'], `Set the reward here: what share of each ${j}, and for how many.`],
-      [['.list .row'], `Tap a referrer to open their page. Their Referrals tab has their personal link to copy or email.`],
+      [['.toolbar .tb-actions .secondary'], `Set the reward percentage and the ${j} limit.`],
+      [['.list .row'], `Tap a referrer to open their page. Their referral link is on the Referrals tab.`],
     ]],
     team: ['Team', [
-      [['.page-header .primary'], `Invite someone and they get an email to set their own password. Teammates never cost extra.`],
-      [['.role-legend'], `Three roles. Most helpers are Employees: they see the schedule and mark work done.`],
-      [['.list .row .rowmenu-trigger'], `Change a role or remove someone from here.`],
+      [['.page-header .primary'], `Invite a teammate by email. Teammates do not cost extra.`],
+      [['.role-legend'], `What each role can do.`],
+      [['.list .row .rowmenu-trigger'], `Change this teammate's role, or remove them.`],
     ]],
     settings: ['Settings', [
-      [['.drill-list', '.rail-inner'], `Start with Business and Payments — your name, logo and pay details go on every invoice.`],
+      [['.drill-list', '.rail-inner'], `Choose a settings section. Start with Business and Payments.`],
     ]],
     billing: ['Billing', [
-      [['.billing-hero'], `Your plan. Free covers your first five ${cs}; after that it is one flat price, teammates included.`],
+      [['.billing-hero'], `Your current plan and price.`],
     ]],
   };
   const tour = tours[view];
@@ -16705,9 +16706,9 @@ function ScreenTour({ tour, onClose }) {
           </>
         ) : (
           <>
-            <p className="tour-text"><strong>That is {tour.title}.</strong> Tap the ? any time for this again — it is different on every screen.</p>
+            <p className="tour-text"><strong>End of the {tour.title} guide.</strong> Tap ? on any screen to see its guide.</p>
             <div className="tour-foot">
-              <button type="button" className="link-btn tour-skip" onClick={() => { onClose(); navigate('/support'); }}>Still stuck? Ask a person</button>
+              <button type="button" className="link-btn tour-skip" onClick={() => { onClose(); navigate('/support'); }}>Contact support</button>
               <button type="button" className="primary" autoFocus onClick={onClose}>Done</button>
             </div>
           </>
@@ -16761,7 +16762,7 @@ function ScreenHelp({ view, userId }) {
             onClick={(e) => { e.stopPropagation(); setSpot(null); setOpen(true); }}
           >?</button>
           <div className="helpspot-label" style={{ top: spot.top + spot.size + 12, right: Math.max(12, window.innerWidth - spot.left - spot.size) }}>
-            Stuck? Tap <b>?</b> on any screen.
+            Tap <b>?</b> for a guide to any screen.
           </div>
         </div>
       )}
