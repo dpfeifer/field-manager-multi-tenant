@@ -1831,6 +1831,34 @@
     .row:last-child { border-bottom: none; }
     .row:hover { background: var(--row-hover); }
     .row-link { cursor: pointer; }
+    /* ---- screen help ---- */
+    .helpbtn {
+      width: 30px; height: 30px; flex: none; border-radius: 50%; cursor: pointer;
+      border: 1px solid var(--border-strong); background: var(--card); color: var(--text-muted);
+      font: 600 14px/1 'Inter', sans-serif; display: inline-grid; place-items: center; padding: 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .helpbtn:hover { color: var(--text); border-color: var(--primary); }
+    .helpbtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    /* The first-visit spotlight. The lit button is a copy placed over the real
+       one: the real one lives inside the top bar's stacking context and could
+       not be lifted above a full-page dim. */
+    .helpspot { position: fixed; inset: 0; z-index: 1600; background: rgba(20, 16, 10, 0.5); animation: helpspot-dim 2.8s ease both; cursor: pointer; }
+    .helpspot-btn { position: fixed; color: var(--text); border-color: #fff; background: #fff; animation: helpspot-pulse 1.1s ease-out 2; }
+    .helpspot-label { position: fixed; max-width: 220px; padding: 9px 13px; border-radius: 10px; background: #fff; color: var(--text); font-size: 13.5px; line-height: 1.35; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); }
+    .helpspot-label b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border-strong); font-size: 11px; }
+    @keyframes helpspot-dim { 0% { opacity: 0; } 10%, 84% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes helpspot-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.75); } 100% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); } }
+    @media (prefers-reduced-motion: reduce) { .helpspot { animation: none; } .helpspot-btn { animation: none; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.45); } }
+    .helpsheet { max-width: 460px; max-height: min(86vh, 640px); overflow-y: auto; }
+    .helpsheet-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .helpsheet-intro { margin: 0 0 16px; font-size: 14.5px; line-height: 1.55; color: var(--text-muted); }
+    .helpsheet-tips { margin: 0; border-top: 1px solid var(--border); }
+    .helpsheet-tips > div { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .helpsheet-tips dt { font-weight: 600; font-size: 14.5px; margin-bottom: 3px; }
+    .helpsheet-tips dd { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+    .helpsheet-foot { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+    @media (max-width: 720px) { .helpbtn { width: 36px; height: 36px; font-size: 15px; } }
     /* ---- onboarding ---- */
     .ob-shell { max-width: 620px; }
     .ob-progress { display: flex; gap: 6px; margin-bottom: 22px; }
@@ -15005,6 +15033,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
           onClick={() => window.location.reload()}
         />
         <div className="right">
+          <ScreenHelp view={view} userId={realSession.user.id} />
           {me && (
             <span className={`plan-pill plan-${plan}`} onClick={isFree && isAdmin ? () => startUpgrade(session) : undefined}>
               {isFree ? 'Free' : 'Pro'}{isFree && isAdmin && ' · Upgrade'}
@@ -16444,6 +16473,200 @@ function InstallInstructions() {
       <p style={{ marginTop: 18, fontSize: 13, color: 'var(--text-muted)' }}>
         On a laptop? You're already in the right place. Bookmark this page or click the install icon in your browser's address bar.
       </p>
+    </>
+  );
+}
+
+// Help for the screen you are on, behind one quiet "?" in the top bar. It is
+// always in the same place and never opens by itself: there when someone is
+// stuck, invisible when they are not. One entry per screen, written in the
+// account's own wording (customers / clients, jobs / appointments).
+function screenHelp(view, t) {
+  const C = t.customers, c = t.customerLower, cs = t.customersLower;
+  const J = t.jobs, j = t.jobLower, js = t.jobsLower;
+  const pages = {
+    dashboard: {
+      title: 'Dashboard',
+      intro: `Your day on one screen: what is scheduled, who owes you, and anything waiting on you.`,
+      tips: [
+        [`Finish a ${j} from here`, `Tap Mark complete on any of today's ${js}. You can add a note, and choose whether it goes onto that ${c}'s draft invoice.`],
+        ['Banners mean something is waiting', 'New booking requests and draft quotes show at the top until you deal with them. Tap Review to go straight there.'],
+        ['Make it yours', 'Open the ⋯ menu and choose Edit layout to hide cards you do not use or change their order.'],
+      ],
+    },
+    jobs: {
+      title: J,
+      intro: `Everything you have scheduled. Switch between Day, Week, Month and List at the top — Day is the one to work from.`,
+      tips: [
+        [`Add a ${j}`, `Tap +. In the Day view you can also tap an empty time slot to start one at that time.`],
+        ['Make it repeat', `Set a ${j} to weekly, every two weeks or monthly once, and the calendar fills itself in from there.`],
+        ['Skip or move one visit', `Open the ${j} and use Skip or Reschedule on that date. The rest of the schedule is left alone.`],
+        ['Mark complete', `One tap when the work is done. Made a mistake? Open the ${j} and undo that visit.`],
+      ],
+    },
+    customers: {
+      title: C,
+      intro: `Everyone you work for. Tap a name to see their ${js}, invoices, credit and notes in one place.`,
+      tips: [
+        [`Add ${cs}`, `Tap + for one at a time, or open the ⋯ menu and choose Import from CSV to bring in a spreadsheet.`],
+        ['A red amount means they owe you', 'It is the total of their sent, unpaid invoices. A green pill on their page is credit they have with you.'],
+        ['Notes stay with the person', `Gate codes, preferences, the dog's name — add them under Notes and they are there on every visit.`],
+        ['Deleting is deliberate', `Delete is in the ⋯ menu on each row, and asks you to type the name first.`],
+      ],
+    },
+    requests: {
+      title: 'Requests',
+      intro: `What comes in through your booking link. Nothing is scheduled until you say so.`,
+      tips: [
+        ['Accept', `Accepting turns the request into a draft quote for that person, with everything they typed carried over. From Quotes you can make them a ${c} and schedule the ${j}.`],
+        ['Decline', 'You can add a reason for your own records. The request leaves the list.'],
+        ['Get more of them', 'Your booking link and QR code are in Settings → Share links. Put the link in your bio, on a card, or on the truck.'],
+      ],
+    },
+    invoices: {
+      title: 'Invoices',
+      intro: `An invoice is a Draft until you send it, Sent until it is paid. The filters at the top show each group.`,
+      tips: [
+        ['Send one', `Email it from the invoice, or copy its link and text it. Mark sent is for invoices you delivered some other way.`],
+        ['Record a payment', `Tap Mark paid. If the ${c} has credit with you, you can apply it to the invoice first.`],
+        ['Changed your mind?', 'Unsend, in the ⋯ menu, puts a sent invoice back to draft so you can edit it.'],
+        ['Let them build themselves', `Settings → Auto-invoice rolls completed ${js} into draft invoices on a schedule. It never sends anything without you.`],
+      ],
+    },
+    quotes: {
+      title: 'Quotes',
+      intro: `Estimates for work you have not agreed yet — for an existing ${c}, or for someone who is not one yet.`,
+      tips: [
+        ['Send it', 'Email the quote or copy its link. They can accept or decline online, and you will see the answer here.'],
+        [`From prospect to ${c}`, `Open the ⋯ menu and choose Promote to ${c}. Their details come across, and the quote stays attached.`],
+        ['No retyping', `Create ${j} and Create invoice, in the same menu, carry the quote's line items and total with them.`],
+      ],
+    },
+    reports: {
+      title: 'Reports',
+      intro: `What you have earned, what is coming, and who it comes from. Only admins can see this screen.`,
+      tips: [
+        ['Pick the period', 'The chips at the top change the date range for everything below.'],
+        ['Projected income', `Counts the ${js} already on your calendar at their set price — useful for seeing a slow month before you are in it.`],
+      ],
+    },
+    referrals: {
+      title: 'Referrals',
+      intro: `Who has sent you new business, and what it has earned them in credit.`,
+      tips: [
+        ['Mark a referral', `Open the new ${c}, choose Edit, and set Referred by. Anyone who books through a referral link is marked automatically.`],
+        ['Give someone their link', `Open a ${c}, go to their Referrals tab, and copy or email their link from there.`],
+        ['Change the reward', 'Reward settings, at the top, sets the percentage and how many visits it runs for.'],
+      ],
+    },
+    team: {
+      title: 'Team',
+      intro: `The people who can sign in to your account. Teammates are included in your plan — there is no per-person charge.`,
+      tips: [
+        ['Invite someone', 'They get an email with a link to set their own password.'],
+        ['Three roles', `Admins can do everything. Leads can manage ${cs}, ${js} and billing. Employees work the schedule and can only complete ${js} assigned to them.`],
+        ['See what they see', 'From the menu under your initial, top right, you can preview the app as another role.'],
+      ],
+    },
+    settings: {
+      title: 'Settings',
+      intro: `How your business appears to ${cs}, how you get paid, and which parts of the app are switched on.`,
+      tips: [
+        ['Business and Payments first', 'Your name, logo and payment details appear on every invoice and on your booking page.'],
+        ['Sections', 'Turn whole parts of the app on or off — Invoices, Quotes, Requests, Referrals and the rest. Your data is kept either way.'],
+        ['Wording', `Call them ${cs}, clients, members — the whole app follows.`],
+      ],
+    },
+    billing: {
+      title: 'Billing',
+      intro: `Your Field Manager plan. The free plan covers your first five customers; after that it is one flat monthly price.`,
+      tips: [
+        ['No per-person fees', 'Adding teammates never changes the price.'],
+        ['Leaving', 'You can cancel any time, and export your data first.'],
+      ],
+    },
+  };
+  return pages[view] || null;
+}
+
+function ScreenHelp({ view, userId }) {
+  const terms = useTerms();
+  const [open, setOpen] = useState(false);
+  const help = screenHelp(view, terms);
+  // The one time help announces itself: the first time a person reaches the
+  // app, the page dims for a moment and the "?" pulses. Once per person per
+  // device, never per screen — after that it is only ever there when asked.
+  const btnRef = useRef(null);
+  const [spot, setSpot] = useState(null); // null | { top, left, size }
+  const introKey = `fm_help_intro_${userId || 'anon'}`;
+  useEffect(() => {
+    let seen = true;
+    try { seen = !!localStorage.getItem(introKey); } catch (e) { /* storage blocked: skip the intro */ }
+    if (seen || !help) return undefined;
+    const show = setTimeout(() => {
+      const el = btnRef.current;
+      // Not over a dialog, and not if the button is not on screen.
+      if (!el || document.querySelector('.modal-overlay')) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width) return;
+      try { localStorage.setItem(introKey, '1'); } catch (e) { /* fine */ }
+      setSpot({ top: r.top, left: r.left, size: r.width });
+    }, 1200);
+    return () => clearTimeout(show);
+  }, [introKey, !!help]);
+  useEffect(() => {
+    if (!spot) return undefined;
+    const end = setTimeout(() => setSpot(null), 2800);
+    return () => clearTimeout(end);
+  }, [spot]);
+  // A different screen is a different question.
+  useEffect(() => { setOpen(false); }, [view]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  if (!help) return null;
+  return (
+    <>
+      <button ref={btnRef} type="button" className="helpbtn" onClick={() => setOpen(true)} aria-label={`Help with ${help.title}`} aria-haspopup="dialog">?</button>
+      {spot && (
+        <div className="helpspot" onClick={() => setSpot(null)} role="presentation">
+          <button
+            type="button" className="helpbtn helpspot-btn" aria-label={`Help with ${help.title}`}
+            style={{ top: spot.top, left: spot.left, width: spot.size, height: spot.size }}
+            onClick={(e) => { e.stopPropagation(); setSpot(null); setOpen(true); }}
+          >?</button>
+          <div className="helpspot-label" style={{ top: spot.top + spot.size + 12, right: Math.max(12, window.innerWidth - spot.left - spot.size) }}>
+            Stuck? Tap <b>?</b> on any screen.
+          </div>
+        </div>
+      )}
+      {open && (
+        <div className="modal-overlay helpsheet-overlay" onClick={() => setOpen(false)}>
+          <div className="modal-card helpsheet" role="dialog" aria-modal="true" aria-label={`Help with ${help.title}`} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head" style={{ marginBottom: 10 }}>
+              <div>
+                <div className="helpsheet-eyebrow">How this screen works</div>
+                <h3 style={{ margin: 0 }}>{help.title}</h3>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Close">×</button>
+            </div>
+            <p className="helpsheet-intro">{help.intro}</p>
+            <dl className="helpsheet-tips">
+              {help.tips.map(([h, p]) => (
+                <div key={h}><dt>{h}</dt><dd>{p}</dd></div>
+              ))}
+            </dl>
+            <div className="helpsheet-foot">
+              Still stuck?{' '}
+              <button type="button" className="link-btn" onClick={() => { setOpen(false); navigate('/support'); }}>Ask us</button>
+              {' '}— a person answers, usually within a day.
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
