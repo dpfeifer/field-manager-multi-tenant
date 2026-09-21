@@ -244,12 +244,6 @@ const TOOLS = {
   'hourly-rate': `<section class="tool-calc" id="rate-calc" aria-labelledby="rate-calc-h">
   <h2 id="rate-calc-h" class="tool-calc-h">Your numbers</h2>
   <p class="tool-calc-note">The starting figures are placeholders, not advice. Replace every one with your own.</p>
-  <div class="tool-presets" role="group" aria-label="Start from a trade">
-    <button type="button" data-preset="handyman" class="on">Handyman</button>
-    <button type="button" data-preset="painting">Painting</button>
-    <button type="button" data-preset="lawn">Lawn care</button>
-    <button type="button" data-preset="other">Other</button>
-  </div>
   <div class="tool-grid">
     <label for="rc-pay">Pay you want per year<span>Before your personal income tax</span><input id="rc-pay" type="text" inputmode="numeric" autocomplete="off" data-money value="70,000"></label>
     <label for="rc-costs">Business costs per year<span>Vehicle, insurance, tools, phone, software</span><input id="rc-costs" type="text" inputmode="numeric" autocomplete="off" data-money value="18,000"></label>
@@ -267,12 +261,6 @@ const TOOLS = {
 </section>
 <script>
 (function () {
-  var PRESETS = {
-    handyman: { pay: 70000, costs: 18000, weeks: 46, hours: 45, billable: 60, margin: 10 },
-    painting: { pay: 70000, costs: 22000, weeks: 44, hours: 45, billable: 70, margin: 10 },
-    lawn:     { pay: 60000, costs: 25000, weeks: 34, hours: 50, billable: 70, margin: 10 },
-    other:    { pay: 70000, costs: 15000, weeks: 46, hours: 45, billable: 60, margin: 10 }
-  };
   var ids = ['pay', 'costs', 'weeks', 'hours', 'billable', 'margin'];
   var el = function (id) { return document.getElementById('rc-' + id); };
   var money = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
@@ -304,14 +292,6 @@ const TOOLS = {
   }
   ids.forEach(function (k) {
     el(k).addEventListener('input', function () { if (el(k).hasAttribute('data-money')) formatMoney(el(k)); calc(); });
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (b) {
-    b.addEventListener('click', function () {
-      var p = PRESETS[b.getAttribute('data-preset')];
-      ids.forEach(function (k) { el(k).value = el(k).hasAttribute('data-money') ? group(String(p[k])) : p[k]; });
-      Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (x) { x.classList.toggle('on', x === b); });
-      calc();
-    });
   });
   calc();
 })();
@@ -678,9 +658,6 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     }
     article h2.tool-calc-h { border-top: 0; padding-top: 0; margin: 0 0 4px; font-size: 22px; }
     .tool-calc-note { font-size: 14px !important; color: var(--text-muted) !important; margin: 0 0 18px !important; }
-    .tool-presets { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; margin-bottom: 20px; background: var(--tinted); border-radius: 11px; }
-    .tool-presets button { font: 500 13.5px/1 'Inter', sans-serif; color: var(--text-muted); background: none; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
-    .tool-presets button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(25,23,15,0.1); }
     .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
     .tool-grid label { display: flex; flex-direction: column; font-size: 14.5px; font-weight: 600; color: var(--text); }
     .tool-grid label span { font-size: 12.5px; font-weight: 400; color: var(--text-muted); margin: 2px 0 7px; }
@@ -688,7 +665,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       font: 500 17px/1.2 'Inter', sans-serif; font-variant-numeric: tabular-nums; color: var(--text);
       padding: 12px 13px; border: 1px solid var(--border-strong); border-radius: 10px; background: #fff; width: 100%; margin-top: auto;
     }
-    .tool-grid input:focus-visible, .tool-presets button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .tool-grid input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .tool-result { display: grid; grid-template-columns: repeat(3, 1fr); margin: 24px 0 14px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .tool-result > div { padding: 18px 12px; text-align: center; border-left: 1px solid var(--border); }
     .tool-result > div:first-child { border-left: 0; background: var(--primary); color: #fff; }
