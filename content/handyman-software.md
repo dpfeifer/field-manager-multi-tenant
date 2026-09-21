@@ -1,6 +1,6 @@
 ---
 title: Handyman software for repeat clients, from estimate to paid invoice
-description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, then {{price}}/month flat.
+description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five customers.
 path: /handyman
 eyebrow: For handymen
 collection: use-cases
@@ -42,7 +42,7 @@ You set the percentage and how many jobs it runs for. Nobody keeps a list of who
 
 ## What it costs
 
-**Free for your first five customers**, no credit card, no clock. Then **{{price}}/month flat** — unlimited customers, no cap on the number of jobs, every feature, and teammates included if you bring on a second pair of hands. No per-seat pricing, no tier holding the useful features. Export and leave whenever.
+**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your customers, schedule and quotes, but not invoicing, for up to five customers and 20 jobs, with no time limit. **Pro is {{price}}/month flat** — unlimited customers, no cap on the number of jobs, every feature, and teammates included if you bring on a second pair of hands. No per-seat pricing, and one paid plan with everything in it. Export and leave whenever.
 
 ## If you're on something else
 

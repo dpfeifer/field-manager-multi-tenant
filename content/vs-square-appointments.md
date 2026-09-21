@@ -29,7 +29,7 @@ We make Field Manager, so we have an obvious bias. We've tried to counter it by 
 - **Your work isn't only appointments.** House calls, standing weekly clients, invoiced work, quotes for bigger jobs — Field Manager treats recurring work and invoicing as first-class, not as an add-on to a checkout flow.
 - **You want your payment processor to stay your choice.** Invoices carry a pay link to *your* Stripe, PayPal, Square, or Venmo. We never touch the money and take no cut of it.
 - **You want a real website, not just a booking widget.** Field Manager includes a hosted landing page — services, photos, reviews, booking form — at your own link.
-- **You want flat, predictable pricing.** {{price}}/month, everything included, free for your first five clients. No processing-volume relationship, no per-seat tiers.
+- **You want flat, predictable pricing.** {{price}}/month, everything included, after a 14-day free trial. No processing-volume relationship, no per-seat tiers.
 - **You want the words to match your trade.** Rename "customers" and "jobs" to clients and appointments — or guests, properties, whatever you actually say.
 
 ## Side by side
@@ -52,6 +52,6 @@ We make Field Manager, so we have an obvious bias. We've tried to counter it by 
 
 If your business *is* the chair and the card reader, Square is hard to beat. If you're also quoting work, billing monthly, running standing appointments, or want your own site and your own processor, that's where a Square-shaped tool starts to chafe — and where we fit.
 
-Try it free with your first five clients and see which describes you. We'll import your client list for you.
+Try it free for 14 days and see which describes you. We'll import your client list for you.
 
-<div class="cta">Free for your first five clients. {{price}}/month flat{{offer_note}} after that. <a href="/signup">Start free — no card needed</a> · <a href="/barbers">More for barbers</a></div>
+<div class="cta">Every feature free for 14 days, then {{price}}/month flat{{offer_note}}. <a href="/signup">Start free — no card needed</a> · <a href="/barbers">More for barbers</a></div>

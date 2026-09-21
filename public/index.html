@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Field Manager" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Free forever for five customers; $29/month flat when you grow. No App Store, no per-seat fees, no surprise overages." />
+  <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Every feature free for 14 days; then $29/month flat, or a free plan for up to five customers. No App Store, no per-seat fees, no surprise overages." />
   <meta name="theme-color" content="#f7f4ec" />
   <link rel="canonical" href="https://fieldmgr.com/" />
 
@@ -77,7 +77,7 @@
       {
         "@type": "Question",
         "name": "How does Field Manager pricing work?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Free forever for five customers or fewer and twenty jobs total. Pro is $29 a month, flat. No per-seat fees, no per-customer fees, no surprise overages." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is $29 a month, flat. No per-seat fees, no per-customer fees, no surprise overages." }
       },
       {
         "@type": "Question",
@@ -7316,7 +7316,7 @@ function LandingPage({ signedIn }) {
               </button>
             </div>
             <p className="sales-hero-trust" style={{ margin: 0 }}>
-              Free for your first five customers · Set up in under two minutes · Cancel anytime
+              Every feature free for 14 days · Set up in under two minutes · No card to start
             </p>
           </div>
         </div>
@@ -7434,7 +7434,7 @@ function LandingPage({ signedIn }) {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Free for your first five customers. {founderActive
+          Every feature is free for 14 days. {founderActive
             ? <>Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
             : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
         </p>
@@ -7663,7 +7663,7 @@ function SalesLandingPage({ signedIn }) {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Free for your first five customers. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+          Every feature is free for 14 days. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
         </p>
         <div className="sales-hero-actions">
           <PrimaryCTA size="lg" />
@@ -7714,8 +7714,8 @@ const EDITORIAL_FAQ = [
       const listed = founder ? Math.round(founder.listed_price) : 29;
       const promo = founder ? Math.round(founder.founder_price) : 19;
       return active
-        ? `Free forever for five customers or fewer and twenty jobs total. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
-        : `Free forever for five customers or fewer and twenty jobs total. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
+        ? `Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
+        : `Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
     },
   },
   {

@@ -1,6 +1,6 @@
 ---
 title: Mobile detailing, from the DM to the driveway
-description: Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Free for your first five clients, then {{price}}/month flat.
+description: Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five clients.
 path: /detailers
 eyebrow: For detailing
 collection: use-cases
@@ -44,7 +44,7 @@ You set the percentage and the limit. They get a thank-you email with their bala
 
 ## What it costs
 
-**Free for your first five clients**, no credit card. Then **{{price}}/month flat**: unlimited clients and jobs, every feature, teammates included if you add a second van. Cancel and export whenever.
+**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your clients, schedule and quotes, but not invoicing, for up to five clients and 20 jobs, with no time limit. **Pro is {{price}}/month flat**: unlimited clients and jobs, every feature, teammates included if you add a second van. Cancel and export whenever.
 
 ## Coming from somewhere else
 

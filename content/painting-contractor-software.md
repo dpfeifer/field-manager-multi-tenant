@@ -1,6 +1,6 @@
 ---
 title: Painting software for small crews, from estimate to final payment
-description: Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Free for your first five customers, then {{price}}/month flat.
+description: Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five customers.
 path: /painters
 eyebrow: For painters
 collection: use-cases
@@ -45,7 +45,7 @@ You set the percentage and the limit.
 
 ## What it costs
 
-**Free for your first five customers**, no credit card and no time limit. Then **{{price}}/month flat**: unlimited customers, unlimited jobs, every feature, your whole crew included. Export your data and leave whenever you like.
+**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your customers, schedule and quotes, but not invoicing, for up to five customers and 20 jobs, with no time limit. **Pro is {{price}}/month flat**: unlimited customers, unlimited jobs, every feature, your whole crew included. Export your data and leave whenever you like.
 
 ## Switching from paper or another app
 

@@ -1,6 +1,6 @@
 ---
 title: Booking and client history for the independent chair
-description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then {{price}}/month flat.
+description: A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five clients.
 path: /barbers
 eyebrow: For barbers
 collection: use-cases
@@ -43,7 +43,7 @@ You set the percentage and how many visits it runs for. No punch cards, no remem
 
 ## What it costs
 
-**Free for your first five clients** — no credit card, no trial clock. After that, **{{price}}/month flat**. Not per chair, not per feature, no "Pro" tier hiding the stuff you actually need. If you leave, export your client list on the way out — it's yours.
+**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your clients, schedule and quotes, but not invoicing, for up to five clients and 20 jobs, with no time limit. **Pro is {{price}}/month flat**. Not per chair and not per feature: one paid plan with everything in it. If you leave, export your client list on the way out — it's yours.
 
 ## Moving from another system (or a notebook)
 
