@@ -217,8 +217,8 @@ const TOOLS = {
     <button type="button" data-preset="other">Other</button>
   </div>
   <div class="tool-grid">
-    <label for="rc-pay">Pay you want per year<span>Before your personal income tax</span><input id="rc-pay" type="number" inputmode="decimal" min="0" step="1000" value="70000"></label>
-    <label for="rc-costs">Business costs per year<span>Vehicle, insurance, tools, phone, software</span><input id="rc-costs" type="number" inputmode="decimal" min="0" step="500" value="18000"></label>
+    <label for="rc-pay">Pay you want per year<span>Before your personal income tax</span><input id="rc-pay" type="text" inputmode="numeric" autocomplete="off" data-money value="70,000"></label>
+    <label for="rc-costs">Business costs per year<span>Vehicle, insurance, tools, phone, software</span><input id="rc-costs" type="text" inputmode="numeric" autocomplete="off" data-money value="18,000"></label>
     <label for="rc-weeks">Weeks worked per year<span>52 minus holidays, sick days, slow weeks</span><input id="rc-weeks" type="number" inputmode="decimal" min="1" max="52" step="1" value="46"></label>
     <label for="rc-hours">Hours worked per week<span>All of them, not just on the tools</span><input id="rc-hours" type="number" inputmode="decimal" min="1" max="100" step="1" value="45"></label>
     <label for="rc-billable">Share of hours you can bill (%)<span>Driving, quoting and paperwork are not billable</span><input id="rc-billable" type="number" inputmode="decimal" min="5" max="100" step="5" value="60"></label>
@@ -244,7 +244,7 @@ const TOOLS = {
   var money = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
   function calc() {
     var v = {};
-    ids.forEach(function (k) { v[k] = parseFloat(el(k).value) || 0; });
+    ids.forEach(function (k) { v[k] = parseFloat(String(el(k).value).replace(/,/g, '')) || 0; });
     var billableHours = v.weeks * v.hours * (v.billable / 100);
     var margin = Math.min(Math.max(v.margin, 0), 90) / 100;
     if (billableHours <= 0) { ['rate', 'day', 'month'].forEach(function (k) { el(k).textContent = '—'; }); el('explain').textContent = ''; return; }
@@ -255,11 +255,26 @@ const TOOLS = {
     el('month').textContent = money(revenue / 12);
     el('explain').textContent = 'That is ' + Math.round(billableHours).toLocaleString('en-US') + ' billable hours a year, out of ' + Math.round(v.weeks * v.hours).toLocaleString('en-US') + ' worked, and ' + money(revenue) + ' a year through the business.';
   }
-  ids.forEach(function (k) { el(k).addEventListener('input', calc); });
+  // Dollar fields read 70,000, not 70000. They are text inputs for that reason
+  // (a number input cannot hold a comma), reformatted as you type with the
+  // caret kept after the same digit it was after.
+  var group = function (digits) { return digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); };
+  function formatMoney(input) {
+    var caret = input.selectionStart == null ? input.value.length : input.selectionStart;
+    var digitsBefore = input.value.slice(0, caret).replace(/\\D/g, '').length;
+    var digits = input.value.replace(/\\D/g, '').replace(/^0+(?=\\d)/, '').slice(0, 9);
+    input.value = group(digits);
+    var pos = 0, seen = 0;
+    while (pos < input.value.length && seen < digitsBefore) { if (/\\d/.test(input.value[pos])) seen++; pos++; }
+    try { input.setSelectionRange(pos, pos); } catch (e) { /* not focused */ }
+  }
+  ids.forEach(function (k) {
+    el(k).addEventListener('input', function () { if (el(k).hasAttribute('data-money')) formatMoney(el(k)); calc(); });
+  });
   Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (b) {
     b.addEventListener('click', function () {
       var p = PRESETS[b.getAttribute('data-preset')];
-      ids.forEach(function (k) { el(k).value = p[k]; });
+      ids.forEach(function (k) { el(k).value = el(k).hasAttribute('data-money') ? group(String(p[k])) : p[k]; });
       Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (x) { x.classList.toggle('on', x === b); });
       calc();
     });
