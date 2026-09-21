@@ -51,4 +51,23 @@ You set the percentage and the limit.
 
 Send us your customer list in any form, a spreadsheet, an export, or photos of a notebook, and we will load it for you, free, usually the same day. Comparing the bigger platforms first? Read [Field Manager vs Jobber](/learn/field-manager-vs-jobber) and [Field Manager vs Housecall Pro](/learn/field-manager-vs-housecall-pro).
 
+{{faq}}
+Q: Can customers accept a painting estimate online?
+A: Yes. Send the estimate by email or text the link. The customer accepts or declines from their phone, and an accepted estimate becomes a scheduled job and then an invoice with the same line items.
+Q: How do deposits work?
+A: Record the deposit as credit on the customer's account when it arrives. When you send the final invoice, apply the credit and the balance due is what remains.
+Q: Does it measure rooms or calculate paint quantities?
+A: No. You write the estimate with your own line items and prices. Field Manager handles everything after the number: acceptance, scheduling, invoicing and payment links.
+Q: How much does Field Manager cost?
+A: New accounts get 14 days of every feature. After that the free plan covers up to 5 customers and 20 jobs with no time limit, and Pro is {{price}} a month, flat, with unlimited customers, jobs and users.
+Q: Does it charge per user?
+A: No. The price is the same whether it is just you or a crew of eight. Teammates are included.
+Q: Does Field Manager process card payments?
+A: No. Every invoice carries a pay-now link to your own Stripe, PayPal, Square or Venmo account, so the money goes straight to you and we take no cut. It does not store cards or charge customers automatically.
+Q: Is there an app to download?
+A: No download is needed. It runs in the browser on a phone, tablet or computer, and you can add it to your phone's home screen so it opens like an app.
+Q: Can I bring my existing customers over?
+A: Yes. Import a CSV file, or send us your list in any form, a spreadsheet, an export from another app, or photos of a notebook, and we load it for you free, usually the same day.
+{{/faq}}
+
 <div class="cta">Write your next estimate in it. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>

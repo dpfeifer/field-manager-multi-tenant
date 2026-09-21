@@ -26,9 +26,31 @@ Disallow: /book/
 Disallow: /o/
 Disallow: /i/
 
+# A customer's private referral page
+Disallow: /r/
+
 # Internal
 Disallow: /staff
 Disallow: /system
 Disallow: /api/
+
+# AI assistants and answer engines are welcome to read the public pages.
+# A plain-language summary for them is at /llms.txt.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /staff
+Disallow: /system
+Disallow: /book/
+Disallow: /o/
+Disallow: /i/
+Disallow: /r/
 
 Sitemap: https://fieldmgr.com/sitemap.xml

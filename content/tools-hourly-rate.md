@@ -24,4 +24,13 @@ Most people set their rate by asking what the other guy charges. This works it o
 
 Once you know your number, the rest is admin: the estimate, the calendar, the invoice. Field Manager carries one job through all three without retyping it, and rolls repeat work into one monthly invoice per customer. It is free for your first five customers, then {{price}}/month flat with your crew included.
 
+{{faq}}
+Q: How do I work out my hourly rate as a self-employed tradesperson?
+A: Add the pay you want for the year to your yearly business costs, divide by the number of hours you can actually bill in a year, then divide by one minus your profit margin. The calculator on this page does that sum with your own numbers.
+Q: What share of my working hours is billable?
+A: For most solo service businesses, somewhere between half and three quarters. Driving, quoting, supply runs and paperwork are work, but nobody is billed for them, so your rate has to cover them.
+Q: Is this calculator free?
+A: Yes. It runs in your browser, needs no sign-up, and does not store or send your numbers anywhere.
+{{/faq}}
+
 <div class="cta">Know your rate. Now send the estimate. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>

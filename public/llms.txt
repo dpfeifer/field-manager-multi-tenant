@@ -1,46 +1,65 @@
 # Field Manager
 
-> Field Manager is a multi-tenant SaaS that helps small service businesses run their week — customers, recurring schedules, quotes, and invoices — without the bloat of enterprise field-service software.
+> Field Manager (https://fieldmgr.com) is a web app for very small service businesses, one to about eight people. It keeps customers, a schedule of one-off and repeating jobs, quotes and invoices in one place, and rolls completed visits into one invoice per customer at the end of the month. One flat price, unlimited users.
 
-Field Manager is operated at https://fieldmgr.com. It targets one-person shops and family crews in service trades: lawn care, cleaning, handyman, pet care, painting, barber shops, pool service, photography, plumbing, catering, tutoring, construction, snow removal, mobile detailing, and similar.
+## Who it is for
 
-## Positioning
+Owner-operators and small crews who visit customers to do the work: handymen, painters, lawn care and snow removal, house cleaners, mobile detailers, barbers, and similar. It fits best when the same customers come back, and when work is quoted, scheduled, completed and then invoiced.
 
-- Built for the work, not the boardroom. No App Store, no download, no version mismatch across a team.
-- Customers, jobs, quotes, invoices, and team management — all in one web app that works on any device.
-- Designed around the assumption that the operator answers their own phone, drives their own truck, and runs the business from a kitchen-counter notebook today.
+## Who it is not for
 
-## Pricing
+- Businesses that need a dispatch board, technician GPS, route optimisation, a flat-rate price book, parts inventory, or maintenance-agreement management (larger plumbing, HVAC and electrical shops). Jobber, Housecall Pro or ServiceTitan fit those better.
+- Businesses that must charge a stored card automatically after each visit. Field Manager does not store cards or run autopay.
+- Anyone who needs regulated records: pesticide application logs, pool chemical logs, clinical or patient notes. It keeps none of these and is not HIPAA software.
 
-- **Free, forever**: up to 5 customers and 20 jobs (lifetime). No card required.
-- **Pro**: $29 per month, flat. Unlimited customers, jobs, invoices, team members, and reports. No per-seat fees. No per-customer fees. No surprise overages.
-- New accounts start with a 14-day Pro trial. Customers can export all data as CSV any time and cancel from the Billing tab.
+## Pricing (US dollars)
 
-Comparison context: most field-service software (Jobber, ServiceTitan, Housecall Pro) starts at $69/month or higher, charges per seat, or hides pricing behind a sales call.
+- New accounts get 14 days of every feature. No credit card is needed to start.
+- Free plan: up to 5 customers and 20 jobs, with no time limit.
+- Pro: $29 per month, flat. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
+- Data can be exported as CSV at any time.
 
-## Key features
+## What it does
 
-- **Recurring schedules**: weekly, biweekly, monthly. Set once, runs forever.
-- **Day view**: the operating screen — show up, hit complete, move on. Notes and totals roll up automatically.
-- **Auto-invoice**: on the 1st of the month (or weekly), a draft invoice is generated per customer for all completed work. Review, send, get paid.
-- **Stripe-based payments** via public invoice link, Venmo, or your own bank.
-- **Custom terminology**: call them customers, clients, members — the app follows your language, not the other way around.
-- **Public booking page**: per-org URL where prospects can request appointments. Configurable fields, optional referral tracking.
-- **Quotes / estimates** that convert to customers, jobs, or invoices in one click.
-- **Reports**: revenue, projected income, top customers, monthly trends.
-- **Team roles**: admin, lead, employee — with role-based access. Bring-your-own-Twilio SMS integration coming.
-- **Optional modules**: invoices, quotes, reports, team, requests — opt-in, not forced.
+- Customers: contact details, notes that stay with the customer, full job and invoice history.
+- Scheduling: one-off jobs with a start time and duration, or repeating weekly, every two weeks or monthly. Day, week, month and list views. Skip or move a single visit without changing the schedule.
+- Mark complete from a phone, with an optional note. Each completion records who did it, when, and the job's price on that day.
+- Invoicing: create invoices by hand, or have completed visits roll into one draft invoice per customer on a monthly or weekly schedule. Nothing is sent without the owner reviewing it. Discounts, tax, and customer credit (prepayments and deposits) are supported.
+- Payments: every invoice carries a pay-now link to the owner's own Stripe, PayPal, Square or Venmo. Field Manager does not process payments and takes no cut.
+- Quotes: send an estimate by email or link; the customer accepts or declines online; an accepted quote converts into a customer, a job and an invoice without retyping.
+- Booking requests: a public page and QR code where new customers request work. The owner accepts or declines; it is a request, not instant slot booking.
+- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of completed jobs as account credit. The owner sets the percentage and the limit.
+- Team: admins, leads and employees with role-based access, included at no extra cost.
+- A hosted one-page website for the business is available, with services, photos and reviews.
+- Wording is configurable: customers can be clients or members; jobs can be visits, appointments or sessions.
+- No download: it runs in the browser and can be added to a phone's home screen.
+- Free data migration: send a customer list in any form and it is loaded for you, usually the same day.
 
-## Important pages
+## Pages
 
-- Home / pricing: https://fieldmgr.com
-- Terms of Service: https://fieldmgr.com/terms
-- Privacy Policy: https://fieldmgr.com/privacy
-- Sign up: https://fieldmgr.com/signup
-- Sign in: https://fieldmgr.com/signin
+### By trade
+- [Booking and client history for the independent chair](https://fieldmgr.com/barbers): A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, then $29/month flat.
+- [Handyman software for repeat clients, from estimate to paid invoice](https://fieldmgr.com/handyman): Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, then $29/month flat.
+- [Lawn care software built for the weekly route](https://fieldmgr.com/lawncare): Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by people who actually run a route. Free for your first five customers, then $29/month flat.
+- [Mobile detailing, from the DM to the driveway](https://fieldmgr.com/detailers): Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Free for your first five clients, then $29/month flat.
+- [Painting software for small crews, from estimate to final payment](https://fieldmgr.com/painters): Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Free for your first five customers, then $29/month flat.
+- [Recurring cleans, invoiced without the Sunday paperwork](https://fieldmgr.com/cleaners): Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Free for your first five clients, then $29/month flat.
 
-## What Field Manager is NOT
+### Comparisons and guides
+- [Field Manager vs Jobber for Solo Operators](https://fieldmgr.com/learn/field-manager-vs-jobber): An honest comparison of Field Manager and Jobber for one-person service businesses — pricing models, features you'll actually use, and when each one is the better fit.
+- [Field Service Software With No Per-User Fees](https://fieldmgr.com/learn/no-per-user-fees): Why per-seat pricing punishes small service businesses, what the real cost looks like as you add a helper, and which tools charge flat instead.
+- [Field Manager vs Housecall Pro](https://fieldmgr.com/learn/field-manager-vs-housecall-pro): A comparison for one-person home service businesses — what you get for the money, what you'd be paying for and not using, and when Housecall Pro is worth it.
+- [Field Manager vs Square Appointments](https://fieldmgr.com/learn/field-manager-vs-square-appointments): An honest comparison for barbers, stylists, and appointment-based businesses — booking, payments, client records, and what each one charges you.
 
-- Not enterprise field-service software. No dispatch desk, no map routing optimization, no parts inventory, no fleet GPS.
-- Not a CRM in the marketing-funnel sense. No campaign automation, no lead scoring.
-- Not an accounting system. Invoices and payments live here; bookkeeping lives in your accountant's tool.
+### Free tools
+- [Hourly rate calculator for service businesses](https://fieldmgr.com/tools/hourly-rate): Work out what to charge per hour as a handyman, painter, lawn care operator or any solo service business — from the pay you want, your real costs, and the hours you can actually bill.
+
+### Other
+- [Home and pricing](https://fieldmgr.com/)
+- [Live demo, no sign-up](https://fieldmgr.com/demo)
+- [Sign up](https://fieldmgr.com/signup)
+- [Terms](https://fieldmgr.com/terms) · [Privacy](https://fieldmgr.com/privacy)
+
+## Company
+
+Built and run by an owner-operator who uses it for his own lawn care business. Support is answered by a person: help is inside the app, or reply to any email from Field Manager.

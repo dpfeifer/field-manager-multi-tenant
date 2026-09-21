@@ -48,6 +48,8 @@ function applyPricingTokens(html, pricing) {
     ? ` — limited-time offer, normally ${money(pricing.listed)}/mo`
     : '';
   return html
+    // A bare number, for structured data: schema.org wants "29", not "$29".
+    .replace(/\{\{price_num\}\}/g, String(pricing.price))
     .replace(/\{\{price\}\}/g, money(pricing.price))
     .replace(/\{\{list_price\}\}/g, money(pricing.listed))
     .replace(/\{\{offer_note\}\}/g, note);

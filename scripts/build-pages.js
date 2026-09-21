@@ -203,6 +203,40 @@ function renderChapters(html, chapters, company) {
   });
 }
 
+// Questions and answers, authored once and used twice: as visible text on the
+// page and as FAQPage structured data. Search results and AI assistants both
+// lift direct answers to direct questions, so each answer must stand alone
+// and be true. Syntax, on its own lines:
+//
+//   {{faq}}
+//   Q: Does it charge per user?
+//   A: No. One flat price covers your whole crew.
+//   {{/faq}}
+function extractFaq(md, file) {
+  const faqs = [];
+  const out = md.replace(/\{\{faq\}\}\n([\s\S]*?)\n\{\{\/faq\}\}/g, (_m, inner) => {
+    const lines = inner.split('\n').map((l) => l.trim()).filter(Boolean);
+    let q = null;
+    for (const l of lines) {
+      if (/^Q:\s*/.test(l)) q = l.replace(/^Q:\s*/, '');
+      else if (/^A:\s*/.test(l) && q) { faqs.push({ q, a: l.replace(/^A:\s*/, '') }); q = null; }
+      else if (faqs.length && !q) faqs[faqs.length - 1].a += ' ' + l;
+      else fail(`${file}: faq block line is neither "Q:" nor "A:": ${l.slice(0, 40)}`);
+    }
+    return '\n\n{{FAQ_BLOCK}}\n\n';
+  });
+  return { md: out, faqs };
+}
+function renderFaq(html, faqs) {
+  if (!faqs.length) return html;
+  const block = `<section class="page-faq" aria-labelledby="page-faq-h">
+  <h2 id="page-faq-h">Common questions</h2>
+  ${faqs.map((f) => `<div class="page-faq-item"><h3>${esc(f.q)}</h3><p>${marked.parseInline(f.a)}</p></div>`).join('\n  ')}
+</section>`;
+  return html.replace(/<p>\{\{FAQ_BLOCK\}\}<\/p>|\{\{FAQ_BLOCK\}\}/, block);
+}
+const plain = (mdText) => mdText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`]/g, '');
+
 // Free tools: a working calculator dropped into a content page with
 // {{tool:name}}. These are the only content pages that carry script — plain
 // JS, no dependencies, and the page still reads sensibly if it never runs.
@@ -307,7 +341,7 @@ const routeToFile = (p) => p.replace(/^\//, '').replace(/\//g, '__') + '.html';
 // the marketing page's key: spaced/underlined eyebrow, oversized serif
 // headline with an italic accent, and a lede. headlineHtml is authored here,
 // so it may contain <em>.
-function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, hero, photo, photoAlt, photoCredit }) {
+function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, hero, photo, photoAlt, photoCredit, faqs = [], kind = 'article', crumbs = [], related = '' }) {
   const canonical = BASE_URL + pagePath;
   const dateLine = date
     ? `<div class="page-date">Updated ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>`
@@ -343,10 +377,41 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
   <meta name="twitter:description" content="${esc(description)}" />
   <meta name="twitter:image" content="${photo ? unsplash(photo, 1200) : `${BASE_URL}/og-image.png`}" />
   <script type="application/ld+json">${JSON.stringify({
-    '@context': 'https://schema.org', '@type': 'Article',
-    headline: title, description, url: canonical,
-    ...(date ? { datePublished: date } : {}),
-    publisher: { '@type': 'Organization', name: 'Field Manager', url: BASE_URL },
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'Organization', '@id': `${BASE_URL}/#org`, name: 'Field Manager', url: BASE_URL, logo: `${BASE_URL}/og-image.png` },
+      // The product, with its real prices. {{price_num}} is filled per request
+      // from the same source as the visible price, so a running offer is
+      // reflected here too.
+      {
+        '@type': 'SoftwareApplication', '@id': `${BASE_URL}/#app`, name: 'Field Manager', url: BASE_URL,
+        applicationCategory: 'BusinessApplication', operatingSystem: 'Web, iOS, Android',
+        description: 'Scheduling, customer records, quotes and invoicing for small service businesses. One flat monthly price with unlimited users.',
+        publisher: { '@id': `${BASE_URL}/#org` },
+        offers: [
+          { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: 'Up to 5 customers and 20 jobs. No time limit.' },
+          { '@type': 'Offer', name: 'Pro', price: '{{price_num}}', priceCurrency: 'USD', description: 'Per month, flat. Unlimited customers, jobs and users.' },
+        ],
+      },
+      kind === 'tool'
+        ? { '@type': 'WebApplication', name: title, url: canonical, description, applicationCategory: 'BusinessApplication', operatingSystem: 'Any', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, publisher: { '@id': `${BASE_URL}/#org` } }
+        : {
+          '@type': kind === 'index' ? 'CollectionPage' : 'Article', headline: title, description, url: canonical,
+          mainEntityOfPage: canonical, image: photo ? unsplash(photo, 1200) : `${BASE_URL}/og-image.png`,
+          ...(date ? { datePublished: date, dateModified: date } : {}),
+          author: { '@id': `${BASE_URL}/#org` }, publisher: { '@id': `${BASE_URL}/#org` },
+          about: { '@id': `${BASE_URL}/#app` },
+        },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [{ name: 'Field Manager', url: BASE_URL + '/' }, ...crumbs, { name: title, url: canonical }]
+          .map((c, n) => ({ '@type': 'ListItem', position: n + 1, name: c.name, item: c.url })),
+      },
+      ...(faqs.length ? [{
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: plain(f.a) } })),
+      }] : []),
+    ],
   })}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -641,6 +706,17 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     @media (min-width: 1000px) {
       .tool-calc { width: 760px; margin-left: 50%; transform: translateX(-50%); }
     }
+    /* Questions people actually type. Plain visible text: what a crawler or an
+       assistant reads is what a person reads. */
+    .page-faq { margin-top: 52px; padding-top: 44px; border-top: 1px solid var(--border); }
+    article .page-faq h2 { border-top: 0; padding-top: 0; margin-top: 0; }
+    .page-faq-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .page-faq-item:last-child { border-bottom: 0; }
+    article .page-faq-item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+    article .page-faq-item p { margin: 0; font-size: 16px; color: #33302a; }
+    .page-related { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--border); font-size: 15px; color: var(--text-muted); }
+    .page-related strong { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; color: var(--text-muted); }
+    .page-related a { color: var(--primary); white-space: nowrap; }
     /* The closing band: the landing page's two matched pills. */
     .page-final {
       margin: 56px 0 0; padding: 48px 0 8px; text-align: center;
@@ -706,6 +782,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     ${photoCredit ? `<div class="photo-credit">Photo: ${esc(photoCredit)} / <a href="https://unsplash.com" rel="noopener">Unsplash</a></div>` : ''}` : ''}
     <article>
 ${bodyHtml}
+${related}
     </article>
   </main>
   <footer class="landing-footer">
@@ -748,7 +825,8 @@ const pages = [];
 for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).sort()) {
   const raw = fs.readFileSync(path.join(CONTENT_DIR, file), 'utf8');
   const { meta, body } = parseFrontmatter(raw, file);
-  const { md, chapters } = extractChapters(body, file);
+  const { md: md0, faqs } = extractFaq(body, file);
+  const { md, chapters } = extractChapters(md0, file);
   let bodyHtml = marked.parse(md);
   // The business named on the phones. A use-case page sets its own trade's.
   const company = meta.demo_name || 'Acme Lawn & Landscape';
@@ -762,6 +840,7 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   bodyHtml = bodyHtml.replace(/<p>(\{\{mock:[^}]*\}\})<\/p>/g, '$1');
   bodyHtml = expandMocks(bodyHtml, file, company);
   bodyHtml = expandTools(bodyHtml, file);
+  bodyHtml = renderFaq(bodyHtml, faqs);
   // The closing line, authored as <div class="cta">Lead text <a>…</a> or
   // <a>…</a>.</div>, becomes the landing page's closing band: the lead as a
   // headline, the links as its two matched pills. The joining words go.
@@ -772,16 +851,37 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
     const lead = inner.slice(0, inner.indexOf('<a ')).trim();
     return `<section class="page-final">${lead ? `<p>${lead}</p>` : ''}<div class="page-final-actions">${links.map(cap).join('')}</div></section>`;
   });
-  pages.push({ ...meta, bodyHtml });
+  pages.push({ ...meta, bodyHtml, faqs });
+}
+
+// Every page links to its neighbours: the other trades, the comparisons, the
+// tools. Crawlers follow links, and a reader on the wrong trade's page is one
+// click from the right one.
+const short = (p) => (p.eyebrow || p.title).replace(/^For /, '').replace(/^./, (c) => c.toUpperCase());
+function relatedFor(page) {
+  const others = (list) => list.filter((p) => p.path !== page.path)
+    .map((p) => `<a href="${p.path}">${esc(p.collection === 'use-cases' ? short(p) : p.title)}</a>`).join(' · ');
+  const uses = others(pages.filter((p) => p.collection === 'use-cases'));
+  const learn = others(pages.filter((p) => p.path.startsWith('/learn/')));
+  const tools = others(pages.filter((p) => p.path.startsWith('/tools/')));
+  return `<nav class="page-related" aria-label="Related pages">
+  ${uses ? `<p><strong>Field Manager for</strong>${uses}</p>` : ''}
+  ${learn ? `<p><strong>Comparisons</strong>${learn}</p>` : ''}
+  ${tools ? `<p><strong>Free tools</strong>${tools}</p>` : ''}
+</nav>`;
 }
 
 const manifest = {};
 for (const p of pages) {
   const fileName = routeToFile(p.path);
+  const kind = p.path.startsWith('/tools/') ? 'tool' : 'article';
+  const crumbs = p.collection === 'use-cases' ? [{ name: 'Use cases', url: BASE_URL + '/use-cases' }]
+    : p.path.startsWith('/learn/') ? [{ name: 'Learn', url: BASE_URL + '/learn' }] : [];
   fs.writeFileSync(path.join(OUT_DIR, fileName), pageTemplate({
     title: p.title, description: p.description, pagePath: p.path,
     eyebrow: p.eyebrow, date: p.date, bodyHtml: p.bodyHtml,
     photo: p.photo, photoAlt: p.photo_alt, photoCredit: p.photo_credit,
+    faqs: p.faqs, kind, crumbs, related: relatedFor(p),
   }));
   manifest[p.path] = `_pages/${fileName}`;
 }
@@ -795,7 +895,7 @@ ${learnPages.map((p) => `  <li><a href="${p.path}">${esc(p.title)}</a><p>${esc(p
 fs.writeFileSync(path.join(OUT_DIR, routeToFile('/learn')), pageTemplate({
   title: 'Guides & comparisons for small service businesses',
   description: 'Plain-English guides on running a small service business — scheduling, invoicing, and picking software that fits a one-person operation.',
-  pagePath: '/learn', eyebrow: 'Learn', date: null, bodyHtml: indexBody,
+  pagePath: '/learn', eyebrow: 'Learn', date: null, bodyHtml: indexBody, kind: 'index',
   hero: {
     headlineHtml: 'Comparisons we wrote <em>honestly</em>.',
     lede: 'Including the parts where the other tool is the better choice. Plain-English guides on picking software that fits a one-person operation.',
@@ -813,7 +913,7 @@ ${useCasePages.map((p) => `  <li><a href="${p.path}">${esc(p.title)}</a><p>${esc
 fs.writeFileSync(path.join(OUT_DIR, routeToFile('/use-cases')), pageTemplate({
   title: 'Who Field Manager is for',
   description: 'How barbers, lawn care operators, and other small service businesses run on Field Manager — scheduling, booking, invoicing, and a simple website for $29/month flat.',
-  pagePath: '/use-cases', eyebrow: 'Use cases', date: null, bodyHtml: useCasesBody,
+  pagePath: '/use-cases', eyebrow: 'Use cases', date: null, bodyHtml: useCasesBody, kind: 'index',
   hero: {
     headlineHtml: 'One flat price, <em>every trade</em>.',
     lede: 'Field Manager is one tool, but every trade runs it a little differently. These pages show what it looks like for your kind of work.',
@@ -832,12 +932,13 @@ const urls = [
   { loc: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { loc: '/learn', priority: '0.7', changefreq: 'weekly' },
   ...Object.keys(manifest).filter((p) => p !== '/learn')
-    .map((p) => ({ loc: p, priority: '0.7', changefreq: 'monthly' })),
+    .map((p) => ({ loc: p, priority: '0.7', changefreq: 'monthly', lastmod: (pages.find((x) => x.path === p) || {}).date })),
 ];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url>
-    <loc>${BASE_URL}${u.loc === '/' ? '/' : u.loc}</loc>
+    <loc>${BASE_URL}${u.loc === '/' ? '/' : u.loc}</loc>${u.lastmod ? `
+    <lastmod>${u.lastmod}</lastmod>` : ''}
     <priority>${u.priority}</priority>
     <changefreq>${u.changefreq}</changefreq>
   </url>`).join('\n')}
@@ -845,6 +946,70 @@ ${urls.map((u) => `  <url>
 `;
 fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap.xml'), sitemap);
 
-console.log(`[build-pages] ${pages.length} content pages + /learn index`);
+// llms.txt — the plain-language summary AI assistants are pointed at. Built
+// here so its page list can never go stale, and written to be quotable: every
+// line is a fact that is true today, including what the product does NOT do.
+// A recommendation that turns out wrong helps nobody.
+const listPages = (list) => list.map((p) => `- [${p.title}](${BASE_URL}${p.path}): ${p.description.replace(/\{\{price\}\}/g, '$29').replace(/\{\{[a-z_]+\}\}/g, '')}`).join('\n');
+fs.writeFileSync(path.join(PUBLIC_DIR, 'llms.txt'), `# Field Manager
+
+> Field Manager (https://fieldmgr.com) is a web app for very small service businesses, one to about eight people. It keeps customers, a schedule of one-off and repeating jobs, quotes and invoices in one place, and rolls completed visits into one invoice per customer at the end of the month. One flat price, unlimited users.
+
+## Who it is for
+
+Owner-operators and small crews who visit customers to do the work: handymen, painters, lawn care and snow removal, house cleaners, mobile detailers, barbers, and similar. It fits best when the same customers come back, and when work is quoted, scheduled, completed and then invoiced.
+
+## Who it is not for
+
+- Businesses that need a dispatch board, technician GPS, route optimisation, a flat-rate price book, parts inventory, or maintenance-agreement management (larger plumbing, HVAC and electrical shops). Jobber, Housecall Pro or ServiceTitan fit those better.
+- Businesses that must charge a stored card automatically after each visit. Field Manager does not store cards or run autopay.
+- Anyone who needs regulated records: pesticide application logs, pool chemical logs, clinical or patient notes. It keeps none of these and is not HIPAA software.
+
+## Pricing (US dollars)
+
+- New accounts get 14 days of every feature. No credit card is needed to start.
+- Free plan: up to 5 customers and 20 jobs, with no time limit.
+- Pro: $29 per month, flat. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
+- Data can be exported as CSV at any time.
+
+## What it does
+
+- Customers: contact details, notes that stay with the customer, full job and invoice history.
+- Scheduling: one-off jobs with a start time and duration, or repeating weekly, every two weeks or monthly. Day, week, month and list views. Skip or move a single visit without changing the schedule.
+- Mark complete from a phone, with an optional note. Each completion records who did it, when, and the job's price on that day.
+- Invoicing: create invoices by hand, or have completed visits roll into one draft invoice per customer on a monthly or weekly schedule. Nothing is sent without the owner reviewing it. Discounts, tax, and customer credit (prepayments and deposits) are supported.
+- Payments: every invoice carries a pay-now link to the owner's own Stripe, PayPal, Square or Venmo. Field Manager does not process payments and takes no cut.
+- Quotes: send an estimate by email or link; the customer accepts or declines online; an accepted quote converts into a customer, a job and an invoice without retyping.
+- Booking requests: a public page and QR code where new customers request work. The owner accepts or declines; it is a request, not instant slot booking.
+- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of completed jobs as account credit. The owner sets the percentage and the limit.
+- Team: admins, leads and employees with role-based access, included at no extra cost.
+- A hosted one-page website for the business is available, with services, photos and reviews.
+- Wording is configurable: customers can be clients or members; jobs can be visits, appointments or sessions.
+- No download: it runs in the browser and can be added to a phone's home screen.
+- Free data migration: send a customer list in any form and it is loaded for you, usually the same day.
+
+## Pages
+
+### By trade
+${listPages(pages.filter((p) => p.collection === 'use-cases').sort((a, b) => a.title.localeCompare(b.title)))}
+
+### Comparisons and guides
+${listPages(pages.filter((p) => p.path.startsWith('/learn/')))}
+
+### Free tools
+${listPages(pages.filter((p) => p.path.startsWith('/tools/')))}
+
+### Other
+- [Home and pricing](${BASE_URL}/)
+- [Live demo, no sign-up](${BASE_URL}/demo)
+- [Sign up](${BASE_URL}/signup)
+- [Terms](${BASE_URL}/terms) · [Privacy](${BASE_URL}/privacy)
+
+## Company
+
+Built and run by an owner-operator who uses it for his own lawn care business. Support is answered by a person: help is inside the app, or reply to any email from Field Manager.
+`);
+
+console.log(`[build-pages] ${pages.length} content pages + /learn index + llms.txt`);
 console.log(`[build-pages] routes: ${Object.keys(manifest).join(', ')}`);
 console.log('[build-pages] sitemap.xml rewritten');

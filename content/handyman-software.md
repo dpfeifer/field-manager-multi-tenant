@@ -48,4 +48,23 @@ You set the percentage and how many jobs it runs for. Nobody keeps a list of who
 
 Send us your customer list from a spreadsheet, another app, or a notebook, and we'll load your customers and upcoming work for you, free, usually same-day. Weighing the bigger platforms? Read our honest comparisons with [Jobber](/learn/field-manager-vs-jobber) and [Housecall Pro](/learn/field-manager-vs-housecall-pro).
 
+{{faq}}
+Q: Can I send a property manager one invoice a month instead of one per job?
+A: Yes. Mark each job complete as you go, and at the end of the month the completed jobs for that customer roll into one draft invoice, each at the price it had that day. You review it and send it.
+Q: Can a customer approve an estimate online?
+A: Yes. Send the estimate by email or link, the customer accepts or declines online, and an accepted estimate converts into a scheduled job and then an invoice without retyping.
+Q: Does it have a flat-rate price book, parts inventory or a dispatch board?
+A: No. Field Manager is built for one-to-five-person businesses. If you need a price book, inventory or dispatching, a larger platform such as Jobber or Housecall Pro is the better fit.
+Q: How much does Field Manager cost?
+A: New accounts get 14 days of every feature. After that the free plan covers up to 5 customers and 20 jobs with no time limit, and Pro is {{price}} a month, flat, with unlimited customers, jobs and users.
+Q: Does it charge per user?
+A: No. The price is the same whether it is just you or a crew of eight. Teammates are included.
+Q: Does Field Manager process card payments?
+A: No. Every invoice carries a pay-now link to your own Stripe, PayPal, Square or Venmo account, so the money goes straight to you and we take no cut. It does not store cards or charge customers automatically.
+Q: Is there an app to download?
+A: No download is needed. It runs in the browser on a phone, tablet or computer, and you can add it to your phone's home screen so it opens like an app.
+Q: Can I bring my existing customers over?
+A: Yes. Import a CSV file, or send us your list in any form, a spreadsheet, an export from another app, or photos of a notebook, and we load it for you free, usually the same day.
+{{/faq}}
+
 <div class="cta">Quote your next job on it and see. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a>.</div>

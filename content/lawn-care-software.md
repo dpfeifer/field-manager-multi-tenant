@@ -55,4 +55,25 @@ You set the percentage and how many jobs it runs for. They can watch the credit 
 
 Send us your customer list — from Jobber, Yardbook, an Excel sheet, or photos of a notebook — and we'll load your customers and schedules for you, free, usually same-day. Compare us to the big platforms first: [Field Manager vs Jobber for solo operators](/learn/field-manager-vs-jobber).
 
+{{faq}}
+Q: Does it handle weekly and every-other-week mowing schedules?
+A: Yes. Set a customer to weekly, every two weeks or monthly once and the calendar fills in from there. You can skip or move a single visit without changing the rest of the schedule.
+Q: How does month-end invoicing work?
+A: Mark each visit complete from your phone. On the day you choose each month, or weekly, completed visits roll into one draft invoice per customer, each at the price it had on the day. Nothing is sent until you review it.
+Q: Can I bill snow removal per push?
+A: Yes. Mark each push complete after the storm and the month's pushes roll into one invoice per customer, the same way mowing visits do.
+Q: Does it optimise routes or track chemical applications?
+A: No. It lists the day's jobs in order, but it does not do route optimisation, GPS tracking or pesticide application records.
+Q: How much does Field Manager cost?
+A: New accounts get 14 days of every feature. After that the free plan covers up to 5 customers and 20 jobs with no time limit, and Pro is {{price}} a month, flat, with unlimited customers, jobs and users.
+Q: Does it charge per user?
+A: No. The price is the same whether it is just you or a crew of eight. Teammates are included.
+Q: Does Field Manager process card payments?
+A: No. Every invoice carries a pay-now link to your own Stripe, PayPal, Square or Venmo account, so the money goes straight to you and we take no cut. It does not store cards or charge customers automatically.
+Q: Is there an app to download?
+A: No download is needed. It runs in the browser on a phone, tablet or computer, and you can add it to your phone's home screen so it opens like an app.
+Q: Can I bring my existing customers over?
+A: Yes. Import a CSV file, or send us your list in any form, a spreadsheet, an export from another app, or photos of a notebook, and we load it for you free, usually the same day.
+{{/faq}}
+
 <div class="cta">Run next week's route on it and see. <a href="/signup">Start free — no card needed</a> or <a href="/demo">try the live demo</a> first.</div>
