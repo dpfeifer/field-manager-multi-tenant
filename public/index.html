@@ -1898,6 +1898,8 @@
       background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px;
       transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     }
+    /* An odd number of trades leaves the last tile alone: let it span. */
+    .ob-tile:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 0; }
     .ob-tile { display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; min-height: 72px; justify-content: center; }
     .ob-tile:hover, .ob-choice:hover { border-color: var(--primary); }
     .ob-tile.on, .ob-choice.on { border-color: var(--primary); background: var(--tinted); box-shadow: inset 0 0 0 1px var(--primary); }
@@ -16808,6 +16810,10 @@ const ONBOARDING_TRADES = [
     words: ['Customer', 'Customers', 'Appointment', 'Appointments'], on: ['invoices', 'quotes', 'requests'] },
   { key: 'handyman', label: 'Handyman & repair', hint: 'Estimates, one-off jobs',
     words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests'] },
+  { key: 'painting', label: 'Painting', hint: 'Repaints, interior and exterior',
+    words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests'] },
+  { key: 'lessons', label: 'Lessons & training', hint: 'Trainers, music, tutoring, dog training',
+    words: ['Client', 'Clients', 'Session', 'Sessions'], on: ['invoices', 'requests', 'reports'] },
   { key: 'other', label: 'Something else', hint: 'Any service you schedule',
     words: ['Customer', 'Customers', 'Job', 'Jobs'], on: ['invoices', 'quotes', 'requests', 'reports'] },
 ];

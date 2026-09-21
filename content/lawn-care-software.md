@@ -39,6 +39,8 @@ You set the percentage and how many jobs it runs for. They can watch the credit 
 
 **Pay links on every invoice.** Drop in your Stripe, PayPal, Square, or Venmo details and every invoice carries a "pay now" link. Money goes straight to your account — we never touch it or take a cut.
 
+**Snow in the off season.** Per-push plowing works the same way as mowing: mark each visit complete after the storm, and the month's pushes roll into one invoice per customer. The account keeps earning its place in January.
+
 **Quotes for the one-off work.** Cleanups, mulch, aeration — send a quote, they accept online, it converts to a job and an invoice without retyping anything.
 
 **A customer book that remembers the property.** Gate codes, dog names, "don't blow clippings toward the pool" — notes live with the customer, along with every visit and every dollar billed.

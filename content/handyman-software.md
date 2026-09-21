@@ -1,16 +1,16 @@
 ---
-title: Handyman work, from estimate to paid invoice
+title: Handyman software for repeat clients, from estimate to paid invoice
 description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, then {{price}}/month flat.
 path: /handyman
 eyebrow: For handymen
 collection: use-cases
 demo_name: Ridgeline Handyman
-date: 2026-08-06
+date: 2026-09-20
 photo: photo-1426927308491-6380b6a9936f
 photo_alt: Hand tools hung on a workshop wall
 ---
 
-Handyman work is mostly one-off jobs from repeat customers, which makes it an awkward fit for two kinds of software: booking apps that assume fixed appointment types, and field-service platforms built around dispatching a crew. What the work actually needs is a fast path from *quote* to *scheduled* to *paid*.
+Handyman work is small jobs for the same people again and again: homeowners who call you back, landlords, property managers with a list that never ends. Booking apps assume fixed appointment types, and the big field-service platforms are built around a dispatcher. What the work needs is a fast path from *quote* to *scheduled* to *paid*, and one bill at the end of the month for the clients who keep you busy.
 
 {{chapter:quote}}
 Quotes that become jobs.
@@ -32,7 +32,7 @@ You set the percentage and how many jobs it runs for. Nobody keeps a list of who
 
 **Every property, remembered.** What you did last time, what it cost, the gate code, the fact that the basement panel is behind the shelving. Notes and full job history live with the customer, so a callback six months later doesn't start from zero.
 
-**Recurring work when it happens.** Property managers, rentals, seasonal maintenance rounds — set weekly, biweekly, or monthly schedules, and roll completed visits into one invoice per customer automatically.
+**One monthly invoice for your regulars.** Property managers and landlords do not want twelve invoices. Mark each job complete as you go, and at the end of the month every completed job rolls into one invoice per customer, each at the price it had that day. You review it and send it.
 
 **Invoice from the truck.** Mark the job complete, generate the invoice, and it carries a pay link to your own Stripe, PayPal, Square, or Venmo. Deposits and prepayments can be recorded as account credit and applied to invoices as the work gets done.
 
@@ -42,7 +42,7 @@ You set the percentage and how many jobs it runs for. Nobody keeps a list of who
 
 ## What it costs
 
-**Free for your first five customers**, no credit card, no clock. Then **{{price}}/month flat** — unlimited customers and jobs, every feature, teammates included if you bring on a second pair of hands. No per-seat pricing, no tier holding the useful features. Export and leave whenever.
+**Free for your first five customers**, no credit card, no clock. Then **{{price}}/month flat** — unlimited customers, no cap on the number of jobs, every feature, and teammates included if you bring on a second pair of hands. No per-seat pricing, no tier holding the useful features. Export and leave whenever.
 
 ## If you're on something else
 

@@ -45,7 +45,7 @@ router.post('/complete', requireRole('admin'), async (req, res, next) => {
     const hasBookingConfig = req.body && req.body.booking_form_config && features.requests;
     const bookingConfig = hasBookingConfig ? normalizeBookingFormConfig(req.body.booking_form_config) : null;
 
-    const TRADES = new Set(['lawn', 'cleaning', 'barber', 'detailing', 'handyman', 'other']);
+    const TRADES = new Set(['lawn', 'cleaning', 'barber', 'detailing', 'handyman', 'painting', 'lessons', 'other']);
     const trade = TRADES.has(req.body && req.body.trade) ? req.body.trade : null;
     await query(
       `UPDATE organizations

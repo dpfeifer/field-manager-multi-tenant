@@ -203,6 +203,79 @@ function renderChapters(html, chapters, company) {
   });
 }
 
+// Free tools: a working calculator dropped into a content page with
+// {{tool:name}}. These are the only content pages that carry script — plain
+// JS, no dependencies, and the page still reads sensibly if it never runs.
+const TOOLS = {
+  'hourly-rate': `<section class="tool-calc" id="rate-calc" aria-labelledby="rate-calc-h">
+  <h2 id="rate-calc-h" class="tool-calc-h">Your numbers</h2>
+  <p class="tool-calc-note">The starting figures are placeholders, not advice. Replace every one with your own.</p>
+  <div class="tool-presets" role="group" aria-label="Start from a trade">
+    <button type="button" data-preset="handyman" class="on">Handyman</button>
+    <button type="button" data-preset="painting">Painting</button>
+    <button type="button" data-preset="lawn">Lawn care</button>
+    <button type="button" data-preset="other">Other</button>
+  </div>
+  <div class="tool-grid">
+    <label for="rc-pay">Pay you want per year<span>Before your personal income tax</span><input id="rc-pay" type="number" inputmode="decimal" min="0" step="1000" value="70000"></label>
+    <label for="rc-costs">Business costs per year<span>Vehicle, insurance, tools, phone, software</span><input id="rc-costs" type="number" inputmode="decimal" min="0" step="500" value="18000"></label>
+    <label for="rc-weeks">Weeks worked per year<span>52 minus holidays, sick days, slow weeks</span><input id="rc-weeks" type="number" inputmode="decimal" min="1" max="52" step="1" value="46"></label>
+    <label for="rc-hours">Hours worked per week<span>All of them, not just on the tools</span><input id="rc-hours" type="number" inputmode="decimal" min="1" max="100" step="1" value="45"></label>
+    <label for="rc-billable">Share of hours you can bill (%)<span>Driving, quoting and paperwork are not billable</span><input id="rc-billable" type="number" inputmode="decimal" min="5" max="100" step="5" value="60"></label>
+    <label for="rc-margin">Profit margin (%)<span>What the business keeps after paying you</span><input id="rc-margin" type="number" inputmode="decimal" min="0" max="90" step="1" value="10"></label>
+  </div>
+  <div class="tool-result" aria-live="polite">
+    <div><div class="k" id="rc-rate">—</div><div class="l">per billable hour</div></div>
+    <div><div class="k" id="rc-day">—</div><div class="l">for a full day on site</div></div>
+    <div><div class="k" id="rc-month">—</div><div class="l">to bill each month</div></div>
+  </div>
+  <p class="tool-calc-note" id="rc-explain"></p>
+</section>
+<script>
+(function () {
+  var PRESETS = {
+    handyman: { pay: 70000, costs: 18000, weeks: 46, hours: 45, billable: 60, margin: 10 },
+    painting: { pay: 70000, costs: 22000, weeks: 44, hours: 45, billable: 70, margin: 10 },
+    lawn:     { pay: 60000, costs: 25000, weeks: 34, hours: 50, billable: 70, margin: 10 },
+    other:    { pay: 70000, costs: 15000, weeks: 46, hours: 45, billable: 60, margin: 10 }
+  };
+  var ids = ['pay', 'costs', 'weeks', 'hours', 'billable', 'margin'];
+  var el = function (id) { return document.getElementById('rc-' + id); };
+  var money = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
+  function calc() {
+    var v = {};
+    ids.forEach(function (k) { v[k] = parseFloat(el(k).value) || 0; });
+    var billableHours = v.weeks * v.hours * (v.billable / 100);
+    var margin = Math.min(Math.max(v.margin, 0), 90) / 100;
+    if (billableHours <= 0) { ['rate', 'day', 'month'].forEach(function (k) { el(k).textContent = '—'; }); el('explain').textContent = ''; return; }
+    var revenue = (v.pay + v.costs) / (1 - margin);
+    var rate = revenue / billableHours;
+    el('rate').textContent = money(rate);
+    el('day').textContent = money(rate * 8);
+    el('month').textContent = money(revenue / 12);
+    el('explain').textContent = 'That is ' + Math.round(billableHours).toLocaleString('en-US') + ' billable hours a year, out of ' + Math.round(v.weeks * v.hours).toLocaleString('en-US') + ' worked, and ' + money(revenue) + ' a year through the business.';
+  }
+  ids.forEach(function (k) { el(k).addEventListener('input', calc); });
+  Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (b) {
+    b.addEventListener('click', function () {
+      var p = PRESETS[b.getAttribute('data-preset')];
+      ids.forEach(function (k) { el(k).value = p[k]; });
+      Array.prototype.forEach.call(document.querySelectorAll('#rate-calc [data-preset]'), function (x) { x.classList.toggle('on', x === b); });
+      calc();
+    });
+  });
+  calc();
+})();
+</script>`,
+};
+function expandTools(html, file) {
+  return html.replace(/<p>\{\{tool:([a-z-]+)\}\}<\/p>|\{\{tool:([a-z-]+)\}\}/g, (_m, a, b) => {
+    const name = a || b;
+    if (!TOOLS[name]) fail(`${file}: unknown tool "${name}" (have: ${Object.keys(TOOLS).join(', ')})`);
+    return TOOLS[name];
+  });
+}
+
 // {{mock:name}} → the markup above, with an optional caption line beneath:
 // {{mock:route|Your route for the day, in order.}}
 function expandMocks(html, file, company) {
@@ -518,6 +591,41 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
       font-size: 13px; color: var(--text-muted);
       text-align: center; margin: -14px 0 30px;
     }
+    /* Free tools. A form, so: real labels, big tap targets, numbers that line up. */
+    .tool-calc {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px; margin: 8px 0 44px; box-shadow: 0 18px 44px -32px rgba(40,30,20,0.4);
+    }
+    article h2.tool-calc-h { border-top: 0; padding-top: 0; margin: 0 0 4px; font-size: 22px; }
+    .tool-calc-note { font-size: 14px !important; color: var(--text-muted) !important; margin: 0 0 18px !important; }
+    .tool-presets { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; margin-bottom: 20px; background: var(--tinted); border-radius: 11px; }
+    .tool-presets button { font: 500 13.5px/1 'Inter', sans-serif; color: var(--text-muted); background: none; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .tool-presets button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(25,23,15,0.1); }
+    .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+    .tool-grid label { display: flex; flex-direction: column; font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .tool-grid label span { font-size: 12.5px; font-weight: 400; color: var(--text-muted); margin: 2px 0 7px; }
+    .tool-grid input {
+      font: 500 17px/1.2 'Inter', sans-serif; font-variant-numeric: tabular-nums; color: var(--text);
+      padding: 12px 13px; border: 1px solid var(--border-strong); border-radius: 10px; background: #fff; width: 100%; margin-top: auto;
+    }
+    .tool-grid input:focus-visible, .tool-presets button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .tool-result { display: grid; grid-template-columns: repeat(3, 1fr); margin: 24px 0 14px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .tool-result > div { padding: 18px 12px; text-align: center; border-left: 1px solid var(--border); }
+    .tool-result > div:first-child { border-left: 0; background: var(--primary); color: #fff; }
+    .tool-result .k { font-family: var(--serif); font-weight: 600; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .tool-result .l { margin-top: 6px; font-size: 12.5px; color: var(--text-muted); }
+    .tool-result > div:first-child .l { color: rgba(255,255,255,0.78); }
+    @media (max-width: 600px) {
+      .tool-calc { padding: 20px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .tool-result { grid-template-columns: 1fr; }
+      .tool-result > div { border-left: 0; border-top: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; text-align: left; padding: 14px 16px; }
+      .tool-result > div:first-child { border-top: 0; }
+      .tool-result .l { margin-top: 0; order: -1; }
+    }
+    @media (min-width: 1000px) {
+      .tool-calc { width: 760px; margin-left: 50%; transform: translateX(-50%); }
+    }
     /* The closing band: the landing page's two matched pills. */
     .page-final {
       margin: 56px 0 0; padding: 48px 0 8px; text-align: center;
@@ -591,6 +699,8 @@ ${bodyHtml}
       <span class="sep">·</span>
       <a href="/learn">Learn</a>
       <span class="sep">·</span>
+      <a href="/tools/hourly-rate">Rate calculator</a>
+      <span class="sep">·</span>
       <a href="/contact">Contact</a>
       <span class="sep">·</span>
       <a href="/terms">Terms</a>
@@ -636,6 +746,7 @@ for (const file of fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).
   // nested in a paragraph, then expand.
   bodyHtml = bodyHtml.replace(/<p>(\{\{mock:[^}]*\}\})<\/p>/g, '$1');
   bodyHtml = expandMocks(bodyHtml, file, company);
+  bodyHtml = expandTools(bodyHtml, file);
   // The closing line, authored as <div class="cta">Lead text <a>…</a> or
   // <a>…</a>.</div>, becomes the landing page's closing band: the lead as a
   // headline, the links as its two matched pills. The joining words go.
