@@ -59,9 +59,9 @@ A: Record the deposit as credit on the customer's account when it arrives. When 
 Q: Does it measure rooms or calculate paint quantities?
 A: No. You write the estimate with your own line items and prices. Field Manager handles everything after the number: acceptance, scheduling, invoicing and payment links.
 Q: How much does Field Manager cost?
-A: New accounts get 14 days of every feature. After that the free plan covers up to 5 customers and 20 jobs with no time limit, and Pro is {{price}} a month, flat, with unlimited customers, jobs and users.
+A: New accounts get 14 days of every feature with no credit card. After that the Free plan covers up to 5 customers and 20 jobs in total, without invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
 Q: Does it charge per user?
-A: No. The price is the same whether it is just you or a crew of eight. Teammates are included.
+A: No. Team members are part of Pro, and Pro costs the same whether it is just you or a crew of eight.
 Q: Does Field Manager process card payments?
 A: No. Every invoice carries a pay-now link to your own Stripe, PayPal, Square or Venmo account, so the money goes straight to you and we take no cut. It does not store cards or charge customers automatically.
 Q: Is there an app to download?

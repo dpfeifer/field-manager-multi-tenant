@@ -369,8 +369,8 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
         description: 'Scheduling, customer records, quotes and invoicing for small service businesses. One flat monthly price with unlimited users.',
         publisher: { '@id': `${BASE_URL}/#org` },
         offers: [
-          { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: 'Up to 5 customers and 20 jobs. No time limit.' },
-          { '@type': 'Offer', name: 'Pro', price: '{{price_num}}', priceCurrency: 'USD', description: 'Per month, flat. Unlimited customers, jobs and users.' },
+          { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: 'Up to 5 customers and 20 jobs in total, no time limit. Invoicing, reports and team members are part of Pro.' },
+          { '@type': 'Offer', name: 'Pro', price: '{{price_num}}', priceCurrency: 'USD', description: 'Per month, flat. Every feature. Unlimited customers, jobs and users.' },
         ],
       },
       kind === 'tool'
@@ -748,7 +748,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
   <nav class="ed-nav">
     <a class="ed-brand" href="/"><img src="/favicon.svg" alt="" class="ed-brand-icon" />Field Manager</a>
     <div class="ed-nav-actions">
-      <a class="ed-nav-link ed-nav-learn" href="/#pricing">Pricing</a>
+      <a class="ed-nav-link ed-nav-learn" href="/pricing">Pricing</a>
       <a class="ed-nav-link" href="/signin">Sign in</a>
       <a class="ed-nav-cta" href="/signup">Start free</a>
     </div>
@@ -764,6 +764,10 @@ ${related}
   </main>
   <footer class="landing-footer">
     <div>
+      <a href="/pricing">Pricing</a>
+      <span class="sep">·</span>
+      <a href="/about">About</a>
+      <span class="sep">·</span>
       <a href="/use-cases">Use cases</a>
       <span class="sep">·</span>
       <a href="/learn">Learn</a>
@@ -945,8 +949,8 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 ## Pricing (US dollars)
 
 - New accounts get 14 days of every feature. No credit card is needed to start.
-- Free plan: up to 5 customers and 20 jobs, with no time limit.
-- Pro: $29 per month, flat. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
+- Free plan: up to 5 customers and 20 jobs in total, with no time limit. Includes repeating schedules, quotes, the booking-request page and CSV import and export. It does NOT include invoicing, reports or team members.
+- Pro: $29 per month, flat. Everything, including invoicing, month-end invoice roll-up, reports and team members. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
 - Data can be exported as CSV at any time.
 
 ## What it does
@@ -977,7 +981,9 @@ ${listPages(pages.filter((p) => p.path.startsWith('/learn/')))}
 ${listPages(pages.filter((p) => p.path.startsWith('/tools/')))}
 
 ### Other
-- [Home and pricing](${BASE_URL}/)
+- [Pricing](${BASE_URL}/pricing): both plans, what each includes, and what is never charged for.
+- [About](${BASE_URL}/about): who builds and runs Field Manager, and why.
+- [Home](${BASE_URL}/)
 - [Live demo, no sign-up](${BASE_URL}/demo)
 - [Sign up](${BASE_URL}/signup)
 - [Terms](${BASE_URL}/terms) · [Privacy](${BASE_URL}/privacy)

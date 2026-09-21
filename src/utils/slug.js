@@ -15,7 +15,7 @@ const RESERVED_SLUGS = new Set([
   'learn', 'barbers', 'blog', 'compare', 'templates', 'guides',
   'lawncare', 'lawn-care', 'use-cases', 'usecases',
   'cleaners', 'cleaning', 'detailers', 'detailing', 'handyman', 'pool-service',
-  'painters', 'painting', 'tools', 'r',
+  'painters', 'painting', 'tools', 'r', 'about', 'pricing',
 ]);
 
 function slugify(name) {

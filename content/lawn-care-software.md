@@ -65,9 +65,9 @@ A: Yes. Mark each push complete after the storm and the month's pushes roll into
 Q: Does it optimise routes or track chemical applications?
 A: No. It lists the day's jobs in order, but it does not do route optimisation, GPS tracking or pesticide application records.
 Q: How much does Field Manager cost?
-A: New accounts get 14 days of every feature. After that the free plan covers up to 5 customers and 20 jobs with no time limit, and Pro is {{price}} a month, flat, with unlimited customers, jobs and users.
+A: New accounts get 14 days of every feature with no credit card. After that the Free plan covers up to 5 customers and 20 jobs in total, without invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
 Q: Does it charge per user?
-A: No. The price is the same whether it is just you or a crew of eight. Teammates are included.
+A: No. Team members are part of Pro, and Pro costs the same whether it is just you or a crew of eight.
 Q: Does Field Manager process card payments?
 A: No. Every invoice carries a pay-now link to your own Stripe, PayPal, Square or Venmo account, so the money goes straight to you and we take no cut. It does not store cards or charge customers automatically.
 Q: Is there an app to download?
