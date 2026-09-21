@@ -160,7 +160,14 @@ router.get('/organizations', async (req, res, next) => {
       `SELECT
          o.id, o.slug, o.name, o.created_at, o.next_invoice_number,
          o.subscription_status, o.trial_ends_at, o.stripe_subscription_id,
-         o.is_demo, o.onboarding_completed_at,
+         o.is_demo, o.onboarding_completed_at, o.trade, o.last_active_at,
+         -- Still doing their job in it: visits completed in the last 7 days,
+         -- and in their second week (days 8–14 after signup).
+         (SELECT COUNT(*)::int FROM jobs j, jsonb_array_elements_text(COALESCE(j.completed_dates, '[]'::jsonb)) d
+           WHERE j.organization_id = o.id AND j.deleted_at IS NULL AND d::date > CURRENT_DATE - 7) AS completions_7d,
+         (SELECT COUNT(*)::int FROM jobs j, jsonb_array_elements_text(COALESCE(j.completed_dates, '[]'::jsonb)) d
+           WHERE j.organization_id = o.id AND j.deleted_at IS NULL
+             AND d::date >= (o.created_at::date + 7) AND d::date < (o.created_at::date + 14)) AS completions_week2,
          (SELECT COUNT(*)::int FROM users WHERE organization_id = o.id AND deleted_at IS NULL) AS user_count,
          (SELECT COUNT(*)::int FROM customers WHERE organization_id = o.id AND deleted_at IS NULL) AS customer_count,
          (SELECT COUNT(*)::int FROM jobs WHERE organization_id = o.id AND deleted_at IS NULL) AS job_count,

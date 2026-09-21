@@ -6,6 +6,7 @@ const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const { resolveReferrer, ensureReferralCode, invoiceReferralNote, displayName: referrerName } = require('../utils/referrals');
+const { optOutSig } = require('../utils/lifecycle');
 const SLUG_RE = /^[a-z0-9-]{1,60}$/;
 const TIME_WINDOWS = new Set(['morning', 'afternoon', 'evening', 'anytime']);
 
@@ -345,6 +346,19 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+
+// The link at the foot of the day-2 / day-7 emails. Signed, so it cannot be
+// used to switch them off for somebody else's account.
+router.get('/lifecycle/stop', async (req, res, next) => {
+  const org = String(req.query.org || '');
+  const sig = String(req.query.sig || '');
+  const page = (msg) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Field Manager</title><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f4ec;color:#19170f;display:grid;place-items:center;min-height:90vh;margin:0;padding:24px;"><p style="max-width:420px;font-size:17px;line-height:1.5;text-align:center;">${msg}</p></body>`;
+  try {
+    if (!UUID_RE.test(org) || sig !== optOutSig(org)) return res.status(400).type('html').send(page('That link is not valid.'));
+    await query('UPDATE organizations SET lifecycle_opt_out = TRUE WHERE id = $1', [org]);
+    res.type('html').send(page('Done. You will not get any more setup emails. Your account is unchanged.'));
+  } catch (err) { next(err); }
+});
 
 // A customer's private referral page. The token is the only key; what comes
 // back is theirs alone, and the people they referred appear by first name.

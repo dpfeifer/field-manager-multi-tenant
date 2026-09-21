@@ -8843,6 +8843,12 @@ function CustomerForm({ initial, onSubmit, onCancel, busy, customers = [] }) {
   );
 }
 
+// "3 days ago", for the staff list.
+function staffAgo(iso) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+}
+
 function DeleteCustomerDialog({ customer, onConfirm, onCancel }) {
   const terms = useTerms();
   const name = customerDisplayName(customer);
@@ -18199,6 +18205,14 @@ function OrganizationsSection({ session }) {
                 </div>
                 <div className="meta">
                   {o.slug} • Created {formatDateString(o.created_at.split('T')[0])} • Next invoice #{o.next_invoice_number}
+                </div>
+                {/* Who they are and whether they are still here — the two things
+                    a count of customers cannot tell you. */}
+                <div className="secondary-meta">
+                  {o.trade ? `Trade: ${o.trade}` : 'No trade picked'} •
+                  {' '}{o.last_active_at ? `Active ${staffAgo(o.last_active_at)}` : 'No activity recorded'} •
+                  {' '}<strong style={{ color: o.completions_7d > 0 ? 'var(--success)' : 'inherit' }}>{o.completions_7d} completed in the last 7 days</strong>
+                  {o.completions_week2 > 0 && <> • {o.completions_week2} in their second week</>}
                 </div>
                 <div className="secondary-meta">
                   {o.user_count} {o.user_count === 1 ? 'user' : 'users'} •

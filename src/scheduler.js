@@ -11,11 +11,17 @@
 
 const { main: runAutoInvoices } = require('../scripts/run-auto-invoices');
 const { main: runTrialReminders } = require('../scripts/send-trial-reminders');
+const { main: runLifecycleEmails } = require('../scripts/send-lifecycle-emails');
+const { main: runWeeklyDigest } = require('../scripts/send-weekly-digest');
 const { query } = require('./config/db');
 
 const SCHEDULE = {
   autoInvoice:   { utcHour: 9,  envFlag: 'DISABLE_AUTO_INVOICE_CRON' },
   trialReminder: { utcHour: 14, envFlag: 'DISABLE_TRIAL_REMINDER_CRON' },
+  // Late morning in US time zones: when a person would plausibly write.
+  lifecycle:     { utcHour: 15, envFlag: 'DISABLE_LIFECYCLE_CRON' },
+  // Every day; the script itself only sends on Mondays, once.
+  weeklyDigest:  { utcHour: 12, envFlag: 'DISABLE_WEEKLY_DIGEST_CRON' },
 };
 
 // Delete demo orgs that have rolled past their expires-at. Cascading
@@ -40,6 +46,8 @@ async function cleanupExpiredDemoOrgs() {
 const lastRunDate = {
   autoInvoice: '',
   trialReminder: '',
+  lifecycle: '',
+  weeklyDigest: '',
 };
 
 function todayUTC() {
@@ -66,6 +74,8 @@ async function maybeRun(jobName, runFn) {
 async function tick() {
   await maybeRun('autoInvoice', runAutoInvoices);
   await maybeRun('trialReminder', runTrialReminders);
+  await maybeRun('lifecycle', runLifecycleEmails);
+  await maybeRun('weeklyDigest', runWeeklyDigest);
   await cleanupExpiredDemoOrgs();
 }
 
