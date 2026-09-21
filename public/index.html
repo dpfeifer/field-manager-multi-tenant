@@ -6953,7 +6953,7 @@ function LandingPricing({ founder }) {
           </div>
           {founderActive && (
             <p className="ed-plan-founder-note">
-              Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.
+              Limited-time offer — ${Math.round(founder.founder_price)}/mo.
             </p>
           )}
           <p className="ed-plan-blurb">For growing operations. Everything, unlimited.</p>
@@ -7291,7 +7291,7 @@ function LandingPage({ signedIn }) {
         <div className="ed-hero-text">
           {founderActive && (
             <div className="sales-hero-badge fade-in">
-              ⏰ Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life
+              ⏰ Limited-time offer — ${Math.round(founder.founder_price)}/mo
             </div>
           )}
           <p className="ed-hero-kicker fade-in">For small service businesses</p>
@@ -7435,7 +7435,7 @@ function LandingPage({ signedIn }) {
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
           Free for your first five customers. {founderActive
-            ? <>Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
+            ? <>Limited-time offer — ${Math.round(founder.founder_price)}/mo.</>
             : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
         </p>
         <div className="sales-hero-actions">
@@ -7530,7 +7530,7 @@ function SalesLandingPage({ signedIn }) {
       {/* Hero */}
       <header className="sales-hero">
         {founderActive && (
-          <div className="sales-hero-badge">⏰ Limited-time offer — ${founderPrice}/mo, locked in for life</div>
+          <div className="sales-hero-badge">⏰ Limited-time offer — ${founderPrice}/mo</div>
         )}
         <h1 className="sales-hero-headline">
           Stop running your business<br/>out of a <em>spreadsheet</em>.
@@ -7623,7 +7623,7 @@ function SalesLandingPage({ signedIn }) {
               <span className="sales-plan-suf">/mo</span>
             </div>
             {founderActive && (
-              <p className="sales-plan-note">This price locks in for life. Once it's gone, it's gone.</p>
+              <p className="sales-plan-note">A limited number of accounts at this price. Once they're gone, it's gone.</p>
             )}
             <ul className="sales-plan-list">
               <li>Everything in Free</li>
@@ -7664,7 +7664,7 @@ function SalesLandingPage({ signedIn }) {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Free for your first five customers. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+          Free for your first five customers. {founderActive ? `Limited-time offer — $${founderPrice}/mo.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
         </p>
         <div className="sales-hero-actions">
           <PrimaryCTA size="lg" />
@@ -7715,7 +7715,7 @@ const EDITORIAL_FAQ = [
       const listed = founder ? Math.round(founder.listed_price) : 29;
       const promo = founder ? Math.round(founder.founder_price) : 19;
       return active
-        ? `Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
+        ? `Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is normally $${listed} flat, but right now it's $${promo}/mo on a limited-time offer — no per-seat, no per-customer, no overages.`
         : `Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
     },
   },
@@ -14069,7 +14069,7 @@ function DemoBanner() {
         clearSession();
         window.location.href = '/signup';
       }}>
-        {founderActive ? 'Lock in this price →' : 'Start free →'}
+        {founderActive ? 'Get this price →' : 'Start free →'}
       </button>
     </div>
   );
@@ -14418,16 +14418,6 @@ function statusLabel(s, trialEnds) {
 }
 
 const LOCKED_FEATURE_COPY = {
-  invoices: {
-    title: 'Invoicing is a Pro feature.',
-    body: 'Send branded invoices, share public links, accept Venmo, track payments — all unlocked with Pro.',
-    bullets: [
-      'Per-line invoices with tax + discount',
-      'Public link your customer opens on any device',
-      'Mark-paid workflow with payment history',
-      'Recurring-job auto-billing',
-    ],
-  },
   reports: {
     title: 'Reports are a Pro feature.',
     body: "See paid revenue, outstanding balances, projected income from upcoming visits, and your top customers at a glance.",
@@ -14495,7 +14485,7 @@ function UpgradePrompt({ session, used, limit, resource }) {
       <div className="upgrade-prompt-text">
         <strong>You've hit the Free plan limit</strong>
         <span>
-          {used}/{limit} {resource} used. Upgrade to Pro for unlimited {resource} (and unlock invoicing, reports, and teammates).
+          {used}/{limit} {resource} used. Upgrade to Pro for unlimited {resource} (and unlock reports and teammates).
         </span>
       </div>
       <button className="primary" onClick={upgrade} disabled={busy}>
@@ -18084,7 +18074,7 @@ function PlatformOverviewSection({ token }) {
         <div className="stat-card">
           <div className="label">Offer seats claimed</div>
           <div className="value">{c.founder_seats_used}</div>
-          <div className="subvalue">orgs locked into the limited-time offer</div>
+          <div className="subvalue">orgs on the limited-time offer</div>
         </div>
       </div>
 
