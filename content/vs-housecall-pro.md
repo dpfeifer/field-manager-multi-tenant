@@ -58,4 +58,4 @@ Housecall Pro is a good product built for companies that intend to become bigger
 
 But plenty of people are running lean on purpose, and mostly need the schedule, the customer book, the invoices, and a website that doesn't embarrass them. That's the whole of what we do, at a price that never moves.
 
-<div class="cta">Every feature free for 14 days, then {{price}}/month flat{{offer_note}}. <a href="/signup">Start free — no card needed</a> · <a href="/learn/field-manager-vs-jobber">Compare with Jobber</a></div>
+<div class="cta">Free for your first five customers, invoicing included. Then {{price}}/month flat{{offer_note}}. <a href="/signup">Start free — no card needed</a> · <a href="/learn/field-manager-vs-jobber">Compare with Jobber</a></div>

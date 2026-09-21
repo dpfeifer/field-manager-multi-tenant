@@ -15,8 +15,8 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 ## Pricing (US dollars)
 
 - New accounts get 14 days of every feature. No credit card is needed to start.
-- Free plan: up to 5 customers and 20 jobs in total, with no time limit. Includes repeating schedules, quotes, the booking-request page and CSV import and export. It does NOT include invoicing, reports or team members.
-- Pro: $29 per month, flat. Everything, including invoicing, month-end invoice roll-up, reports and team members. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
+- Free plan: up to 5 customers and 20 jobs in total, with no time limit. Includes repeating schedules, quotes, the booking-request page and CSV import and export. Invoicing and pay-now links are included. It does NOT include reports or team members.
+- Pro: $29 per month, flat. Adds reports and team members, and removes the limits. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
 - Data can be exported as CSV at any time.
 
 ## What it does
@@ -38,12 +38,12 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 ## Pages
 
 ### By trade
-- [Booking and client history for the independent chair](https://fieldmgr.com/barbers): A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five clients.
-- [Handyman software for repeat clients, from estimate to paid invoice](https://fieldmgr.com/handyman): Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five customers.
-- [Lawn care software built for the weekly route](https://fieldmgr.com/lawncare): Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by people who actually run a route. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five customers.
-- [Mobile detailing, from the DM to the driveway](https://fieldmgr.com/detailers): Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five clients.
-- [Painting software for small crews, from estimate to final payment](https://fieldmgr.com/painters): Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five customers.
-- [Recurring cleans, invoiced without the Sunday paperwork](https://fieldmgr.com/cleaners): Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Every feature free for 14 days, no card. Then $29/month flat, or a free plan for up to five clients.
+- [Booking and client history for the independent chair](https://fieldmgr.com/barbers): A booking page, client book, and simple website for independent barbers — proven in a working Las Vegas barber studio. Free for your first five clients, invoicing included. Then $29/month flat.
+- [Handyman software for repeat clients, from estimate to paid invoice](https://fieldmgr.com/handyman): Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, invoicing included. Then $29/month flat.
+- [Lawn care software built for the weekly route](https://fieldmgr.com/lawncare): Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by people who actually run a route. Free for your first five customers, invoicing included. Then $29/month flat.
+- [Mobile detailing, from the DM to the driveway](https://fieldmgr.com/detailers): Take bookings, quote packages, and invoice on the spot — built for mobile detailers working out of a van. Free for your first five clients, invoicing included. Then $29/month flat.
+- [Painting software for small crews, from estimate to final payment](https://fieldmgr.com/painters): Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Free for your first five customers, invoicing included. Then $29/month flat.
+- [Recurring cleans, invoiced without the Sunday paperwork](https://fieldmgr.com/cleaners): Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Free for your first five clients, invoicing included. Then $29/month flat.
 
 ### Comparisons and guides
 - [Field Manager vs Jobber for Solo Operators](https://fieldmgr.com/learn/field-manager-vs-jobber): An honest comparison of Field Manager and Jobber for one-person service businesses — pricing models, features you'll actually use, and when each one is the better fit.

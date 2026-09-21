@@ -1,6 +1,6 @@
 ---
 title: Handyman software for repeat clients, from estimate to paid invoice
-description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five customers.
+description: Quote the job, schedule it, invoice it — without a per-seat platform built for companies with dispatchers. Free for your first five customers, invoicing included. Then {{price}}/month flat.
 path: /handyman
 eyebrow: For handymen
 collection: use-cases
@@ -42,7 +42,7 @@ You set the percentage and how many jobs it runs for. Nobody keeps a list of who
 
 ## What it costs
 
-**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your customers, schedule and quotes, but not invoicing, for up to five customers and 20 jobs, with no time limit. **Pro is {{price}}/month flat** — unlimited customers, no cap on the number of jobs, every feature, and teammates included if you bring on a second pair of hands. No per-seat pricing, and one paid plan with everything in it. Export and leave whenever.
+**Free for your first five customers**, no credit card and no time limit: scheduling, quotes and invoicing, for up to 20 jobs. New accounts also get reports and team members for 14 days. **Pro is {{price}}/month flat** — unlimited customers, no cap on the number of jobs, every feature, and teammates included if you bring on a second pair of hands. No per-seat pricing, and one paid plan with everything in it. Export and leave whenever.
 
 ## If you're on something else
 
@@ -56,7 +56,7 @@ A: Yes. Send the estimate by email or link, the customer accepts or declines onl
 Q: Does it have a flat-rate price book, parts inventory or a dispatch board?
 A: No. Field Manager is built for one-to-five-person businesses. If you need a price book, inventory or dispatching, a larger platform such as Jobber or Housecall Pro is the better fit.
 Q: How much does Field Manager cost?
-A: New accounts get 14 days of every feature with no credit card. After that the Free plan covers up to 5 customers and 20 jobs in total, without invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
+A: It is free for up to 5 customers and 20 jobs in total, invoicing included, with no credit card and no time limit. Pro is {{price}} a month, flat, and adds reports, team members and unlimited customers and jobs. New accounts get the Pro extras free for 14 days.
 Q: Does it charge per user?
 A: No. Team members are part of Pro, and Pro costs the same whether it is just you or a crew of eight.
 Q: Does Field Manager process card payments?

@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Field Manager" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Every feature free for 14 days; then $29/month flat, or a free plan for up to five customers. No App Store, no per-seat fees, no surprise overages." />
+  <meta name="description" content="Customers, schedules, quotes, and invoices for small service businesses. Free for your first five customers, invoicing included; $29/month flat when you grow. No App Store, no per-seat fees, no surprise overages." />
   <meta name="theme-color" content="#f7f4ec" />
   <link rel="canonical" href="https://fieldmgr.com/" />
 
@@ -77,7 +77,7 @@
       {
         "@type": "Question",
         "name": "How does Field Manager pricing work?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is $29 a month, flat. No per-seat fees, no per-customer fees, no surprise overages." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is $29 a month, flat. No per-seat fees, no per-customer fees, no surprise overages." }
       },
       {
         "@type": "Question",
@@ -6925,10 +6925,10 @@ function LandingPricing({ founder }) {
             <li>Recurring schedules</li>
             <li>Quotes for prospects</li>
             <li>Public booking link</li>
+            <li>Invoicing with pay links</li>
             <li>CSV import + export</li>
           </ul>
           <ul className="ed-plan-list ed-plan-list-excluded">
-            <li>Invoicing</li>
             <li>Reports</li>
             <li>Team members</li>
           </ul>
@@ -7316,7 +7316,7 @@ function LandingPage({ signedIn }) {
               </button>
             </div>
             <p className="sales-hero-trust" style={{ margin: 0 }}>
-              Every feature free for 14 days · Set up in under two minutes · No card to start
+              Free for your first five customers · Set up in under two minutes · No card to start
             </p>
           </div>
         </div>
@@ -7434,7 +7434,7 @@ function LandingPage({ signedIn }) {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Every feature is free for 14 days. {founderActive
+          Free for your first five customers. {founderActive
             ? <>Limited-time offer — ${Math.round(founder.founder_price)}/mo, locked in for life.</>
             : <>${Math.round((founder && founder.listed_price) || 29)}/mo flat when you scale.</>} No credit card to start.
         </p>
@@ -7603,6 +7603,7 @@ function SalesLandingPage({ signedIn }) {
               <li>Up to 20 jobs (lifetime)</li>
               <li>Recurring schedules</li>
               <li>Quotes + public booking link</li>
+              <li>Invoicing with pay links</li>
               <li>CSV import + export</li>
             </ul>
             <PrimaryCTA label="Start free" />
@@ -7663,7 +7664,7 @@ function SalesLandingPage({ signedIn }) {
       <section className="sales-section sales-final" data-reveal>
         <h2 className="sales-h2">Stop running your business<br />out of a notebook.</h2>
         <p className="sales-final-sub">
-          Every feature is free for 14 days. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
+          Free for your first five customers. {founderActive ? `Limited-time offer — $${founderPrice}/mo, locked in for life.` : `$${listedPrice}/mo flat when you scale.`} No credit card to start.
         </p>
         <div className="sales-hero-actions">
           <PrimaryCTA size="lg" />
@@ -7714,8 +7715,8 @@ const EDITORIAL_FAQ = [
       const listed = founder ? Math.round(founder.listed_price) : 29;
       const promo = founder ? Math.round(founder.founder_price) : 19;
       return active
-        ? `Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
-        : `Every new account gets 14 days of every feature. After that the Free plan covers five customers and twenty jobs in total, without invoicing, reports or team members. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
+        ? `Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is normally $${listed} flat, but right now it's $${promo}/mo locked in for life — no per-seat, no per-customer, no overages.`
+        : `Free for five customers and twenty jobs in total, invoicing included, with no time limit. Every new account also gets 14 days of the Pro extras: reports and team members. Pro is $${listed} flat — no per-seat, no per-customer, no overages.`;
     },
   },
   {
@@ -14261,7 +14262,7 @@ function BillingView({ session, me }) {
             </h3>
             <p className="billing-hero-sub">
               {isFree && status.status === 'canceled' && 'Your data\'s still here. Upgrade anytime to unlock Pro features again.'}
-              {isFree && status.status !== 'canceled' && status.status !== 'trialing' && status.status !== 'free' && 'Five ' + terms.customersLower + ' and twenty ' + terms.jobsLower + ' on the house. Upgrade to Pro for unlimited everything plus invoicing, reports, and team members.'}
+              {isFree && status.status !== 'canceled' && status.status !== 'trialing' && status.status !== 'free' && 'Five ' + terms.customersLower + ' and twenty ' + terms.jobsLower + ' on the house, invoicing included. Upgrade to Pro for unlimited everything plus reports and team members.'}
               {status.status === 'free' && 'Set by platform staff — no billing on this account.'}
               {status.status === 'trialing' && trialDays > 0 && 'Trial ends ' + formatDateString(status.trial_ends_at.split('T')[0]) + '. Subscribe before then to keep Pro, or do nothing and drop to Free — your data stays put.'}
               {status.status === 'trialing' && trialDays <= 0 && 'You\'re now on the Free plan with its limits. Upgrade anytime.'}
@@ -14305,12 +14306,11 @@ function BillingView({ session, me }) {
               </div>
               <div className="section-heading">Locked on Free</div>
               <ul className="billing-locked-list">
-                <li><Icon name="lock" /> <strong>Invoicing</strong> — send branded invoices with public links and Venmo pay</li>
                 <li><Icon name="lock" /> <strong>Reports</strong> — revenue dashboard, projected income, top {terms.customersLower}</li>
                 <li><Icon name="lock" /> <strong>Team members</strong> — invite admins, leads, employees with role-based access</li>
               </ul>
               <p className="hint" style={{ marginTop: 14 }}>
-                Upgrade to Pro to unlock all three plus unlimited {terms.customersLower} and {terms.jobsLower}.
+                Upgrade to Pro to unlock both, plus unlimited {terms.customersLower} and {terms.jobsLower}.
               </p>
             </div>
           )}
@@ -14987,8 +14987,8 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
     {
       name: 'Money',
       items: [
-        canBill && (isFree || features.invoices) && {
-          key: 'invoices', label: 'Invoices', icon: 'invoices', to: '/invoices', locked: isFree,
+        canBill && features.invoices && {
+          key: 'invoices', label: 'Invoices', icon: 'invoices', to: '/invoices',
         },
         canBill && features.quotes && {
           key: 'quotes', label: 'Quotes', icon: 'quotes', to: '/quotes', badge: draftQuotesCount,
@@ -15181,9 +15181,7 @@ function AppShell({ session: realSession, onLogout, onSessionUpdate }) {
         {view === 'jobs' && <JobsView session={session} features={features} smsTemplates={(me && me.sms_templates) || []} defaultAddToDraft={!!(me && me.auto_append_to_draft)} planContext={{ isFree, atCap: jobsAtCap, used: counts.jobs, limit: limits.jobs }} />}
         {view === 'customers' && <CustomersView session={session} features={features} planContext={{ isFree, atCap: customersAtCap, used: counts.customers, limit: limits.customers }} />}
         {view === 'requests' && features.requests && <RequestsView session={session} />}
-        {view === 'invoices' && ['admin', 'lead'].includes(session.user.role) && (isFree
-          ? <LockedFeature feature="invoices" session={session} />
-          : (features.invoices && <InvoicesView session={session} />))}
+        {view === 'invoices' && ['admin', 'lead'].includes(session.user.role) && features.invoices && <InvoicesView session={session} />}
         {view === 'quotes' && ['admin', 'lead'].includes(session.user.role) && features.quotes && <QuotesView session={session} features={features} />}
         {view === 'reports' && (isFree
           ? <LockedFeature feature="reports" session={session} />
@@ -15986,7 +15984,7 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
     draftQuotesCount: draftQuotesCount || 0,
     teamNotes, refreshTeamNotes,
     features, isFree,
-    invoicesUsable: !isFree && features.invoices,
+    invoicesUsable: features.invoices,
     quotesUsable: features.quotes,
     onMarkComplete: (job, date) => setCompleting({ job, date }),
     onUncomplete: uncompleteOccurrence,

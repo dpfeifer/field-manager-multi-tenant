@@ -73,7 +73,10 @@ app.use('/api/auth', resolveOrganization, authRoutes);
 app.use('/api/customers', resolveOrganization, requireAuth, blockPastDue, enforceLimit('customers'), customersRoutes);
 app.use('/api/jobs', resolveOrganization, requireAuth, blockPastDue, enforceLimit('jobs'), jobsRoutes);
 app.use('/api/settings', resolveOrganization, requireAuth, blockPastDue, settingsRoutes);
-app.use('/api/invoices', resolveOrganization, requireAuth, blockPastDue, requirePro('invoices'), invoicesRoutes);
+// Invoicing is part of the Free plan: "free for your first five customers"
+// has to include getting paid by them. The Free limits (5 customers, 20 jobs)
+// are what bring an account to Pro; reports and team members stay Pro.
+app.use('/api/invoices', resolveOrganization, requireAuth, blockPastDue, invoicesRoutes);
 app.use('/api/quotes', resolveOrganization, requireAuth, blockPastDue, quotesRoutes);
 app.use('/api/reports', resolveOrganization, requireAuth, requirePro('reports'), reportsRoutes);
 app.use('/api/billing', resolveOrganization, requireAuth, billingRoutes);

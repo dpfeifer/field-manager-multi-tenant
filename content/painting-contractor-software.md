@@ -1,6 +1,6 @@
 ---
 title: Painting software for small crews, from estimate to final payment
-description: Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five customers.
+description: Send the estimate, get it accepted online, schedule the job and invoice it without retyping a line. Built for one-to-five-person painting crews. Free for your first five customers, invoicing included. Then {{price}}/month flat.
 path: /painters
 eyebrow: For painters
 collection: use-cases
@@ -45,7 +45,7 @@ You set the percentage and the limit.
 
 ## What it costs
 
-**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your customers, schedule and quotes, but not invoicing, for up to five customers and 20 jobs, with no time limit. **Pro is {{price}}/month flat**: unlimited customers, unlimited jobs, every feature, your whole crew included. Export your data and leave whenever you like.
+**Free for your first five customers**, no credit card and no time limit: scheduling, quotes and invoicing, for up to 20 jobs. New accounts also get reports and team members for 14 days. **Pro is {{price}}/month flat**: unlimited customers, unlimited jobs, every feature, your whole crew included. Export your data and leave whenever you like.
 
 ## Switching from paper or another app
 
@@ -59,7 +59,7 @@ A: Record the deposit as credit on the customer's account when it arrives. When 
 Q: Does it measure rooms or calculate paint quantities?
 A: No. You write the estimate with your own line items and prices. Field Manager handles everything after the number: acceptance, scheduling, invoicing and payment links.
 Q: How much does Field Manager cost?
-A: New accounts get 14 days of every feature with no credit card. After that the Free plan covers up to 5 customers and 20 jobs in total, without invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
+A: It is free for up to 5 customers and 20 jobs in total, invoicing included, with no credit card and no time limit. Pro is {{price}} a month, flat, and adds reports, team members and unlimited customers and jobs. New accounts get the Pro extras free for 14 days.
 Q: Does it charge per user?
 A: No. Team members are part of Pro, and Pro costs the same whether it is just you or a crew of eight.
 Q: Does Field Manager process card payments?

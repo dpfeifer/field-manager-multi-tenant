@@ -1,6 +1,6 @@
 ---
 title: Lawn care software built for the weekly route
-description: Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by people who actually run a route. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five customers.
+description: Recurring mowing schedules, mark-complete from the truck, and month-end invoicing that does itself — built by people who actually run a route. Free for your first five customers, invoicing included. Then {{price}}/month flat.
 path: /lawncare
 eyebrow: For lawn care
 collection: use-cases
@@ -49,7 +49,7 @@ You set the percentage and how many jobs it runs for. They can watch the credit 
 
 ## What it costs
 
-**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your customers, schedule and quotes, but not invoicing, for up to five customers and 20 jobs, with no time limit. **Pro is {{price}}/month flat**: unlimited customers, unlimited jobs, every feature, teammates included if you add a helper. No per-seat pricing that punishes you for growing a crew. If you ever leave, export everything — it's your data.
+**Free for your first five customers**, no credit card and no time limit: scheduling, quotes and invoicing, for up to 20 jobs. New accounts also get reports and team members for 14 days. **Pro is {{price}}/month flat**: unlimited customers, unlimited jobs, every feature, teammates included if you add a helper. No per-seat pricing that punishes you for growing a crew. If you ever leave, export everything — it's your data.
 
 ## Switching from paper, spreadsheets, or another app
 
@@ -65,7 +65,7 @@ A: Yes. Mark each push complete after the storm and the month's pushes roll into
 Q: Does it optimise routes or track chemical applications?
 A: No. It lists the day's jobs in order, but it does not do route optimisation, GPS tracking or pesticide application records.
 Q: How much does Field Manager cost?
-A: New accounts get 14 days of every feature with no credit card. After that the Free plan covers up to 5 customers and 20 jobs in total, without invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
+A: It is free for up to 5 customers and 20 jobs in total, invoicing included, with no credit card and no time limit. Pro is {{price}} a month, flat, and adds reports, team members and unlimited customers and jobs. New accounts get the Pro extras free for 14 days.
 Q: Does it charge per user?
 A: No. Team members are part of Pro, and Pro costs the same whether it is just you or a crew of eight.
 Q: Does Field Manager process card payments?

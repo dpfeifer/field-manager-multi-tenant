@@ -369,7 +369,7 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
         description: 'Scheduling, customer records, quotes and invoicing for small service businesses. One flat monthly price with unlimited users.',
         publisher: { '@id': `${BASE_URL}/#org` },
         offers: [
-          { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: 'Up to 5 customers and 20 jobs in total, no time limit. Invoicing, reports and team members are part of Pro.' },
+          { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: 'Up to 5 customers and 20 jobs in total, no time limit. Scheduling, quotes and invoicing included. Reports and team members are part of Pro.' },
           { '@type': 'Offer', name: 'Pro', price: '{{price_num}}', priceCurrency: 'USD', description: 'Per month, flat. Every feature. Unlimited customers, jobs and users.' },
         ],
       },
@@ -949,8 +949,8 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 ## Pricing (US dollars)
 
 - New accounts get 14 days of every feature. No credit card is needed to start.
-- Free plan: up to 5 customers and 20 jobs in total, with no time limit. Includes repeating schedules, quotes, the booking-request page and CSV import and export. It does NOT include invoicing, reports or team members.
-- Pro: $29 per month, flat. Everything, including invoicing, month-end invoice roll-up, reports and team members. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
+- Free plan: up to 5 customers and 20 jobs in total, with no time limit. Includes repeating schedules, quotes, the booking-request page and CSV import and export. Invoicing and pay-now links are included. It does NOT include reports or team members.
+- Pro: $29 per month, flat. Adds reports and team members, and removes the limits. Unlimited customers, jobs, invoices and users. No per-user fee and no cap on the number of jobs. Limited-time offers may lower this; the pricing section of the home page is authoritative.
 - Data can be exported as CSV at any time.
 
 ## What it does

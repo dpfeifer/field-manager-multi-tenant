@@ -5,7 +5,7 @@ const FREE_LIMITS = {
   jobs: 20,
 };
 
-const PRO_ONLY = new Set(['invoices', 'reports', 'team']);
+const PRO_ONLY = new Set(['reports', 'team']);
 
 function computePlan(org) {
   if (!org) return 'free';

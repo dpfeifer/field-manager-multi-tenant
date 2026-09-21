@@ -1,6 +1,6 @@
 ---
 title: Recurring cleans, invoiced without the Sunday paperwork
-description: Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Every feature free for 14 days, no card. Then {{price}}/month flat, or a free plan for up to five clients.
+description: Recurring cleans, per-property notes, and monthly invoicing that builds itself — for solo house cleaners and small cleaning companies. Free for your first five clients, invoicing included. Then {{price}}/month flat.
 path: /cleaners
 eyebrow: For cleaning
 collection: use-cases
@@ -49,7 +49,7 @@ You set the percentage and the limit. The thank-you email, the running balance a
 
 ## What it costs
 
-**Every feature is free for 14 days**, no credit card. After that the Free plan keeps your clients, schedule and quotes, but not invoicing, for up to five clients and 20 jobs, with no time limit. **Pro is {{price}}/month flat**: unlimited clients, unlimited jobs, every feature, and teammates included. Bring on a helper without the bill moving, and assign them their own route. Leave whenever and take your data with you.
+**Free for your first five clients**, no credit card and no time limit: scheduling, quotes and invoicing, for up to 20 jobs. New accounts also get reports and team members for 14 days. **Pro is {{price}}/month flat**: unlimited clients, unlimited jobs, every feature, and teammates included. Bring on a helper without the bill moving, and assign them their own route. Leave whenever and take your data with you.
 
 ## Switching is the easy part
 

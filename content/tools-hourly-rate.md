@@ -22,7 +22,7 @@ Most people set their rate by asking what the other guy charges. This works it o
 
 ## Then stop retyping the job
 
-Once you know your number, the rest is admin: the estimate, the calendar, the invoice. Field Manager carries one job through all three without retyping it, and rolls repeat work into one monthly invoice per customer. Every feature is free for 14 days, then {{price}}/month flat with your crew included.
+Once you know your number, the rest is admin: the estimate, the calendar, the invoice. Field Manager carries one job through all three without retyping it, and rolls repeat work into one monthly invoice per customer. It is free for your first five customers, invoicing included, then {{price}}/month flat with your crew included.
 
 {{faq}}
 Q: How do I work out my hourly rate as a self-employed tradesperson?

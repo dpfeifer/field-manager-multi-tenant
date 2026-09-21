@@ -1,6 +1,6 @@
 ---
 title: Field Manager pricing
-description: A free plan for up to 5 customers and 20 jobs. Pro is {{price}} a month, flat, with invoicing, reports and unlimited customers, jobs and users. No per-user fees, no card needed to start, cancel any time.
+description: Free for up to 5 customers and 20 jobs, invoicing included. Pro is {{price}} a month, flat, with reports, team members and unlimited customers and jobs. No per-user fees, no card needed to start, cancel any time.
 path: /pricing
 eyebrow: Pricing
 date: 2026-09-20
@@ -17,7 +17,8 @@ Two plans, one flat price, no per-user fees and no sales call.
 | Quotes | Yes | Yes |
 | Booking-request page | Yes | Yes |
 | CSV import and export | Yes | Yes |
-| Invoicing | No | Yes |
+| Invoicing and pay-now links | Yes | Yes |
+| Month-end invoices that build themselves | Yes | Yes |
 | Reports | No | Yes |
 | Team members | No | Unlimited, included |
 | Time limit | None | Cancel any time |
@@ -25,7 +26,7 @@ Two plans, one flat price, no per-user fees and no sales call.
 
 ## How it starts
 
-Every new account gets **14 days of every feature**, with no credit card. After that you are on the Free plan until you choose Pro. Nothing is deleted and nothing is charged without you asking.
+Every new account starts with **14 days of everything**, including the Pro extras, with no credit card. After that you are on the Free plan until you choose Pro. Nothing is deleted and nothing is charged without you asking.
 
 ## What the Free plan includes
 
@@ -33,7 +34,11 @@ Every new account gets **14 days of every feature**, with no credit card. After 
 - Customer records with notes and full history
 - A calendar with one-off and repeating jobs: weekly, every two weeks or monthly
 - Mark complete from a phone
-- Quotes that customers accept online
+- Quotes that customers accept online, and that convert into jobs and invoices without retyping
+- Invoices, with tax, discounts and customer credit
+- Pay-now links on every invoice to your own Stripe, PayPal, Square or Venmo
+- Month-end invoices that build themselves from completed work
+- Customer referral credits
 - A booking-request page and QR code
 - CSV import and export
 - Free loading of your existing customer list
@@ -41,11 +46,6 @@ Every new account gets **14 days of every feature**, with no credit card. After 
 ## What Pro adds
 
 - Unlimited customers and jobs
-- Invoices, with tax, discounts and customer credit
-- Pay-now links on every invoice to your own Stripe, PayPal, Square or Venmo
-- Month-end invoices that build themselves from completed work
-- Quotes that convert into jobs and invoices without retyping
-- Customer referral credits
 - Reports: revenue, projected income, top customers
 - Team members with admin, lead and employee roles, at no extra cost
 
@@ -59,7 +59,7 @@ Every new account gets **14 days of every feature**, with no credit card. After 
 
 {{faq}}
 Q: How much does Field Manager cost?
-A: The Free plan covers up to 5 customers and 20 jobs in total, with no time limit, and does not include invoicing, reports or team members. Pro is {{price}} a month, flat, with everything included and unlimited customers, jobs and users.
+A: The Free plan covers up to 5 customers and 20 jobs in total, with no time limit, and includes scheduling, quotes and invoicing. Pro is {{price}} a month, flat, and adds reports, team members and unlimited customers and jobs.
 Q: Is there a free trial?
 A: Yes. Every new account gets 14 days of every feature with no credit card. After 14 days the account continues on the Free plan unless you choose Pro.
 Q: Does Field Manager charge per user?
