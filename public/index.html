@@ -9187,8 +9187,11 @@ function CustomersView({ session, planContext, features = {} }) {
         }}
       >
         <span className="c-main">
-          {/* Sorted by last name, so the last name is the bold one. */}
-          {byName && isPerson && c.last_name
+          {/* Under letter headings the last name is the bold one, as on the
+              phone: the headings explain why. Without them — a short list,
+              a filter, a search — the split weight just looks like a glitch,
+              so the phone's styling is all or nothing. */}
+          {grouped && isPerson && c.last_name
             ? <div className="t t-person">{c.first_name ? <span>{c.first_name} </span> : null}{c.last_name}</div>
             : <div className="t">{customerDisplayName(c)}</div>}
         </span>
