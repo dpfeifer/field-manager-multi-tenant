@@ -9113,8 +9113,14 @@ function CustomersView({ session, planContext, features = {} }) {
     search,
     c.first_name, c.last_name, c.business_name, c.phone, c.email, c.address
   ));
+  // What a customer is filed under: the business, else the last name, else
+  // the first — many people are entered by first name alone. The sort and the
+  // letter headings must agree on this, or a list sorted one way gets headed
+  // another and the letters repeat. Accents are folded so "Élise" files under E.
+  const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const filedUnder = (c) => fold(c.business_name) || fold(c.last_name) || fold(c.first_name);
   const sortKey = sort === 'name'
-    ? (c) => (c.business_name || `${c.last_name || ''} ${c.first_name || ''}`).toLowerCase()
+    ? (c) => `${filedUnder(c)} ${c.business_name || !fold(c.last_name) ? '' : fold(c.first_name)}`.trim().toLowerCase()
     : 'created_at';
   const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' ? 'asc' : 'desc');
   const owedTotal = customers.reduce((sum, c) => sum + (parseFloat(c.outstanding_balance) || 0), 0);
@@ -9128,19 +9134,23 @@ function CustomersView({ session, planContext, features = {} }) {
   const byName = sort === 'name';
   const grouped = byName && !search.trim() && filtered.length >= 30;
   const letterOf = (c) => {
-    const ch = (c.business_name || c.last_name || c.first_name || '').trim().charAt(0).toUpperCase();
+    const ch = filedUnder(c).charAt(0).toUpperCase();
     return /[A-Z]/.test(ch) ? ch : '#';
   };
+  // One section per letter, whatever order the rows arrive in: the letter is
+  // the section's key and its jump target, and a repeated key leaves React
+  // unable to clear the list — rows from the last view stayed on screen.
   const sections = [];
   if (grouped) {
+    const byLetter = new Map();
     for (const c of sorted) {
       const L = letterOf(c);
-      if (!sections.length || sections[sections.length - 1].letter !== L) sections.push({ letter: L, items: [] });
-      sections[sections.length - 1].items.push(c);
+      if (!byLetter.has(L)) byLetter.set(L, []);
+      byLetter.get(L).push(c);
     }
-    // "#" (names that start with a digit or symbol) goes last, as on the phone.
-    const hash = sections.findIndex((x) => x.letter === '#');
-    if (hash > -1 && hash !== sections.length - 1) sections.push(sections.splice(hash, 1)[0]);
+    // A to Z, then "#" (names that start with a digit or symbol), as on the phone.
+    [...byLetter.keys()].sort((a, b) => (a === '#') - (b === '#') || a.localeCompare(b))
+      .forEach((L) => sections.push({ letter: L, items: byLetter.get(L) }));
   }
   const railRef = useRef(null);
   const jumpTo = useCallback((letter) => {
@@ -9292,7 +9302,7 @@ function CustomersView({ session, planContext, features = {} }) {
           ))}
         </div>
       )}
-      <div className={`dtable${grouped ? ' is-grouped' : ''}`}>
+      <div className={`dtable${grouped ? ' is-grouped' : ''}`} key={grouped ? 'by-letter' : 'plain'}>
         {!loading && sorted.length > 0 && (
           <div className="dtable-row dtable-head cust-row" aria-hidden="true">
             <span>Name</span><span className="c-where">Address</span>
