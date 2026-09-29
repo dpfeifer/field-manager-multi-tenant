@@ -76,7 +76,19 @@ router.get('/', async (req, res, next) => {
          COALESCE((
            SELECT SUM(cc.amount) FROM customer_credits cc
            WHERE cc.customer_id = c.id AND cc.deleted_at IS NULL
-         ), 0) AS credit_balance
+         ), 0) AS credit_balance,
+         -- Is there work on the books for them? A repeating job that has not
+         -- ended, or a one-off that is not finished — overdue counts: it is
+         -- still owed. Drives the "Nothing scheduled" filter.
+         EXISTS (
+           SELECT 1 FROM jobs j
+           WHERE j.customer_id = c.id AND j.deleted_at IS NULL
+             AND j.status NOT IN ('completed', 'cancelled', 'canceled')
+             AND (
+               (j.type = 'recurring' AND (j.end_date IS NULL OR j.end_date >= CURRENT_DATE))
+               OR j.type = 'single'
+             )
+         ) AS has_scheduled
        FROM customers c
        WHERE c.organization_id = $1 AND c.deleted_at IS NULL
        ORDER BY c.created_at DESC`,

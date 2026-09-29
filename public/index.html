@@ -1627,6 +1627,8 @@
       color: var(--text-muted); background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
     }
+    .cust-show { margin-bottom: 12px; flex-wrap: nowrap; max-width: 100%; }
+    @media (max-width: 420px) { .cust-show button { padding: 9px 10px; } }
     .cust-row .t-person { font-weight: 600; }
     .cust-row .t-person span { font-weight: 400; }
     /* The strip of letters. A phone thing: on a wide screen the list is short
@@ -8954,6 +8956,7 @@ function CustomersView({ session, planContext, features = {} }) {
   const [viewing, setViewing] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('name');
+  const [show, setShow] = useState('all'); // all | owes | idle
   const [busy, setBusy] = useState(false);
 
   const canMutate = ['admin', 'lead'].includes(session.user.role);
@@ -9096,7 +9099,17 @@ function CustomersView({ session, planContext, features = {} }) {
     );
   }
 
-  const filtered = customers.filter((c) => searchMatches(
+  // The two questions a name-sorted list cannot answer: who owes me money,
+  // and who have I got nothing booked for.
+  const owes = (c) => (parseFloat(c.outstanding_balance) || 0) > 0;
+  const idle = (c) => c.has_scheduled === false;
+  const SHOW = [
+    { key: 'all', label: 'All', n: customers.length, test: () => true },
+    { key: 'owes', label: 'Owes money', n: customers.filter(owes).length, test: owes },
+    { key: 'idle', label: 'Not scheduled', n: customers.filter(idle).length, test: idle },
+  ];
+  const showTest = (SHOW.find((x) => x.key === show) || SHOW[0]).test;
+  const filtered = customers.filter((c) => showTest(c) && searchMatches(
     search,
     c.first_name, c.last_name, c.business_name, c.phone, c.email, c.address
   ));
@@ -9110,7 +9123,10 @@ function CustomersView({ session, planContext, features = {} }) {
   // split under letter headings that stay put while their section scrolls,
   // with a strip of letters down the edge to jump by. Only when sorted by name
   // and not searching — a search result or a newest-first list has no alphabet.
-  const grouped = sort === 'name' && !search.trim();
+  // And only once the list is long enough to need it. On a short list every
+  // letter holds one name, and the headings double the length of the screen.
+  const byName = sort === 'name';
+  const grouped = byName && !search.trim() && filtered.length >= 30;
   const letterOf = (c) => {
     const ch = (c.business_name || c.last_name || c.first_name || '').trim().charAt(0).toUpperCase();
     return /[A-Z]/.test(ch) ? ch : '#';
@@ -9172,7 +9188,7 @@ function CustomersView({ session, planContext, features = {} }) {
       >
         <span className="c-main">
           {/* Sorted by last name, so the last name is the bold one. */}
-          {grouped && isPerson && c.last_name
+          {byName && isPerson && c.last_name
             ? <div className="t t-person">{c.first_name ? <span>{c.first_name} </span> : null}{c.last_name}</div>
             : <div className="t">{customerDisplayName(c)}</div>}
         </span>
@@ -9262,6 +9278,17 @@ function CustomersView({ session, planContext, features = {} }) {
         <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.customersLower} />
       )}
       <PlanError error={error} session={session} />
+      {customers.length > 0 && (
+        <div className="segmented cust-show" role="group" aria-label={`Filter ${terms.customersLower}`}>
+          {SHOW.map((f) => (
+            <button
+              key={f.key} type="button"
+              className={show === f.key ? 'on' : ''} aria-pressed={show === f.key}
+              onClick={() => setShow(f.key)}
+            >{f.label} <span className="n">{f.n}</span></button>
+          ))}
+        </div>
+      )}
       <div className={`dtable${grouped ? ' is-grouped' : ''}`}>
         {!loading && sorted.length > 0 && (
           <div className="dtable-row dtable-head cust-row" aria-hidden="true">
@@ -9289,7 +9316,13 @@ function CustomersView({ session, planContext, features = {} }) {
               )}
             />
           ) : (
-            <div className="list-empty">No {terms.customersLower} match this search.</div>
+            <div className="list-empty">
+              {search.trim()
+                ? `No ${terms.customersLower} match this search.`
+                : show === 'owes' ? `Nobody owes you anything.`
+                  : show === 'idle' ? `Every ${terms.customerLower} has something scheduled.`
+                    : `No ${terms.customersLower} match.`}
+            </div>
           )
         ) : (
           grouped
@@ -16651,6 +16684,7 @@ function screenTour(view, t) {
       [ADD, `Add a ${c}.`],
       [MORE, `Import ${cs} from a CSV file, or export them.`],
       [['.toolbar input'], `Search by name, phone or email.`],
+      [['.cust-show'], `Filter the list: everyone, who owes money, or who has nothing scheduled.`],
       [ROW, `Tap a ${c} to see their ${js}, invoices, credit and notes. A red amount is what they owe.`],
       [ROWMORE, `Open, edit or delete this ${c}.`],
     ]],
