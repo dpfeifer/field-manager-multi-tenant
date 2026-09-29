@@ -1617,6 +1617,36 @@
     .job-card.is-clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .row.is-clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
     .dtable-row.is-clickable { cursor: pointer; }
+    /* Letter sections. The table clips instead of hiding its overflow while
+       grouped: overflow:hidden would make the table its own scroll container,
+       and a sticky heading inside one that never scrolls never sticks. */
+    .dtable.is-grouped { overflow: clip; }
+    .dtable-section {
+      position: sticky; top: 0; z-index: 2;
+      padding: 5px 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text-muted); background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .cust-row .t-person { font-weight: 600; }
+    .cust-row .t-person span { font-weight: 400; }
+    /* The strip of letters. A phone thing: on a wide screen the list is short
+       enough to see, and there is no thumb. */
+    .az-rail { display: none; }
+    @media (max-width: 720px) {
+      .dtable-section { top: calc(max(14px, env(safe-area-inset-top)) + 51px); }
+      .az-rail {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        position: fixed; right: 0; top: calc(max(14px, env(safe-area-inset-top)) + 60px);
+        bottom: calc(96px + env(safe-area-inset-bottom)); width: 18px; z-index: 25;
+        touch-action: none; -webkit-user-select: none; user-select: none;
+      }
+      .az-rail button {
+        flex: 0 1 18px; min-height: 0; width: 18px; padding: 0; border: 0; background: none;
+        font: 600 10.5px/1 'Inter', sans-serif; color: var(--primary); cursor: pointer;
+      }
+      /* Room for the strip, so it never sits on a row's own menu button. */
+      .dtable.is-grouped { margin-right: 6px; }
+    }
     .dtable-row.is-clickable:focus-visible {
       outline: 2px solid var(--primary); outline-offset: -2px;
     }
@@ -9076,6 +9106,102 @@ function CustomersView({ session, planContext, features = {} }) {
   const sorted = sortBy(filtered, sortKey, sort === 'oldest' ? 'asc' : sort === 'name' ? 'asc' : 'desc');
   const owedTotal = customers.reduce((sum, c) => sum + (parseFloat(c.outstanding_balance) || 0), 0);
 
+  // The phone's contacts list, because that is what this is: sorted by name,
+  // split under letter headings that stay put while their section scrolls,
+  // with a strip of letters down the edge to jump by. Only when sorted by name
+  // and not searching — a search result or a newest-first list has no alphabet.
+  const grouped = sort === 'name' && !search.trim();
+  const letterOf = (c) => {
+    const ch = (c.business_name || c.last_name || c.first_name || '').trim().charAt(0).toUpperCase();
+    return /[A-Z]/.test(ch) ? ch : '#';
+  };
+  const sections = [];
+  if (grouped) {
+    for (const c of sorted) {
+      const L = letterOf(c);
+      if (!sections.length || sections[sections.length - 1].letter !== L) sections.push({ letter: L, items: [] });
+      sections[sections.length - 1].items.push(c);
+    }
+    // "#" (names that start with a digit or symbol) goes last, as on the phone.
+    const hash = sections.findIndex((x) => x.letter === '#');
+    if (hash > -1 && hash !== sections.length - 1) sections.push(sections.splice(hash, 1)[0]);
+  }
+  const railRef = useRef(null);
+  const jumpTo = useCallback((letter) => {
+    const el = document.getElementById(`cust-sec-${letter === '#' ? 'num' : letter}`);
+    if (!el) return;
+    // By hand, to the page only: scrollIntoView is what once shook the fixed
+    // tab bar loose on iOS. The offset clears the sticky top bar.
+    const topbar = document.querySelector('.topbar');
+    const offset = (topbar && getComputedStyle(topbar).position === 'sticky' ? topbar.getBoundingClientRect().height : 0) + 6;
+    window.scrollTo(0, Math.max(0, window.scrollY + el.getBoundingClientRect().top - offset));
+  }, []);
+  // Tap a letter, or slide a thumb down the strip: whichever letter is under
+  // the finger is where the list goes.
+  const railTouch = useCallback((e) => {
+    const pt = e.touches ? e.touches[0] : e;
+    const hit = document.elementFromPoint(pt.clientX, pt.clientY);
+    const letter = hit && hit.getAttribute && hit.getAttribute('data-letter');
+    if (letter) jumpTo(letter);
+  }, [jumpTo]);
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return undefined;
+    // Not passive: the page must not scroll under a thumb sliding on the strip.
+    const move = (e) => { e.preventDefault(); railTouch(e); };
+    el.addEventListener('touchmove', move, { passive: false });
+    return () => el.removeEventListener('touchmove', move);
+  }, [railTouch, grouped, sections.length]);
+
+  const renderRow = (c) => {
+    const balance = parseFloat(c.outstanding_balance) || 0;
+    const isPerson = !c.business_name && (c.first_name || c.last_name);
+    return (
+      <div
+        key={c.id}
+        className="dtable-row cust-row is-clickable"
+        role="button"
+        tabIndex={0}
+        onClick={() => { setViewing(c); setMode('detail'); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setViewing(c); setMode('detail');
+          }
+        }}
+      >
+        <span className="c-main">
+          {/* Sorted by last name, so the last name is the bold one. */}
+          {grouped && isPerson && c.last_name
+            ? <div className="t t-person">{c.first_name ? <span>{c.first_name} </span> : null}{c.last_name}</div>
+            : <div className="t">{customerDisplayName(c)}</div>}
+        </span>
+        <span className="c-when c-where" title={c.address || undefined}>
+          {c.address ? addressLines(c.address)[0] : '—'}
+        </span>
+        <span className="c-when c-phone">{c.phone || '—'}</span>
+        <span className="c-when c-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email || '—'}</span>
+        <span className={`c-amt${balance > 0 ? ' c-owes' : ''}`}>
+          {balance > 0 ? formatPrice(balance) : ''}
+        </span>
+        {/* The row opens the customer, so View is gone — it would be a
+            button that does what clicking anywhere already does. The
+            rest are things the row click is not. */}
+        <span className="c-act" onClick={(e) => e.stopPropagation()}>
+          {canMutate && (
+            <RowMenu
+              label={`Actions for ${customerDisplayName(c)}`}
+              items={[
+                { label: 'Edit details', onClick: () => { setEditing(c); setMode('edit'); } },
+                { label: 'Delete', danger: true, onClick: () => setDeleting(c) },
+              ]}
+            />
+          )}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div>
       {deleting && (
@@ -9136,7 +9262,7 @@ function CustomersView({ session, planContext, features = {} }) {
         <UpgradePrompt session={session} used={planContext.used} limit={planContext.limit} resource={terms.customersLower} />
       )}
       <PlanError error={error} session={session} />
-      <div className="dtable">
+      <div className={`dtable${grouped ? ' is-grouped' : ''}`}>
         {!loading && sorted.length > 0 && (
           <div className="dtable-row dtable-head cust-row" aria-hidden="true">
             <span>Name</span><span className="c-where">Address</span>
@@ -9166,52 +9292,23 @@ function CustomersView({ session, planContext, features = {} }) {
             <div className="list-empty">No {terms.customersLower} match this search.</div>
           )
         ) : (
-          sorted.map((c) => {
-            const balance = parseFloat(c.outstanding_balance) || 0;
-            return (
-              <div
-                key={c.id}
-                className="dtable-row cust-row is-clickable"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setViewing(c); setMode('detail'); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setViewing(c); setMode('detail');
-                  }
-                }}
-              >
-                <span className="c-main">
-                  <div className="t">{customerDisplayName(c)}</div>
-                </span>
-                <span className="c-when c-where" title={c.address || undefined}>
-                  {c.address ? addressLines(c.address)[0] : '—'}
-                </span>
-                <span className="c-when c-phone">{c.phone || '—'}</span>
-                <span className="c-when c-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email || '—'}</span>
-                <span className={`c-amt${balance > 0 ? ' c-owes' : ''}`}>
-                  {balance > 0 ? formatPrice(balance) : ''}
-                </span>
-                {/* The row opens the customer, so View is gone — it would be a
-                    button that does what clicking anywhere already does. The
-                    rest are things the row click is not. */}
-                <span className="c-act" onClick={(e) => e.stopPropagation()}>
-                  {canMutate && (
-                    <RowMenu
-                      label={`Actions for ${customerDisplayName(c)}`}
-                      items={[
-                        { label: 'Edit details', onClick: () => { setEditing(c); setMode('edit'); } },
-                        { label: 'Delete', danger: true, onClick: () => setDeleting(c) },
-                      ]}
-                    />
-                  )}
-                </span>
-              </div>
-            );
-          })
+          grouped
+            ? sections.map((sec) => (
+              <React.Fragment key={sec.letter}>
+                <div className="dtable-section" id={`cust-sec-${sec.letter === '#' ? 'num' : sec.letter}`} role="heading" aria-level={3}>{sec.letter}</div>
+                {sec.items.map(renderRow)}
+              </React.Fragment>
+            ))
+            : sorted.map(renderRow)
         )}
       </div>
+      {grouped && sections.length > 1 && (
+        <nav className="az-rail" ref={railRef} aria-label="Jump to a letter" onClick={railTouch} onTouchStart={railTouch}>
+          {sections.map((sec) => (
+            <button key={sec.letter} type="button" data-letter={sec.letter} aria-label={`Jump to ${sec.letter === '#' ? 'other names' : sec.letter}`}>{sec.letter}</button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
