@@ -9618,9 +9618,10 @@ function RequestsView({ session }) {
               <button className="modal-close" onClick={() => setShowEmbed(false)}>×</button>
             </div>
             <p className="hint" style={{ marginTop: 0 }}>
-              Paste this where you want the form to appear. It sizes itself to
-              fit and needs no styling. Requests arrive here exactly as they do
-              from the link.
+              Paste this where you want the form to appear. It shows the form
+              only, with no logo or heading, sizes itself to fit, and picks up
+              your site&apos;s font, colors and button style. Requests arrive here
+              exactly as they do from the link.
             </p>
             <textarea
               readOnly
@@ -9633,8 +9634,14 @@ function RequestsView({ session }) {
               <CopyButton text={bookingEmbedSnippet(session.slug)} label="Copy code" />
               <button className="secondary" onClick={() => setShowEmbed(false)}>Done</button>
             </div>
-            <p className="hint" style={{ marginBottom: 0 }}>
+            <p className="hint">
               Works on WordPress, Squarespace, Wix and plain HTML.
+            </p>
+            <p className="hint" style={{ marginBottom: 0 }}>
+              If a color comes out wrong, set it yourself by adding any of these
+              inside the tag: <code>data-accent=&quot;#0a7d5a&quot;</code>, <code>data-text=&quot;#222222&quot;</code>,{' '}
+              <code>data-background=&quot;#ffffff&quot;</code>, <code>data-font=&quot;Georgia, serif&quot;</code>,{' '}
+              <code>data-radius=&quot;6&quot;</code>. Add <code>data-match=&quot;off&quot;</code> to keep the plain look.
             </p>
           </div>
         </div>

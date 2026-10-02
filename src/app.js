@@ -444,14 +444,91 @@ const EMBED_JS = `(function () {
   var slug = s.getAttribute('data-org');
   if (!slug) return;
   var origin = new URL(s.src, location.href).origin;
+  var host = s.parentNode;
+
+  // ---- look like the page we are on ----
+  // Read the host's font, text colour, background and button style, and hand
+  // them to the form. Any of it can be set by hand on the script tag instead:
+  //   data-accent="#0a7d5a" data-accent-text="#ffffff" data-text="#222222"
+  //   data-background="#ffffff" data-font="Georgia, serif" data-radius="6"
+  // and data-match="off" keeps Field Manager's own look.
+  var cv = document.createElement('canvas'); cv.width = cv.height = 1;
+  var cx = cv.getContext && cv.getContext('2d', { willReadFrequently: true });
+  // Any CSS colour -> [r, g, b, a]. Painted and read back, so named colours,
+  // hsl(), oklch() and the rest all come out the same way.
+  function rgba(c) {
+    if (!cx || !c) return null;
+    try {
+      cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = c; cx.fillRect(0, 0, 1, 1);
+      var d = cx.getImageData(0, 0, 1, 1).data;
+      if (d[3] === 0) return [0, 0, 0, 0];
+      // Read back premultiplied: undo it so a translucent colour keeps its hue.
+      return [d[0], d[1], d[2], d[3] / 255];
+    } catch (e) { return null; }
+  }
+  function hex(c) { return '#' + [c[0], c[1], c[2]].map(function (n) { return ('0' + Math.round(n).toString(16)).slice(-2); }).join(''); }
+  function far(a, b) { return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) > 90; }
+  function lum(c) { return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255; }
+  function attr(n) { var v = s.getAttribute(n); return v && v.trim() ? v.trim() : null; }
+  function colorAttr(n) { var v = attr(n); var c = v ? rgba(v) : null; return c && c[3] > 0 ? c : null; }
+
+  var q = ['embed=1'];
+  var ref = new URLSearchParams(location.search).get('ref');
+  if (ref) q.push('ref=' + encodeURIComponent(ref.slice(0, 16)));
+
+  if (attr('data-match') !== 'off') {
+    try {
+      var cs = getComputedStyle(host);
+      var text = colorAttr('data-text') || rgba(cs.color);
+      // The first ancestor that actually paints a background.
+      var bg = colorAttr('data-background');
+      for (var n = host; !bg && n && n.nodeType === 1; n = n.parentNode) {
+        var b = rgba(getComputedStyle(n).backgroundColor);
+        if (b && b[3] > 0.5) bg = b;
+      }
+      if (!bg) bg = [255, 255, 255, 1];
+      if (!text || !far(text, bg)) text = lum(bg) > 0.5 ? [25, 23, 15, 1] : [240, 240, 240, 1];
+
+      // The accent is whatever this site paints its buttons with.
+      var accent = colorAttr('data-accent'), accentText = colorAttr('data-accent-text'), radius = attr('data-radius');
+      if (!accent) {
+        var els = document.querySelectorAll('button, input[type="submit"], [role="button"], a[class*="btn"], a[class*="button"], [class*="btn"], [class*="button"]');
+        for (var i = 0; i < els.length && i < 80 && !accent; i++) {
+          var el = els[i], r = el.getBoundingClientRect();
+          if (r.width < 48 || r.height < 20 || r.height > 90) continue;
+          var st = getComputedStyle(el), eb = rgba(st.backgroundColor);
+          if (!eb || eb[3] < 0.6 || !far(eb, bg)) continue;
+          accent = eb;
+          if (!accentText) accentText = rgba(st.color);
+          if (radius == null) radius = parseFloat(st.borderTopLeftRadius);
+        }
+      }
+      // No button to copy: a link's colour, and failing that the text colour.
+      if (!accent) {
+        var a = document.querySelector('main a, article a, p a, a');
+        var ac = a && rgba(getComputedStyle(a).color);
+        accent = ac && ac[3] > 0.5 && far(ac, bg) ? ac : text;
+      }
+      if (!accentText || !far(accentText, accent)) accentText = lum(accent) > 0.6 ? [20, 20, 20, 1] : [255, 255, 255, 1];
+
+      q.push('text=' + encodeURIComponent(hex(text)), 'bg=' + encodeURIComponent(hex(bg)),
+        'accent=' + encodeURIComponent(hex(accent)), 'accentText=' + encodeURIComponent(hex(accentText)));
+      if (radius != null && isFinite(parseFloat(radius))) q.push('radius=' + Math.min(28, Math.max(0, parseFloat(radius))));
+      var font = attr('data-font') || cs.fontFamily;
+      if (font) q.push('font=' + encodeURIComponent(font.slice(0, 300)));
+      var size = parseFloat(cs.fontSize);
+      if (isFinite(size)) q.push('size=' + Math.min(18, Math.max(14, size)));
+    } catch (e) { /* the form still works in its own colours */ }
+  }
 
   var f = document.createElement('iframe');
-  f.src = origin + '/book/' + encodeURIComponent(slug) + '?embed=1';
+  f.src = origin + '/book/' + encodeURIComponent(slug) + '?' + q.join('&');
   f.title = 'Booking request form';
   f.loading = 'lazy';
-  f.style.cssText = 'width:100%;border:0;display:block;min-height:520px;';
+  f.setAttribute('allowtransparency', 'true');
+  f.style.cssText = 'width:100%;border:0;display:block;min-height:480px;background:transparent;color-scheme:normal;';
   f.setAttribute('scrolling', 'no');
-  s.parentNode.insertBefore(f, s);
+  host.insertBefore(f, s);
 
   window.addEventListener('message', function (e) {
     if (e.origin !== origin) return;
@@ -532,8 +609,11 @@ app.get('/book/:slug', async (req, res, next) => {
       const r = await resolveReferrer({ query }, org.id, { code: ref });
       if (r) referrer = { code: ref.toUpperCase(), name: r.first_name || r.business_name || 'A friend' };
     }
+    // Embedded: the form alone, dressed in whatever the host page passed.
+    const embed = req.query.embed === '1';
     res.type('html').send(bookingPage.renderPage({
       slug, org, referrer, appUrl: process.env.APP_URL || 'https://fieldmgr.com',
+      embed, theme: embed ? bookingPage.sanitizeTheme(req.query) : null,
     }));
   } catch (err) { next(err); }
 });

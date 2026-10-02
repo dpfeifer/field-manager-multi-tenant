@@ -64,7 +64,80 @@ async function loadOrg(slug) {
   return rows[0] || null;
 }
 
-function renderPage({ slug, org, appUrl, referrer = null }) {
+// ---- matching the host site (embed only) ----
+//
+// embed.js runs on the customer's own website, reads that page's font, text
+// colour, background and button style, and passes them here on the frame's
+// URL. Everything arrives from a stranger's page and is written into a
+// <style> block, so nothing is trusted: colours must be plain hex, the font
+// stack is rebuilt family by family from a safe alphabet, numbers are clamped.
+const HEX = /^#(?:[0-9a-f]{6})$/i;
+const GENERIC_FONTS = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-sans-serif', 'ui-serif', 'ui-monospace', 'ui-rounded']);
+// Faces a visitor's device already has, or that cannot be fetched by name.
+const LOCAL_FONTS = new Set(['-apple-system', 'blinkmacsystemfont', 'segoe ui', 'helvetica', 'helvetica neue', 'arial', 'georgia', 'times', 'times new roman', 'verdana', 'tahoma', 'trebuchet ms', 'courier new', 'courier', 'sf pro text', 'sf pro display']);
+
+function hexToRgb(h) { return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+const alpha = (h, a) => `rgba(${hexToRgb(h).join(', ')}, ${a})`;
+const clampNum = (v, lo, hi) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null; };
+
+function sanitizeFontStack(raw) {
+  if (typeof raw !== 'string') return null;
+  const families = raw.slice(0, 300).split(',')
+    .map((f) => f.replace(/["']/g, '').replace(/[^A-Za-z0-9 _-]/g, '').trim())
+    .filter(Boolean).slice(0, 8);
+  if (!families.length) return null;
+  const stack = families.map((f) => (GENERIC_FONTS.has(f.toLowerCase()) || f.startsWith('-') ? f : `'${f}'`));
+  if (!families.some((f) => GENERIC_FONTS.has(f.toLowerCase()))) stack.push('sans-serif');
+  // The first named face is the one the host page is actually set in. If it
+  // is a web font the frame does not have it; Google Fonts is asked for it by
+  // name, and a face that is not there simply falls through to the next.
+  const first = families[0];
+  const webFont = !GENERIC_FONTS.has(first.toLowerCase()) && !LOCAL_FONTS.has(first.toLowerCase()) && !first.startsWith('-') ? first : null;
+  return { css: stack.join(', '), webFont };
+}
+
+function sanitizeTheme(q) {
+  if (!q || typeof q !== 'object') return null;
+  const pick = (k) => (typeof q[k] === 'string' && HEX.test(q[k]) ? q[k].toLowerCase() : null);
+  const theme = {
+    text: pick('text'), bg: pick('bg'), accent: pick('accent'), accentText: pick('accentText'),
+    radius: clampNum(q.radius, 0, 28), size: clampNum(q.size, 14, 18),
+    font: sanitizeFontStack(q.font),
+  };
+  return Object.values(theme).some((v) => v != null) ? theme : null;
+}
+
+function themeCss(t) {
+  if (!t) return '';
+  const lines = [];
+  const vars = [];
+  if (t.text) vars.push(`--text: ${t.text}`, `--muted: ${alpha(t.text, 0.66)}`, `--strong: ${alpha(t.text, 0.3)}`, `--border: ${alpha(t.text, 0.16)}`);
+  if (t.bg) vars.push(`--card: ${t.bg}`);
+  if (t.accent) vars.push(`--primary: ${t.accent}`, `--ring: ${alpha(t.accent, 0.2)}`);
+  if (t.accentText) vars.push(`--on-primary: ${t.accentText}`);
+  if (t.radius != null) vars.push(`--radius: ${t.radius}px`, `--field-radius: ${Math.min(t.radius, 12)}px`);
+  // On a dark page the browser's own controls — the date picker, the select
+  // arrow — must switch too, or they are dark marks on a dark field.
+  if (t.bg) {
+    const [r, g, b] = hexToRgb(t.bg);
+    if ((0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.45) vars.push('color-scheme: dark');
+  }
+  if (vars.length) lines.push(`:root { ${vars.join('; ')}; }`);
+  // The confirmation and the referral note in the host's own colours rather
+  // than a pale green box dropped onto somebody else's design.
+  if (t.text) {
+    lines.push(`body.embed .done { background: ${alpha(t.text, 0.08)}; color: var(--text); border: 1px solid ${alpha(t.text, 0.16)}; border-radius: var(--field-radius); }`);
+    lines.push(`body.embed .refby { background: ${alpha(t.text, 0.08)}; }`);
+  }
+  const body = [];
+  if (t.font) body.push(`font-family: ${t.font.css}`);
+  if (t.size != null) body.push(`font-size: ${t.size}px`);
+  if (body.length) lines.push(`body.embed { ${body.join('; ')}; }`);
+  if (t.size != null) lines.push(`body.embed input, body.embed select, body.embed textarea, body.embed button { font-size: ${t.size}px; }`);
+  return lines.join('\n  ');
+}
+
+function renderPage({ slug, org, appUrl, referrer = null, embed = false, theme = null }) {
   const cfg = normalizeConfig(org.booking_form_config);
   const company = org.company_name || org.organization_name || 'us';
   const heading = cfg.title || `Request a booking with ${company}`;
@@ -93,7 +166,8 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(heading)}</title>
+<title>${esc(heading)}</title>${embed && theme && theme.font && theme.font.webFont ? `
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.font.webFont).replace(/%20/g, '+')}:wght@400;700&display=swap">` : ''}
 <meta name="robots" content="noindex">
 <meta property="og:title" content="${esc(referrer ? `${referrer.name} recommends ${company}` : `Book a service with ${company}`)}">
 <meta property="og:description" content="${esc(sub)}">
@@ -107,6 +181,7 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
     --border: #e8e1d1; --strong: #d4cab4; --primary: #2c3e57;
     --danger: #a23b2c; --danger-bg: #f9e3df;
     --success: #2d6b4a; --success-bg: #e1ede5;
+    --on-primary: #fff; --ring: rgba(44, 62, 87, 0.14); --radius: 8px; --field-radius: 8px;
   }
   * { box-sizing: border-box; }
   body {
@@ -122,6 +197,7 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 14px; padding: 26px 24px;
   }
+  body.embed { background: transparent; }
   body.embed .card { border: 0; border-radius: 0; padding: 4px 0; background: transparent; }
   .logo { max-height: 52px; max-width: 180px; margin-bottom: 16px; }
   h1 { font-size: 21px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -0.01em; }
@@ -133,21 +209,21 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
   input, select, textarea {
     width: 100%; font: inherit; font-size: 15px; color: var(--text);
     background: var(--card); border: 1px solid var(--strong);
-    border-radius: 8px; padding: 10px 12px;
+    border-radius: var(--field-radius); padding: 10px 12px;
   }
   input:focus, select:focus, textarea:focus {
     outline: none; border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(44, 62, 87, 0.14);
+    box-shadow: 0 0 0 3px var(--ring);
   }
   textarea { min-height: 88px; resize: vertical; }
   .slot { display: grid; grid-template-columns: 1fr 150px; gap: 10px; }
   @media (max-width: 420px) { .slot { grid-template-columns: 1fr; gap: 0; } }
   button {
     width: 100%; font: inherit; font-size: 15px; font-weight: 600;
-    color: #fff; background: var(--primary); border: 0;
-    border-radius: 8px; padding: 12px 16px; cursor: pointer; margin-top: 6px;
+    color: var(--on-primary); background: var(--primary); border: 0;
+    border-radius: var(--radius); padding: 12px 16px; cursor: pointer; margin-top: 6px;
   }
-  button:hover { background: #1b2940; }
+  button:hover { filter: brightness(0.9); }
   button:disabled { opacity: 0.6; cursor: default; }
   .msg { border-radius: 8px; padding: 12px 14px; font-size: 14px; margin-bottom: 16px; }
   .msg.err { background: var(--danger-bg); color: var(--danger); }
@@ -157,17 +233,18 @@ function renderPage({ slug, org, appUrl, referrer = null }) {
   .foot { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
   .foot a { color: var(--muted); }
   body.embed .foot { margin-top: 12px; }
+  ${embed ? themeCss(theme) : ''}
   /* Honeypot: present for bots, never shown or focusable for people. */
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 </style>
 </head>
-<body>
+<body${embed ? ' class="embed"' : ''}>
 <div class="wrap">
   <div class="card">
     <div id="form-wrap">
-      ${org.logo_url ? `<img class="logo" src="${esc(org.logo_url)}" alt="${esc(company)}">` : ''}
+      ${embed ? '' : `${org.logo_url ? `<img class="logo" src="${esc(org.logo_url)}" alt="${esc(company)}">` : ''}
       <h1>${esc(heading)}</h1>
-      <p class="sub">${esc(sub)}</p>
+      <p class="sub">${esc(sub)}</p>`}
       ${referrer ? `<p class="refby">You were referred by <strong>${esc(referrer.name)}</strong>.</p>` : ''}
       <div id="err" class="msg err" style="display:none" role="alert"></div>
       <form id="f" novalidate>
@@ -311,4 +388,4 @@ function notFoundPage() {
 <p style="color:#66635c;margin:0;font-size:14px">Check the address, or contact the business directly.</p></div></body></html>`;
 }
 
-module.exports = { SLUG_RE, loadOrg, renderPage, notFoundPage };
+module.exports = { SLUG_RE, loadOrg, renderPage, notFoundPage, sanitizeTheme };
