@@ -9042,63 +9042,11 @@ function CustomersView({ session, planContext, features = {} }) {
     } catch (err) { setDeleting(null); setError(err); }
   }
 
-  if (mode === 'create') {
-    return (
-      <div>
-        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
-        <div className="page-header"><h2>New {terms.customerLower}</h2></div>
-        <PlanError error={error} session={session} />
-        <div className="form-card">
-          <CustomerForm customers={features.referrals ? customers : []} onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
-        </div>
-      </div>
-    );
-  }
-
-  if (mode === 'edit' && editing) {
-    return (
-      <div>
-        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
-        <div className="page-header"><h2>Edit {terms.customerLower}</h2></div>
-        <PlanError error={error} session={session} />
-        <div className="form-card">
-          <CustomerForm
-            initial={editing}
-            customers={features.referrals ? customers : []}
-            onSubmit={updateCustomer}
-            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
-            busy={busy}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (mode === 'detail' && viewing) {
-    return (
-      <CustomerDetailView
-        key={viewing.id}
-        session={session}
-        customer={viewing}
-        canMutate={canMutate}
-        showReferrals={!!features.referrals}
-        onOpenCustomer={openCustomer}
-        onBack={() => { setViewing(null); setMode('list'); }}
-        onEdit={(c) => { setEditing(c); setMode('edit'); }}
-      />
-    );
-  }
-
-  if (mode === 'import') {
-    return (
-      <CsvImportView
-        session={session}
-        onDone={async () => { await refresh(); }}
-        onCancel={() => { setError(null); setMode('list'); }}
-      />
-    );
-  }
-
+  // Everything the list needs — including the hooks for the A–Z strip — is
+  // worked out here, ABOVE the screens that return early. A hook below an
+  // early return is called on some renders and not others, and React stops
+  // drawing the screen: that is how New customer, Edit, the customer page and
+  // Import all went blank for two weeks.
   // The two questions a name-sorted list cannot answer: who owes me money,
   // and who have I got nothing booked for.
   const owes = (c) => (parseFloat(c.outstanding_balance) || 0) > 0;
@@ -9230,6 +9178,63 @@ function CustomersView({ session, planContext, features = {} }) {
       </div>
     );
   };
+
+  if (mode === 'create') {
+    return (
+      <div>
+        <BackLink onClick={() => { setError(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
+        <div className="page-header"><h2>New {terms.customerLower}</h2></div>
+        <PlanError error={error} session={session} />
+        <div className="form-card">
+          <CustomerForm customers={features.referrals ? customers : []} onSubmit={createCustomer} onCancel={() => { setError(null); setMode('list'); }} busy={busy} />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && editing) {
+    return (
+      <div>
+        <BackLink onClick={() => { setError(null); setEditing(null); setMode('list'); }}>All {terms.customersLower}</BackLink>
+        <div className="page-header"><h2>Edit {terms.customerLower}</h2></div>
+        <PlanError error={error} session={session} />
+        <div className="form-card">
+          <CustomerForm
+            initial={editing}
+            customers={features.referrals ? customers : []}
+            onSubmit={updateCustomer}
+            onCancel={() => { setError(null); setEditing(null); setMode('list'); }}
+            busy={busy}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'detail' && viewing) {
+    return (
+      <CustomerDetailView
+        key={viewing.id}
+        session={session}
+        customer={viewing}
+        canMutate={canMutate}
+        showReferrals={!!features.referrals}
+        onOpenCustomer={openCustomer}
+        onBack={() => { setViewing(null); setMode('list'); }}
+        onEdit={(c) => { setEditing(c); setMode('edit'); }}
+      />
+    );
+  }
+
+  if (mode === 'import') {
+    return (
+      <CsvImportView
+        session={session}
+        onDone={async () => { await refresh(); }}
+        onCancel={() => { setError(null); setMode('list'); }}
+      />
+    );
+  }
 
   return (
     <div>
@@ -15984,6 +15989,12 @@ function DashboardLayoutMode({ session, ctx, widgets, isVisibleForRole, onSaved,
 function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, features = {} }) {
   const terms = useTerms();
   const [jobs, setJobs] = useState([]);
+  // Local copy so a saved layout takes effect immediately, without waiting
+  // for `me` to be refetched by the shell. Up here with the other state, above
+  // the Mark complete screen's early return — a hook below that is skipped
+  // on some renders and React stops drawing.
+  const [layoutOverride, setLayoutOverride] = useState(null);
+  const [editingLayout, setEditingLayout] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -16108,11 +16119,6 @@ function DashboardView({ session, me, pendingRequestsCount, draftQuotesCount, fe
 
   const plan = (me && me.plan) || 'pro';
   const isFree = plan === 'free';
-  // Local copy so a saved layout takes effect immediately, without waiting
-  // for `me` to be refetched by the shell. Declared ahead of ctx, which
-  // hands the edit action to the greeting widget.
-  const [layoutOverride, setLayoutOverride] = useState(null);
-  const [editingLayout, setEditingLayout] = useState(false);
 
   const ctx = {
     session, terms, today,
