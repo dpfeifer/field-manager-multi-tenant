@@ -38,7 +38,7 @@ Every new account starts with **14 days of everything**, including the Pro extra
 - Invoices, with tax, discounts and customer credit
 - Pay-now links on every invoice to your own Stripe, PayPal, Square or Venmo
 - Month-end invoices that build themselves from completed work
-- Customer referral credits
+- [Customer referral credits](/referral-program)
 - A booking-request page and QR code
 - CSV import and export
 - Free loading of your existing customer list

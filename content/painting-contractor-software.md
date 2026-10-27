@@ -28,7 +28,7 @@ When they call back in three years for the exterior, you are not starting from z
 Repaints come from neighbors. Reward the ones who send them.
 Give each customer a booking link of their own. When a neighbor books through it, they arrive marked as that customer's referral, and the referrer earns credit with you on the jobs you complete.
 
-You set the percentage and the limit.
+You set the percentage and the limit. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## The rest of the job

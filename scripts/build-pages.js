@@ -150,6 +150,35 @@ const MOCKS = {
       ${rows([['Marcus Bell', '5 rewards earned', '+$27.50'], ['Dee Whitfield', '4 rewards earned', '+$34.00'], ['Riverbend HOA', 'No rewards yet', '']].map(([n, m, amt]) =>
         `<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">${n}</div><div class="pd-mt">${m}</div></div>${amt ? `<span class="pd-earn">${amt}</span>` : ''}</div>`))}`,
   }),
+  // The public booking page, opened from a referral link: the one addition is
+  // the line naming who recommended the business.
+  referred: (company) => phone({
+    label: 'The booking page opened from a referral link, with a line naming who recommended the business', company, chrome: false,
+    body: `<div class="pd-book">
+      <div class="pd-book-logo">${esc(initials(company))}</div>
+      <div class="pd-credit" style="display:inline-block;margin-bottom:12px">You were referred by Heather Stahl</div>
+      <h5>Book with ${esc(company)}</h5>
+      <p>Tell us what you need and when. We’ll confirm by text.</p>
+      <label>Your name</label><div class="pd-field">Marcus Bell</div>
+      <label>Phone</label><div class="pd-field">555-664-2211</div>
+      <label>What do you need?</label><div class="pd-field pd-field--tall">Weekly mowing, same as Heather’s</div>
+      <div class="pd-submit">Request a booking</div>
+    </div>`,
+  }),
+  // The private page a referrer sees (/r/<token>): their credit, their link,
+  // and the people who booked through it.
+  refpage: (company) => phone({
+    label: 'The private page a referrer sees: their credit, their link, and the people who booked through it', company, chrome: false,
+    body: `<div class="pd-book">
+      <div class="pd-book-logo">${esc(initials(company))}</div>
+      <h5>Heather, you have $61.50 in credit</h5>
+      <p>It comes off your next invoice from ${esc(company)}. Thank you for sending people our way.</p>
+      <div class="pd-link"><div class="pd-l">Your referral link</div><div class="pd-link-row"><span>fieldmgr.com/book/you?ref=N9MJAX7R</span><b>Copy</b></div></div>
+      <div class="pd-sec">People you sent</div>
+      ${rows([['Marcus', '5 jobs completed', '+$27.50'], ['Dee', '4 jobs completed', '+$34.00'], ['Riverbend HOA', 'Booked, no jobs yet', '']].map(([n, m, amt]) =>
+        `<div class="pd-ro"><div class="pd-fill"><div class="pd-nm">${n}</div><div class="pd-mt">${m}</div></div>${amt ? `<span class="pd-earn">${amt}</span>` : ''}</div>`))}
+    </div>`,
+  }),
 };
 
 // The phone's CSS, cut from the landing page's stylesheet rather than copied:
@@ -1099,10 +1128,12 @@ function relatedFor(page) {
   const others = (list) => list.filter((p) => p.path !== page.path)
     .map((p) => `<a href="${p.path}">${esc(p.collection === 'use-cases' ? short(p) : p.title)}</a>`).join(' · ');
   const uses = others(pages.filter((p) => p.collection === 'use-cases'));
+  const features = others(pages.filter((p) => p.collection === 'features'));
   const learn = others(pages.filter((p) => p.path.startsWith('/learn/')));
   const tools = others(pages.filter((p) => p.path.startsWith('/tools/')));
   return `<nav class="page-related" aria-label="Related pages">
   ${uses ? `<p><strong>Field Manager for</strong>${uses}</p>` : ''}
+  ${features ? `<p><strong>Features</strong>${features}</p>` : ''}
   ${learn ? `<p><strong>Comparisons</strong>${learn}</p>` : ''}
   ${tools ? `<p><strong>Free tools</strong>${tools}</p>` : ''}
 </nav>`;
@@ -1232,7 +1263,7 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 - Payments: every invoice carries a pay-now link to the owner's own Stripe, PayPal, Square or Venmo. Field Manager does not process payments and takes no cut.
 - Quotes: send an estimate by email or link; the customer accepts or declines online; an accepted quote converts into a customer, a job and an invoice without retyping.
 - Booking requests: a public page and QR code where new customers request work. The owner accepts or declines; it is a request, not instant slot booking.
-- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of completed jobs as account credit. The owner sets the percentage and the limit.
+- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of each completed job as account credit, up to a limit the owner sets, applied to the referrer's next invoice. The referrer gets a thank-you email and a private page showing their balance. Included at no extra charge on both plans. Details: ${BASE_URL}/referral-program
 - Team: admins, leads and employees with role-based access, included at no extra cost.
 - A hosted one-page website for the business is available, with services, photos and reviews.
 - Wording is configurable: customers can be clients or members; jobs can be visits, appointments or sessions.
@@ -1249,6 +1280,9 @@ ${listPages(pages.filter((p) => p.path.startsWith('/learn/')))}
 
 ### Free tools
 ${listPages(pages.filter((p) => p.path.startsWith('/tools/')))}
+
+### Features
+${listPages(pages.filter((p) => p.collection === 'features'))}
 
 ### Other
 - [Pricing](${BASE_URL}/pricing): both plans, what each includes, and what is never charged for.

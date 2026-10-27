@@ -30,7 +30,7 @@ When someone you haven't seen in six months books in, you're not starting from z
 Regulars who fill your chair for you.
 Give a client a booking link of their own. When a friend books through it, they arrive already marked as that client's referral — and each cut you finish for them puts a share on the referrer's account as credit toward their own.
 
-You set the percentage and how many visits it runs for. No punch cards, no remembering who sent whom.
+You set the percentage and how many visits it runs for. No punch cards, no remembering who sent whom. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## The rest of the day

@@ -28,7 +28,7 @@ Prefer to review first? Generate it per client in a couple of clicks. Clients wh
 Word of mouth, with the bookkeeping done.
 Cleaning grows by recommendation, and nobody tracks it. Give each client a booking link of their own: when a friend books through it, they arrive marked as that client's referral, and every clean you finish for them puts a share on the referrer's account as credit.
 
-You set the percentage and the limit. The thank-you email, the running balance and the credit on their next invoice all happen without you.
+You set the percentage and the limit. The thank-you email, the running balance and the credit on their next invoice all happen without you. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## The rest of the rotation

@@ -30,7 +30,7 @@ Prefer to review first? Generate it per customer in two clicks instead. Customer
 The neighbors, sent by the people you already mow for.
 Every customer gets a booking link of their own. When the house next door books through it, they arrive already marked as that customer's referral — and each yard you finish for them puts a share of the job on the referrer's account as credit.
 
-You set the percentage and how many jobs it runs for. They can watch the credit add up on a page of their own, which is the reason they keep passing the link along.
+You set the percentage and how many jobs it runs for. They can watch the credit add up on a page of their own, which is the reason they keep passing the link along. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## The rest of the week

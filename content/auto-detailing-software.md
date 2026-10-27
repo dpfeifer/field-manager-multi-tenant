@@ -23,7 +23,7 @@ No app for them, no account to create, no thread to keep scrolling back through.
 One clean car, three more from the same street.
 Every customer gets a booking link of their own. When someone books through it, they arrive marked as that customer's referral, and each detail you finish for them puts a share on the referrer's account as credit.
 
-You set the percentage and the limit. They get a thank-you email with their balance each time — and a reason to send the link to the next person who asks who did their car.
+You set the percentage and the limit. They get a thank-you email with their balance each time — and a reason to send the link to the next person who asks who did their car. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## The rest of the job

@@ -28,7 +28,7 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 - Payments: every invoice carries a pay-now link to the owner's own Stripe, PayPal, Square or Venmo. Field Manager does not process payments and takes no cut.
 - Quotes: send an estimate by email or link; the customer accepts or declines online; an accepted quote converts into a customer, a job and an invoice without retyping.
 - Booking requests: a public page and QR code where new customers request work. The owner accepts or declines; it is a request, not instant slot booking.
-- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of completed jobs as account credit. The owner sets the percentage and the limit.
+- Referrals: each customer can have a personal booking link. When someone they refer becomes a customer, the referrer earns a percentage of each completed job as account credit, up to a limit the owner sets, applied to the referrer's next invoice. The referrer gets a thank-you email and a private page showing their balance. Included at no extra charge on both plans. Details: https://fieldmgr.com/referral-program
 - Team: admins, leads and employees with role-based access, included at no extra cost.
 - A hosted one-page website for the business is available, with services, photos and reviews.
 - Wording is configurable: customers can be clients or members; jobs can be visits, appointments or sessions.
@@ -55,6 +55,9 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 - [Free estimate and quote generator](https://fieldmgr.com/tools/estimate-generator): Write a professional estimate or quote in a minute and save it as a PDF, with line items, tax, a validity date and a signature line for acceptance. No sign-up, and nothing you type leaves your browser.
 - [Hourly rate calculator for service businesses](https://fieldmgr.com/tools/hourly-rate): Work out what to charge per hour as a handyman, painter, lawn care operator or any solo service business — from the pay you want, your real costs, and the hours you can actually bill.
 - [Free invoice generator](https://fieldmgr.com/tools/invoice-generator): Make a clean, professional invoice in a minute and save it as a PDF. Line items, tax, discount, deposit paid, your logo. No sign-up, and nothing you type leaves your browser.
+
+### Features
+- [A customer referral program that runs itself](https://fieldmgr.com/referral-program): Give every customer a booking link of their own. When someone books through it, the referrer earns a share of each completed job as credit toward their own service. Included in Field Manager at no extra charge, on the Free plan and Pro.
 
 ### Other
 - [Pricing](https://fieldmgr.com/pricing): both plans, what each includes, and what is never charged for.

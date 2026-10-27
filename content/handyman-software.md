@@ -23,7 +23,7 @@ No re-entering the line items three times.
 The referral that used to be a favor, paid back.
 Most of your work comes from someone saying your name. Give each customer a booking link of their own: when a neighbor books through it, they arrive marked as that customer's referral, and every job you finish for them puts a share on the referrer's account as credit.
 
-You set the percentage and how many jobs it runs for. Nobody keeps a list of who sent whom.
+You set the percentage and how many jobs it runs for. Nobody keeps a list of who sent whom. [How the referral program works.](/referral-program)
 {{/chapter}}
 
 ## Everything else you’ll use

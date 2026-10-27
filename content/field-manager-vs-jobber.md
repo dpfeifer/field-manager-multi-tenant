@@ -33,6 +33,7 @@ For a solo operator, the practical difference isn't the first month's bill. It's
 | Online booking page + QR code | Yes | Yes |
 | Hosted landing page (a simple website for your business) | Yes | No — bring your own site |
 | Client book with job history | Yes | Yes |
+| [Customer referral rewards](/referral-program) | Included; a share of every completed job as credit | Marketing Suite add-on, about $99/mo extra; one credit when the referred client first pays |
 | Get paid | Pay-link on invoices (Stripe/PayPal/Square/Venmo links) | Built-in card processing |
 | GPS / fleet tracking | No | Yes |
 | Deep QuickBooks sync | No | Yes |

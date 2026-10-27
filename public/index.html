@@ -4406,6 +4406,10 @@
     .ed-chapter-prose em {
       font-style: italic; color: var(--text);
     }
+    .ed-chapter-prose a {
+      color: var(--text); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-strong, var(--border));
+    }
+    .ed-chapter-prose a:hover { text-decoration-color: currentColor; }
     @media (max-width: 900px) {
       .ed-chapter {
         grid-template-columns: 1fr;
@@ -7431,7 +7435,7 @@ function LandingPage({ signedIn }) {
             <p className="ed-chapter-kicker">Word of mouth, with a paper trail</p>
             <h2 className="ed-chapter-title">Your best customers become your sales team.</h2>
             <p className="ed-chapter-prose">
-              Give a customer their own booking link. When a neighbor books through it, they arrive already marked as that customer&rsquo;s referral &mdash; and every job you finish for them puts a share of it on the referrer&rsquo;s account as credit. You set the percentage and the limit. <em>Nobody keeps a spreadsheet of who sent whom.</em>
+              Give a customer their own booking link. When a neighbor books through it, they arrive already marked as that customer&rsquo;s referral &mdash; and every job you finish for them puts a share of it on the referrer&rsquo;s account as credit. You set the percentage and the limit. <em>Nobody keeps a spreadsheet of who sent whom.</em> <a href="/referral-program">How the referral program works</a>
             </p>
           </div>
           <div className="ed-chapter-mock">
