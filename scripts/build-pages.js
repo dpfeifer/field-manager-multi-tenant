@@ -240,7 +240,194 @@ const plain = (mdText) => mdText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace
 // Free tools: a working calculator dropped into a content page with
 // {{tool:name}}. These are the only content pages that carry script — plain
 // JS, no dependencies, and the page still reads sensibly if it never runs.
+// A document builder: an estimate or an invoice, typed into a form, previewed
+// as you go, printed or saved as a PDF from the browser. Nothing leaves the
+// page — there is no server, no account, nothing stored anywhere but the
+// visitor's own browser (a draft, so a reload does not lose their work).
+function docTool(kind) {
+  const inv = kind === 'invoice';
+  const T = {
+    title: inv ? 'INVOICE' : 'ESTIMATE',
+    numLabel: inv ? 'Invoice number' : 'Estimate number',
+    numPrefix: inv ? 'INV-' : 'EST-',
+    dateLabel: inv ? 'Invoice date' : 'Estimate date',
+    date2Label: inv ? 'Due date' : 'Valid until',
+    date2Days: inv ? 14 : 30,
+    notesLabel: inv ? 'Payment details and notes' : 'Notes and terms',
+    notesPlaceholder: inv
+      ? 'How to pay: Venmo @yourname, or check payable to Your Business. Due within 14 days.'
+      : 'This estimate is valid for 30 days. Work scheduled on acceptance; final invoice may vary with materials.',
+    totalLabel: inv ? 'Amount due' : 'Estimated total',
+    acceptance: inv ? '' : '<div class="doc-accept"><div><div class="doc-line"></div>Accepted by</div><div><div class="doc-line"></div>Date</div></div>',
+    storeKey: inv ? 'fm_invoice_draft' : 'fm_estimate_draft',
+  };
+  return `<section class="doctool" id="doctool" aria-label="${inv ? 'Invoice' : 'Estimate'} generator">
+  <form class="doctool-form" id="dt-form" novalidate>
+    <h2 class="tool-calc-h">Your business</h2>
+    <div class="dt-grid">
+      <label>Business name<input id="dt-biz" placeholder="Harbor Painting Co."></label>
+      <label>Contact lines<span>Address, phone, email — one per line</span><textarea id="dt-bizlines" rows="3" placeholder="123 Main St, Baltimore MD 21201&#10;(410) 555-0100&#10;you@example.com"></textarea></label>
+      <label class="dt-logo">Logo <span>optional, stays on this device</span><input type="file" id="dt-logo" accept="image/*"><button type="button" class="link-btn" id="dt-logo-clear" hidden>Remove logo</button></label>
+    </div>
+    <h2 class="tool-calc-h">Bill to</h2>
+    <div class="dt-grid">
+      <label>Customer name<input id="dt-cust" placeholder="Dana Alvarez"></label>
+      <label>Customer address<textarea id="dt-custlines" rows="2" placeholder="45 Oak Lane&#10;Towson MD 21204"></textarea></label>
+    </div>
+    <h2 class="tool-calc-h">Details</h2>
+    <div class="dt-grid dt-grid-3">
+      <label>${T.numLabel}<input id="dt-num" placeholder="${T.numPrefix}1001"></label>
+      <label>${T.dateLabel}<input type="date" id="dt-date"></label>
+      <label>${T.date2Label}<input type="date" id="dt-date2"></label>
+    </div>
+    <h2 class="tool-calc-h">Line items</h2>
+    <div class="dt-rows" id="dt-rows"></div>
+    <button type="button" class="secondary dt-add" id="dt-add">+ Add a line</button>
+    <div class="dt-grid dt-grid-3" style="margin-top:14px">
+      <label>Tax rate (%)<input id="dt-tax" type="text" inputmode="decimal" placeholder="0"></label>
+      <label>Discount ($)<input id="dt-disc" type="text" inputmode="decimal" placeholder="0"></label>
+      <label>Deposit paid ($)<span>Comes off the total</span><input id="dt-paid" type="text" inputmode="decimal" placeholder="0"></label>
+    </div>
+    <label class="dt-notes">${T.notesLabel}<textarea id="dt-notes" rows="3" placeholder="${T.notesPlaceholder}"></textarea></label>
+    <div class="dt-actions">
+      <button type="button" class="primary" id="dt-print">Print or save as PDF</button>
+      <button type="button" class="link-btn" id="dt-clear">Start over</button>
+    </div>
+    <p class="tool-calc-note">Nothing you type is sent anywhere. The draft is kept in this browser only.</p>
+  </form>
+
+  <div class="doctool-preview">
+    <div class="doc" id="doc">
+      <div class="doc-head">
+        <div class="doc-from">
+          <img id="dv-logo" class="doc-logo" alt="" hidden>
+          <div class="doc-biz" id="dv-biz">Your business</div>
+          <div class="doc-lines" id="dv-bizlines"></div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">${T.title}</div>
+          <div class="doc-kv"><span>${T.numLabel.replace(' number', ' #')}</span><b id="dv-num">—</b></div>
+          <div class="doc-kv"><span>${T.dateLabel.replace(/ date$/, '')}</span><b id="dv-date">—</b></div>
+          <div class="doc-kv"><span>${T.date2Label}</span><b id="dv-date2">—</b></div>
+        </div>
+      </div>
+      <div class="doc-to"><div class="doc-l">${inv ? 'Bill to' : 'Prepared for'}</div><div class="doc-cust" id="dv-cust">Customer</div><div class="doc-lines" id="dv-custlines"></div></div>
+      <table class="doc-table"><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody id="dv-rows"></tbody></table>
+      <div class="doc-totals" id="dv-totals"></div>
+      <div class="doc-notes" id="dv-notes" hidden></div>
+      ${T.acceptance}
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  var KEY = '${T.storeKey}', DAYS2 = ${T.date2Days}, TOTAL_LABEL = '${T.totalLabel}';
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) { return '$' + (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var num = function (v) { var n = parseFloat(String(v).replace(/[^0-9.\\-]/g, '')); return isFinite(n) ? n : 0; };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var lines = function (s) { return esc(s).split(/\\r?\\n/).filter(Boolean).join('<br>'); };
+  var fmtDate = function (v) { if (!v) return '—'; var d = new Date(v + 'T00:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); };
+  var ymd = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  var FIELDS = ['biz', 'bizlines', 'cust', 'custlines', 'num', 'date', 'date2', 'tax', 'disc', 'paid', 'notes'];
+  var logoData = null;
+
+  function rowEl(item) {
+    var d = document.createElement('div'); d.className = 'dt-row';
+    d.innerHTML = '<input class="dt-desc" placeholder="Describe the work" aria-label="Description">' +
+      '<input class="dt-qty" type="text" inputmode="decimal" placeholder="1" aria-label="Quantity">' +
+      '<input class="dt-rate" type="text" inputmode="decimal" placeholder="0.00" aria-label="Rate">' +
+      '<button type="button" class="dt-del" aria-label="Remove line">&times;</button>';
+    d.querySelector('.dt-desc').value = item && item.d || '';
+    d.querySelector('.dt-qty').value = item && item.q != null ? item.q : '';
+    d.querySelector('.dt-rate').value = item && item.r != null ? item.r : '';
+    d.querySelector('.dt-del').addEventListener('click', function () { d.remove(); if (!$('dt-rows').children.length) addRow(); render(); });
+    return d;
+  }
+  function addRow(item) { $('dt-rows').appendChild(rowEl(item)); }
+  function items() {
+    return Array.prototype.map.call($('dt-rows').children, function (r) {
+      return { d: r.querySelector('.dt-desc').value, q: r.querySelector('.dt-qty').value, r: r.querySelector('.dt-rate').value };
+    });
+  }
+
+  function render() {
+    $('dv-biz').textContent = $('dt-biz').value || 'Your business';
+    $('dv-bizlines').innerHTML = lines($('dt-bizlines').value);
+    $('dv-cust').textContent = $('dt-cust').value || 'Customer';
+    $('dv-custlines').innerHTML = lines($('dt-custlines').value);
+    $('dv-num').textContent = $('dt-num').value || '—';
+    $('dv-date').textContent = fmtDate($('dt-date').value);
+    $('dv-date2').textContent = fmtDate($('dt-date2').value);
+    var sub = 0, html = '';
+    items().forEach(function (it) {
+      if (!it.d && !it.q && !it.r) return;
+      var q = it.q === '' ? 1 : num(it.q), rate = num(it.r), amt = q * rate; sub += amt;
+      html += '<tr><td>' + esc(it.d) + '</td><td class="r">' + q + '</td><td class="r">' + money(rate) + '</td><td class="r">' + money(amt) + '</td></tr>';
+    });
+    $('dv-rows').innerHTML = html || '<tr><td colspan="4" class="doc-empty">Add a line item above</td></tr>';
+    var disc = Math.min(num($('dt-disc').value), sub), taxed = sub - disc, tax = taxed * num($('dt-tax').value) / 100;
+    var total = taxed + tax, paid = Math.min(num($('dt-paid').value), total), due = total - paid;
+    var t = '<div><span>Subtotal</span><b>' + money(sub) + '</b></div>';
+    if (disc > 0) t += '<div><span>Discount</span><b>&minus;' + money(disc) + '</b></div>';
+    if (tax > 0) t += '<div><span>Tax (' + num($('dt-tax').value) + '%)</span><b>' + money(tax) + '</b></div>';
+    if (paid > 0) t += '<div><span>Total</span><b>' + money(total) + '</b></div><div><span>Deposit paid</span><b>&minus;' + money(paid) + '</b></div>';
+    t += '<div class="doc-due"><span>' + TOTAL_LABEL + '</span><b>' + money(due) + '</b></div>';
+    $('dv-totals').innerHTML = t;
+    var notes = $('dt-notes').value.trim();
+    $('dv-notes').hidden = !notes; $('dv-notes').innerHTML = lines(notes);
+    $('dv-logo').hidden = !logoData; if (logoData) $('dv-logo').src = logoData;
+    $('dt-logo-clear').hidden = !logoData;
+    save();
+  }
+
+  function save() {
+    try {
+      var o = { items: items(), logo: logoData };
+      FIELDS.forEach(function (f) { o[f] = $('dt-' + f).value; });
+      localStorage.setItem(KEY, JSON.stringify(o));
+    } catch (e) {}
+  }
+  function load() {
+    var o = null;
+    try { o = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    if (o) {
+      FIELDS.forEach(function (f) { if (o[f] != null) $('dt-' + f).value = o[f]; });
+      (o.items && o.items.length ? o.items : [null]).forEach(addRow);
+      if (o.logo) logoData = o.logo;
+    } else {
+      addRow();
+    }
+    if (!$('dt-date').value) $('dt-date').value = ymd(new Date());
+    if (!$('dt-date2').value) { var d = new Date(); d.setDate(d.getDate() + DAYS2); $('dt-date2').value = ymd(d); }
+  }
+
+  $('dt-form').addEventListener('input', render);
+  $('dt-add').addEventListener('click', function () { addRow(); $('dt-rows').lastChild.querySelector('.dt-desc').focus(); render(); });
+  $('dt-print').addEventListener('click', function () { render(); window.print(); });
+  $('dt-clear').addEventListener('click', function () {
+    if (!confirm('Clear everything and start over?')) return;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    FIELDS.forEach(function (f) { $('dt-' + f).value = ''; });
+    $('dt-rows').innerHTML = ''; logoData = null; $('dt-logo').value = '';
+    load(); render();
+  });
+  $('dt-logo').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file || file.size > 2 * 1024 * 1024) { if (file) alert('Please choose an image under 2 MB.'); return; }
+    var fr = new FileReader();
+    fr.onload = function () { logoData = fr.result; render(); };
+    fr.readAsDataURL(file);
+  });
+  $('dt-logo-clear').addEventListener('click', function () { logoData = null; $('dt-logo').value = ''; render(); });
+  load(); render();
+})();
+</script>`;
+}
+
 const TOOLS = {
+  'invoice-generator': docTool('invoice'),
+  'estimate-generator': docTool('estimate'),
   'hourly-rate': `<section class="tool-calc" id="rate-calc" aria-labelledby="rate-calc-h">
   <h2 id="rate-calc-h" class="tool-calc-h">Your numbers</h2>
   <p class="tool-calc-note">The starting figures are placeholders, not advice. Replace every one with your own.</p>
@@ -694,6 +881,75 @@ function pageTemplate({ title, description, pagePath, eyebrow, date, bodyHtml, h
     .page-related { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--border); font-size: 15px; color: var(--text-muted); }
     .page-related strong { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; color: var(--text-muted); }
     .page-related a { color: var(--primary); white-space: nowrap; }
+    /* The document builders: a form beside a live, printable preview. */
+    .doctool { display: grid; grid-template-columns: 1fr; gap: 28px; margin: 8px 0 44px; }
+    @media (min-width: 1100px) {
+      .doctool { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); width: 1000px; margin-left: 50%; transform: translateX(-50%); align-items: start; }
+      .doctool-preview { position: sticky; top: 16px; }
+    }
+    .doctool-form { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+    .doctool-form h2.tool-calc-h { margin: 18px 0 10px; font-size: 17px; }
+    .doctool-form h2.tool-calc-h:first-child { margin-top: 0; }
+    .dt-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .dt-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 520px) { .dt-grid-3 { grid-template-columns: 1fr; } }
+    .doctool-form label { display: flex; flex-direction: column; font-size: 13.5px; font-weight: 600; color: var(--text); gap: 5px; }
+    .doctool-form label span { font-size: 12.5px; font-weight: 400; color: var(--text-muted); margin-top: -3px; }
+    .doctool-form input, .doctool-form textarea {
+      font: 400 15px/1.3 'Inter', sans-serif; color: var(--text); background: #fff;
+      border: 1px solid var(--border-strong); border-radius: 9px; padding: 10px 12px; width: 100%; min-width: 0;
+    }
+    .doctool-form input[type="file"] { padding: 8px; font-size: 13px; }
+    .doctool-form input:focus-visible, .doctool-form textarea:focus-visible, .doctool-form button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .dt-rows { display: grid; gap: 8px; }
+    .dt-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 96px 34px; gap: 8px; align-items: center; }
+    .dt-row .dt-qty, .dt-row .dt-rate { text-align: right; font-variant-numeric: tabular-nums; }
+    .dt-del { width: 34px; height: 40px; border: 1px solid var(--border); background: var(--card); border-radius: 9px; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+    .dt-del:hover { color: var(--text); border-color: var(--primary); }
+    .dt-add, .doctool-form .secondary { margin-top: 10px; font: 600 14px/1 'Inter', sans-serif; padding: 11px 14px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); cursor: pointer; }
+    .dt-notes { margin-top: 14px; }
+    .dt-actions { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+    .doctool-form .primary { font: 600 15px/1 'Inter', sans-serif; padding: 13px 20px; border-radius: 999px; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer; }
+    .link-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; font-weight: 500; color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    .doc {
+      background: #fff; color: #19170f; border: 1px solid var(--border); border-radius: 6px;
+      padding: 36px 36px 30px; box-shadow: 0 18px 44px -30px rgba(40,30,20,0.45);
+      font: 400 14px/1.5 'Inter', sans-serif;
+    }
+    .doc-head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+    .doc-logo { max-height: 56px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 10px; }
+    .doc-biz { font-family: var(--serif); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; }
+    .doc-lines { color: #66635c; font-size: 13px; line-height: 1.45; margin-top: 4px; }
+    .doc-meta { text-align: right; flex: none; }
+    .doc-title { font-family: var(--serif); font-weight: 600; font-size: 26px; letter-spacing: 0.04em; color: #2c3e57; margin-bottom: 8px; }
+    .doc-kv { font-size: 13px; display: flex; justify-content: flex-end; gap: 12px; }
+    .doc-kv span { color: #66635c; } .doc-kv b { font-weight: 600; min-width: 92px; text-align: left; }
+    .doc-to { margin: 26px 0 20px; }
+    .doc-l { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #66635c; margin-bottom: 4px; }
+    .doc-cust { font-weight: 600; font-size: 15px; }
+    .doc-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .doc-table th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #66635c; padding: 0 0 8px; border-bottom: 2px solid #19170f; }
+    .doc-table td { padding: 9px 0; border-bottom: 1px solid #e8e1d1; vertical-align: top; }
+    .doc-table .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .doc-table th.r { padding-left: 14px; } .doc-table td.r { padding-left: 14px; }
+    .doc-empty { color: #a39d8c; font-style: italic; }
+    .doc-totals { margin: 12px 0 0 auto; width: 260px; max-width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+    .doc-totals > div { display: flex; justify-content: space-between; padding: 5px 0; }
+    .doc-totals span { color: #66635c; }
+    .doc-totals .doc-due { border-top: 2px solid #19170f; margin-top: 6px; padding-top: 10px; font-size: 16px; }
+    .doc-totals .doc-due span, .doc-totals .doc-due b { color: #19170f; font-weight: 700; }
+    .doc-notes { margin-top: 26px; padding-top: 16px; border-top: 1px solid #e8e1d1; font-size: 13px; color: #44413a; line-height: 1.55; white-space: normal; }
+    .doc-accept { display: grid; grid-template-columns: 2fr 1fr; gap: 28px; margin-top: 44px; font-size: 12px; color: #66635c; }
+    .doc-line { border-bottom: 1px solid #19170f; height: 26px; margin-bottom: 6px; }
+    @media (max-width: 520px) { .doc { padding: 22px 16px; } .doc-head { flex-direction: column; } .doc-meta { text-align: left; } .doc-kv { justify-content: flex-start; } }
+    /* Printing: the document alone, on its own sheet. */
+    @media print {
+      body { background: #fff; }
+      body > *:not(main), main > *:not(article), article > *:not(.doctool), .doctool-form { display: none !important; }
+      main, article, .doctool, .doctool-preview { display: block !important; max-width: none !important; width: auto !important; margin: 0 !important; padding: 0 !important; transform: none !important; position: static !important; }
+      .doc { border: 0; box-shadow: none; border-radius: 0; padding: 0; }
+      @page { margin: 18mm; }
+    }
     /* The closing band: the landing page's two matched pills. */
     .page-final {
       margin: 56px 0 0; padding: 48px 0 8px; text-align: center;
@@ -772,7 +1028,7 @@ ${related}
       <span class="sep">·</span>
       <a href="/learn">Learn</a>
       <span class="sep">·</span>
-      <a href="/tools/hourly-rate">Rate calculator</a>
+      <a href="/tools">Free tools</a>
       <span class="sep">·</span>
       <a href="/contact">Contact</a>
       <span class="sep">·</span>
@@ -883,6 +1139,20 @@ fs.writeFileSync(path.join(OUT_DIR, routeToFile('/learn')), pageTemplate({
   },
 }));
 manifest['/learn'] = `_pages/${routeToFile('/learn')}`;
+
+// /tools index: every page under /tools/.
+const toolPages = pages.filter((p) => p.path.startsWith('/tools/')).sort((a, b) => a.title.localeCompare(b.title));
+fs.writeFileSync(path.join(OUT_DIR, routeToFile('/tools')), pageTemplate({
+  title: 'Free tools for service businesses',
+  description: 'Free, no sign-up tools for running a small service business: an invoice generator, an estimate generator and an hourly rate calculator. Nothing you type is stored.',
+  pagePath: '/tools', eyebrow: 'Free tools', date: null, kind: 'index',
+  bodyHtml: `<ul class="page-list">\n${toolPages.map((p) => `  <li><a href="${p.path}">${esc(p.title)}</a><p>${esc(p.description)}</p></li>`).join('\n')}\n</ul>`,
+  hero: {
+    headlineHtml: 'Tools that work <em>without an account</em>.',
+    lede: 'Make an invoice or an estimate, work out your hourly rate. Free, no sign-up, and nothing you type leaves your browser.',
+  },
+}));
+manifest['/tools'] = `_pages/${routeToFile('/tools')}`;
 
 // /use-cases index: pages tagged `collection: use-cases` (flat URLs like
 // /barbers stay as-is — this page is just the directory that lists them).

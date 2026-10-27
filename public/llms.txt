@@ -52,7 +52,9 @@ Owner-operators and small crews who visit customers to do the work: handymen, pa
 - [Field Manager vs Square Appointments](https://fieldmgr.com/learn/field-manager-vs-square-appointments): An honest comparison for barbers, stylists, and appointment-based businesses — booking, payments, client records, and what each one charges you.
 
 ### Free tools
+- [Free estimate and quote generator](https://fieldmgr.com/tools/estimate-generator): Write a professional estimate or quote in a minute and save it as a PDF, with line items, tax, a validity date and a signature line for acceptance. No sign-up, and nothing you type leaves your browser.
 - [Hourly rate calculator for service businesses](https://fieldmgr.com/tools/hourly-rate): Work out what to charge per hour as a handyman, painter, lawn care operator or any solo service business — from the pay you want, your real costs, and the hours you can actually bill.
+- [Free invoice generator](https://fieldmgr.com/tools/invoice-generator): Make a clean, professional invoice in a minute and save it as a PDF. Line items, tax, discount, deposit paid, your logo. No sign-up, and nothing you type leaves your browser.
 
 ### Other
 - [Pricing](https://fieldmgr.com/pricing): both plans, what each includes, and what is never charged for.
