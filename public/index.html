@@ -9937,6 +9937,32 @@ function findJobTimeConflict(jobs, candidate, excludeId) {
   return null;
 }
 
+// "3 jobs · $245": how many visits a day holds and what they are worth, used
+// under the day view's date and under the month view's selected day so the
+// two never disagree. Everything on the schedule counts, completed or not —
+// this is what the day is worth, not what has been collected. default_price
+// arrives as a string from Postgres numeric, so parse before adding. "No
+// price set" means the field is empty, not that the price is zero — a
+// deliberate $0 visit is priced, and shouldn't make the total look partial.
+function DayTally({ occurrences }) {
+  const terms = useTerms();
+  const revenue = occurrences.reduce((sum, o) => sum + (parseFloat(o.job.default_price) || 0), 0);
+  const unpriced = occurrences.filter((o) => o.job.default_price == null || o.job.default_price === '').length;
+  return (
+    <>
+      {occurrences.length} {occurrences.length === 1 ? terms.jobLower : terms.jobsLower}
+      {revenue > 0 && (
+        <span
+          className="cal-day-revenue"
+          title={unpriced > 0
+            ? `${unpriced} ${unpriced === 1 ? `${terms.jobLower} has` : `${terms.jobsLower} have`} no price set, so the total covers the rest.`
+            : undefined}
+        ><span className="cal-day-sep">·</span>{formatPrice(revenue)}{unpriced > 0 ? '+' : ''}</span>
+      )}
+    </>
+  );
+}
+
 function CalendarView({ jobs, onChipClick, jobMenuItems, onMarkComplete, onUncomplete, onCreateAt, smsTemplates = [], view, setView, selectedDate, setSelectedDate, monthOffset, setMonthOffset }) {
   const terms = useTerms();
   const today = todayStart();
@@ -9998,18 +10024,6 @@ function CalendarView({ jobs, onChipClick, jobMenuItems, onMarkComplete, onUncom
       return ta.localeCompare(tb);
     });
   })();
-
-  // Everything on the day's schedule, completed or not — this is what the day
-  // is worth, not what has been collected. default_price arrives as a string
-  // from Postgres numeric, so parse before adding.
-  const dayRevenue = dayOccurrences.reduce(
-    (sum, o) => sum + (parseFloat(o.job.default_price) || 0), 0
-  );
-  // "No price set" means the field is empty, not that the price is zero — a
-  // deliberate $0 visit is priced, and shouldn't make the total look partial.
-  const dayUnpriced = dayOccurrences.filter(
-    (o) => o.job.default_price == null || o.job.default_price === ''
-  ).length;
 
   const weekByDate = (() => {
     if (view !== 'week') return {};
@@ -10075,17 +10089,7 @@ function CalendarView({ jobs, onChipClick, jobMenuItems, onMarkComplete, onUncom
         <>
           <div className="cal-day-header">
             <h3>{selectedDateLabel}</h3>
-            <span className="cal-day-count">
-              {dayOccurrences.length} {dayOccurrences.length === 1 ? terms.jobLower : terms.jobsLower}
-              {dayRevenue > 0 && (
-                <span
-                  className="cal-day-revenue"
-                  title={dayUnpriced > 0
-                    ? `${dayUnpriced} ${dayUnpriced === 1 ? `${terms.jobLower} has` : `${terms.jobsLower} have`} no price set, so the total covers the rest.`
-                    : undefined}
-                ><span className="cal-day-sep">·</span>{formatPrice(dayRevenue)}{dayUnpriced > 0 ? '+' : ''}</span>
-              )}
-            </span>
+            <span className="cal-day-count"><DayTally occurrences={dayOccurrences} /></span>
           </div>
           <DayTimeGrid
             occurrences={dayOccurrences}
@@ -10504,9 +10508,7 @@ function CalendarMonthGrid({ today, todayStr, viewMonth, monthByDate, selectedDa
         <>
           <div className="section-heading">
             {formatDateString(selectedDate)}
-            <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
-              ({selectedOccurrences.length} {selectedOccurrences.length === 1 ? terms.jobLower : terms.jobsLower})
-            </span>
+            <span className="cal-day-count" style={{ marginLeft: 10 }}><DayTally occurrences={selectedOccurrences} /></span>
           </div>
           <div className="list">
             {selectedOccurrences.length === 0 ? (
@@ -14239,7 +14241,6 @@ function DemoBanner() {
 
 function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
   const founder = useFounderStatus();
-  if (!status) return null;
   const trialEnded = status === 'trial_expired' || (status === 'trialing' && trialDaysLeft !== null && trialDaysLeft <= 0);
   const droppedToFree = trialEnded || status === 'canceled';
   const dismissKey = droppedToFree && orgId ? `fm_dropped_to_free_seen_${orgId}` : null;
@@ -14247,6 +14248,9 @@ function BillingBanner({ status, trialDaysLeft, isAdmin, orgId, session }) {
     if (!dismissKey) return false;
     try { return localStorage.getItem(dismissKey) === '1'; } catch (e) { return false; }
   });
+  // Below the hooks: status is empty until billing loads, and a hook that only
+  // runs once it arrives blanks the page ("rendered more hooks").
+  if (!status) return null;
   function dismiss() {
     setDismissed(true);
     if (dismissKey) { try { localStorage.setItem(dismissKey, '1'); } catch (e) {} }
