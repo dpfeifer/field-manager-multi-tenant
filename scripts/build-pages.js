@@ -1203,12 +1203,15 @@ fs.writeFileSync(path.join(OUT_DIR, routeToFile('/use-cases')), pageTemplate({
 }));
 manifest['/use-cases'] = `_pages/${routeToFile('/use-cases')}`;
 
-// The richer home page, as a prototype at a hidden address (scripts/site-home.js).
-// It is noindex and stays out of the sitemap and llms.txt until it replaces
-// the live home page.
+// The richer home page, as a prototype (scripts/site-home.js). LOCAL ONLY: it
+// is built when FM_PREVIEW=1 is set, which production never does, so the page
+// does not exist on fieldmgr.com at any address until Dustin says to ship it.
+//   FM_PREVIEW=1 node scripts/build-pages.js   →   http://localhost:3000/preview/home
 const PREVIEW_HOME = '/preview/home';
-fs.writeFileSync(path.join(OUT_DIR, routeToFile(PREVIEW_HOME)), require('./site-home').buildHome({ MOCKS, PHONE_CSS, unsplash, esc }));
-manifest[PREVIEW_HOME] = `_pages/${routeToFile(PREVIEW_HOME)}`;
+if (process.env.FM_PREVIEW === '1') {
+  fs.writeFileSync(path.join(OUT_DIR, routeToFile(PREVIEW_HOME)), require('./site-home').buildHome({ MOCKS, PHONE_CSS, unsplash, esc }));
+  manifest[PREVIEW_HOME] = `_pages/${routeToFile(PREVIEW_HOME)}`;
+}
 
 fs.writeFileSync(path.join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
