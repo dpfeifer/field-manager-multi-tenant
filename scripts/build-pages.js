@@ -1203,6 +1203,13 @@ fs.writeFileSync(path.join(OUT_DIR, routeToFile('/use-cases')), pageTemplate({
 }));
 manifest['/use-cases'] = `_pages/${routeToFile('/use-cases')}`;
 
+// The richer home page, as a prototype at a hidden address (scripts/site-home.js).
+// It is noindex and stays out of the sitemap and llms.txt until it replaces
+// the live home page.
+const PREVIEW_HOME = '/preview/home';
+fs.writeFileSync(path.join(OUT_DIR, routeToFile(PREVIEW_HOME)), require('./site-home').buildHome({ MOCKS, PHONE_CSS, unsplash, esc }));
+manifest[PREVIEW_HOME] = `_pages/${routeToFile(PREVIEW_HOME)}`;
+
 fs.writeFileSync(path.join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
 // sitemap.xml — marketing base + generated pages.
@@ -1213,7 +1220,7 @@ const urls = [
   { loc: '/terms', priority: '0.3', changefreq: 'yearly' },
   { loc: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { loc: '/learn', priority: '0.7', changefreq: 'weekly' },
-  ...Object.keys(manifest).filter((p) => p !== '/learn')
+  ...Object.keys(manifest).filter((p) => p !== '/learn' && !p.startsWith('/preview/'))
     .map((p) => ({ loc: p, priority: '0.7', changefreq: 'monthly', lastmod: (pages.find((x) => x.path === p) || {}).date })),
 ];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
